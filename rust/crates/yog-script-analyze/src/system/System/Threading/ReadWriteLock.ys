@@ -3,6 +3,7 @@ namespace System.Threading;
 /// A value many threads read at once or one writes (Rust's `RwLock`, .NET's
 /// `ReaderWriterLockSlim`).
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly sealed class ReadWriteLock<T> {
     public ReadWriteLock(T value) {}
 
@@ -14,6 +15,7 @@ public readonly sealed class ReadWriteLock<T> {
 
 /// A read of a `ReadWriteLock`, until it's dropped.
 [Intrinsic]
+[Threads(ThreadSafety.Bound)]
 public sealed class ReadGuard<T> : IDisposable {
     public T Value { get; }
     public void Dispose();
@@ -21,6 +23,7 @@ public sealed class ReadGuard<T> : IDisposable {
 
 /// A write of a `ReadWriteLock`, until it's dropped.
 [Intrinsic]
+[Threads(ThreadSafety.Bound)]
 public sealed class WriteGuard<T> : IDisposable {
     public T Value { get; set; }
     public void Dispose();

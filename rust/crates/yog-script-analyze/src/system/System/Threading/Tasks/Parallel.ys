@@ -5,7 +5,9 @@ namespace System.Threading.Tasks;
 [Intrinsic]
 public static class Parallel {
     /// `body(i)` for each `i` from `fromInclusive` up to `toExclusive`.
+    [Crosses(nameof(body), Crossing.Concurrent)]
     public static void For(i32 fromInclusive, i32 toExclusive, Action<i32> body);
     /// `body(item)` for each of `items`.
+    [Crosses(nameof(body), Crossing.Concurrent)]
     public static void ForEach<T>(IEnumerable<T> items, Action<T> body);
 }

@@ -14,8 +14,10 @@ public readonly class SynchronizationContext {
     /// `context` this thread's from now on (`null`: its side's again).
     public static void SetSynchronizationContext(SynchronizationContext? context);
     /// `work` run in the context, later.
+    [Crosses(nameof(work), Crossing.Moved)]
     public virtual void Post(Action work);
     /// `work` run in the context, waited for.
+    [Crosses(nameof(work), Crossing.Scoped)]
     public virtual void Send(Action work);
     /// Whether the thread asking is the one it runs work on.
     public bool IsCurrent { get; }

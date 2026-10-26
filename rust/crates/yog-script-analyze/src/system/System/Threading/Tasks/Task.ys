@@ -24,7 +24,9 @@ public readonly class Task {
     public static Task Yield();
     /// `work` run on the pool (`TaskScheduler.Default`): the way off a
     /// side's thread for heavy work, awaited back in the caller's context.
+    [Crosses(nameof(work), Crossing.Moved)]
     public static Task<TResult> Run<TResult>(Func<TResult> work);
+    [Crosses(nameof(work), Crossing.Moved)]
     public static Task Run(Action work);
     /// A task already done with `result`.
     public static Task<TResult> FromResult<TResult>(TResult result);

@@ -9,7 +9,7 @@ public final class ReadWriteLockCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.threading.ReadWriteLock(a[0])).Takes("value", d.Parameter(0), false);
         d.Method("Read", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.ReadWriteLock) o).Read()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.ReadGuard.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
         d.Method("Write", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.ReadWriteLock) o).Write()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.WriteGuard.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));

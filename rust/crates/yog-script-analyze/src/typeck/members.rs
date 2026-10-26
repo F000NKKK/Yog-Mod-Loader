@@ -74,6 +74,7 @@ impl Checker<'_, '_, '_> {
                 if !found.known() && !case && !self.own_has_method(&t, name) {
                     self.unknown_member(on.non_null(), name, at);
                 }
+                self.static_field_read(of, name, &found, at);
                 found
             }
             Type::Own(..) => {

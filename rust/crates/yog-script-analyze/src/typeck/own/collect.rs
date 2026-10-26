@@ -144,11 +144,13 @@ impl OwnTypes {
                 t.heap = !value;
                 t.record = record;
                 t.readonly_all = d.has(ast::Modifier::Readonly) || record;
+                t.threads = super::threads::threads(d);
                 t.ctor = header.ctor.clone().unwrap_or_default();
                 // A record's constructor parameters are its properties.
                 if record {
                     for p in header.ctor.iter().flatten() {
                         t.values.insert(p.name.text.clone(), p.ty.clone());
+                        t.stored.push(p.name.text.clone());
                     }
                 }
                 (t, body.as_slice(), header.has.as_slice())

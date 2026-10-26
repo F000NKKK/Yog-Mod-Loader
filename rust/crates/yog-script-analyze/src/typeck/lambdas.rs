@@ -25,7 +25,7 @@ impl Checker<'_, '_, '_> {
                 } else {
                     ret.clone()
                 };
-                self.lambda_as(written, body, params, &gives, e.span);
+                self.in_lambda(e, |c| c.lambda_as(written, body, params, &gives, e.span));
                 // Its type the delegate's, not what it was alone.
                 let own = Type::Fn(params.to_vec(), Box::new(ret.clone()));
                 self.types.set(e, own);
@@ -135,25 +135,27 @@ impl Checker<'_, '_, '_> {
         };
         let returns = self.returns.take();
         let inferred = self.inferred.replace(Vec::new());
-        let t = self.scoped(|c| {
-            c.bind_lambda(written, params);
-            match body {
-                LambdaBody::Expr(e) => c.expr(e),
-                LambdaBody::Block(stmts) => {
-                    let last = match stmts.split_last() {
-                        Some((Stmt::Value(v), before)) => {
-                            c.stmts(before);
-                            Some(c.expr(v))
-                        }
-                        _ => {
-                            c.stmts(stmts);
-                            None
-                        }
-                    };
-                    let returned = c.inferred.as_ref().and_then(|r| r.first().cloned());
-                    returned.or(last).unwrap_or(Type::Void)
+        let t = self.in_lambda(e, |c| {
+            c.scoped(|c| {
+                c.bind_lambda(written, params);
+                match body {
+                    LambdaBody::Expr(e) => c.expr(e),
+                    LambdaBody::Block(stmts) => {
+                        let last = match stmts.split_last() {
+                            Some((Stmt::Value(v), before)) => {
+                                c.stmts(before);
+                                Some(c.expr(v))
+                            }
+                            _ => {
+                                c.stmts(stmts);
+                                None
+                            }
+                        };
+                        let returned = c.inferred.as_ref().and_then(|r| r.first().cloned());
+                        returned.or(last).unwrap_or(Type::Void)
+                    }
                 }
-            }
+            })
         });
         self.returns = returns;
         self.inferred = inferred;

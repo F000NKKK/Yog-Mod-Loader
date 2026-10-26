@@ -167,7 +167,10 @@ impl<'p> Interp<'p> {
 
     /// `yield return v`: an item of the iterator being run.
     pub(crate) fn yield_item(&mut self, v: Value, at: Span) -> Run<()> {
-        let full = self.yielded.last().is_some_and(|items| items.len() >= MAX_YIELDED);
+        let full = self
+            .yielded
+            .last()
+            .is_some_and(|items| items.len() >= MAX_YIELDED);
         if full {
             return self.panic(
                 format!("an iterator gave {MAX_YIELDED} items: the interpreter runs one to its end, and this one may have none"),

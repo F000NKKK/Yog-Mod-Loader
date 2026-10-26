@@ -125,7 +125,7 @@ fn each_expr(s: &Stmt, f: &mut dyn FnMut(&Expr)) {
             f(cond);
             each_expr(body, f);
         }
-        Stmt::Block(b) => b.stmts.iter().for_each(|s| each_expr(s, f)),
+        Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().for_each(|s| each_expr(s, f)),
         Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
         Stmt::Lock { target, body, .. } => {
             f(target);

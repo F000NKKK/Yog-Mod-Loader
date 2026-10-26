@@ -45,6 +45,8 @@ pub struct Types {
     /// The names that are a local's or a parameter's (not a member's), by
     /// the name's expression.
     locals: std::collections::HashSet<usize>,
+    /// What each lambda captures, by the lambda (`threads/captures.rs`).
+    captures: HashMap<usize, Vec<super::threads::Capture>>,
 }
 
 /// A lambda given as an expression tree: its delegate's type, and the
@@ -172,6 +174,24 @@ impl Types {
     /// Whether name `e` is a local's or a parameter's (not a member's).
     pub fn is_local(&self, e: &Expr) -> bool {
         self.locals.contains(&key(e))
+    }
+
+    /// What lambda `e` captures: locals of the code around it, `this`,
+    /// statics it reaches.
+    pub(super) fn captures(&self, e: &Expr) -> &[super::threads::Capture] {
+        self.captures.get(&key(e)).map_or(&[], Vec::as_slice)
+    }
+
+    /// Lambda `lambda` (by its key) captures `c` (once, by its name).
+    pub(super) fn capture(&mut self, lambda: usize, c: super::threads::Capture) {
+        let all = self.captures.entry(lambda).or_default();
+        if !all.iter().any(|o| o.name == c.name) {
+            all.push(c);
+        }
+    }
+
+    pub(super) fn key_of(e: &Expr) -> usize {
+        key(e)
     }
 
     pub(super) fn set_local(&mut self, e: &Expr) {

@@ -74,6 +74,8 @@ pub enum Stmt {
     /// `yield return value;` (`Some`) or `yield break;` (`None`), in an
     /// iterator.
     Yield(Option<Expr>, Span),
+    /// `unsafe { … }`: the threads checks skipped inside (a warning).
+    Unsafe(Block, Span),
     /// `lock (target) body` or `lock (target, ref let value) body`: a
     /// `Lock<T>` held for `body`, its value lent as `value`.
     Lock {

@@ -70,6 +70,7 @@ impl Checker<'_, '_, '_> {
             }
         }
         if let Some(used) = used {
+            self.crossing_call(&used, &args);
             self.types.set_method(e, used);
         }
         t

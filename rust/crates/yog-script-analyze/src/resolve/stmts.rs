@@ -75,7 +75,7 @@ impl Resolver<'_, '_> {
                 r.expr(cond);
                 r.looping(|r| r.stmt(body));
             }),
-            Stmt::Block(b) => self.block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
             Stmt::Break(at) | Stmt::Continue(at) if self.cx.loops == 0 => {
                 self.report.error(
                     script_problem::OUTSIDE_LOOP,

@@ -3,7 +3,7 @@
 //! as .NET's. One whose arguments name macros (`[Derive(Clone)]`) has no
 //! value to make, so it isn't there.
 
-use yog_script_analyze::ast::Attribute;
+use yog_script_analyze::ast::{Attribute, Expr, ExprKind};
 use yog_script_ids::jvm::reflection::ATTRIBUTE;
 
 use crate::Gen;
@@ -20,7 +20,11 @@ impl Gen<'_> {
             if !a.args.is_empty() && !self.index.takes_args(name) {
                 continue;
             }
-            let args: Vec<String> = a.args.iter().map(|arg| self.expr(&arg.value)).collect();
+            let args: Vec<String> = a
+                .args
+                .iter()
+                .map(|arg| self.attribute_arg(&arg.value))
+                .collect();
             out.push_str(&format!(
                 ".{ATTRIBUTE}(() -> {NEW} {}({}))",
                 self.index.place(name, 0),
@@ -28,6 +32,19 @@ impl Gen<'_> {
             ));
         }
         out
+    }
+
+    /// An attribute's argument: an enum's case by its type's place where
+    /// the code isn't typed (the library's companions: `Crossing.Moved`).
+    fn attribute_arg(&mut self, e: &Expr) -> String {
+        if let ExprKind::Member { expr, name, .. } = &e.kind
+            && let ExprKind::Ident(of) = &expr.kind
+            && self.types.of(expr).is_none()
+            && self.index.types.contains_key(&self.index.named(of))
+        {
+            return format!("{}.{}", self.index.place_named(of), Self::ident(&name.text));
+        }
+        self.expr(e)
     }
 
     /// Member line `line` (a statement) with `attributes` on what it describes.

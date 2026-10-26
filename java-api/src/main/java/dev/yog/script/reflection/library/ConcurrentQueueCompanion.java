@@ -9,7 +9,7 @@ public final class ConcurrentQueueCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.collections.concurrent.ConcurrentQueue());
         d.Method("Enqueue", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.concurrent.ConcurrentQueue) o).Enqueue(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);
         d.Method("TryDequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.concurrent.ConcurrentQueue) o).TryDequeue()).Returns(d.Parameter(0));

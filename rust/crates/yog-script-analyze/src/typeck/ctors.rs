@@ -26,6 +26,10 @@ impl Checker<'_, '_, '_> {
             let args: Vec<&Arg> = args.iter().collect();
             if let (_, Some(chosen)) = self.pick(&sigs, &given, &args, at) {
                 self.types.set_constructor(e, chosen.index);
+                if let Type::Own(name, targs) = t {
+                    let key = super::own::TypeKey::new(name, targs.len());
+                    self.crossing_new(&key, chosen.index, &args);
+                }
                 if let Some(from) = chosen.rest_from {
                     let item = match sigs[chosen.index].params.last() {
                         Some(Type::Array(item, _)) => (**item).clone(),

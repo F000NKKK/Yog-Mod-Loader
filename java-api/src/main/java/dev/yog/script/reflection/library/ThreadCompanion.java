@@ -9,8 +9,8 @@ public final class ThreadCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
-        d.Constructor(0, a -> new dev.yog.script.threading.Thread((dev.yog.script.Action) a[0])).Takes("start", dev.yog.script.Type.Of(dev.yog.script.Action.class), false);
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
+        d.Constructor(0, a -> new dev.yog.script.threading.Thread((dev.yog.script.Action) a[0])).Takes("start", dev.yog.script.Type.Of(dev.yog.script.Action.class), false).Attribute(() -> new dev.yog.script.threading.Crosses("start", dev.yog.script.threading.Crossing.Moved));
         d.Method("Start", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.Thread) o).Start(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
         d.Method("Join", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.Thread) o).Join(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
         d.Method("Join", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.Thread) o).Join((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("timeout", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
@@ -23,7 +23,7 @@ public final class ThreadCompanion {
         d.Method("Sleep", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.Thread.Sleep((dev.yog.script.TimeSpan) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("time", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
         d.Method("Yield", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.Thread.Yield(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
         d.Method("SpinWait", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.Thread.SpinWait((Integer) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("iterations", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
-        d.Method("Run", dev.yog.script.reflection.MemberInfo.STATIC, new String[] { "T" }, (o, a) -> dev.yog.script.threading.Thread.Run((dev.yog.script.Func1) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.ThreadHandle.class).MakeGenericType(new dev.yog.script.Type[] { d.MethodParameter(0) })).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.MethodParameter(0) }), false);
+        d.Method("Run", dev.yog.script.reflection.MemberInfo.STATIC, new String[] { "T" }, (o, a) -> dev.yog.script.threading.Thread.Run((dev.yog.script.Func1) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.ThreadHandle.class).MakeGenericType(new dev.yog.script.Type[] { d.MethodParameter(0) })).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.MethodParameter(0) }), false).Attribute(() -> new dev.yog.script.threading.Crosses("work", dev.yog.script.threading.Crossing.Moved));
         d.Method("Scope", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.Thread.Scope((dev.yog.script.Action1) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("body", dev.yog.script.Type.Of(dev.yog.script.Action1.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.threading.ThreadScope.class) }), false);
     }
 }

@@ -28,7 +28,7 @@ impl Checker<'_, '_, '_> {
                 Type::Bool
             }
             ExprKind::Ident(name) => self.ident(e, name),
-            ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
+            ExprKind::This => self.this_expr(e),
             ExprKind::Base => self.base(),
             ExprKind::Declare { ty, name, mutable } => {
                 self.declare(ty.as_ref(), &name.text, *mutable)
@@ -47,7 +47,9 @@ impl Checker<'_, '_, '_> {
             ExprKind::Call { callee, args } => self.call(e, callee, args),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::With { expr, inits } => self.with(expr, inits, e.span),
-            ExprKind::Lambda { params, body, .. } => self.lambda_alone(params, body),
+            ExprKind::Lambda { params, body, .. } => {
+                self.in_lambda(e, |c| c.lambda_alone(params, body))
+            }
             ExprKind::Macro { name, args } => self.builtin_macro(name, args),
             ExprKind::Unary { op, expr } => self.unary(e, *op, expr),
             ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
@@ -105,19 +107,30 @@ impl Checker<'_, '_, '_> {
                 self.expr(to);
             }
             ExprKind::Lambda { params, body, .. } => {
-                self.lambda_alone(params, body);
+                self.in_lambda(e, |c| c.lambda_alone(params, body));
             }
             _ => {}
         }
     }
 
     /// A name: a local, a member of `this`, the file's own, a type.
+    /// `this` (`e`): its type, read (a lambda captures it).
+    fn this_expr(&mut self, e: &Expr) -> Type {
+        self.this_read(e.span);
+        self.this.clone().unwrap_or(Type::Unknown)
+    }
+
     /// Name `e`: a local's (marked so), a member's, a type's.
     fn ident(&mut self, e: &Expr, name: &str) -> Type {
-        if self.local(name).is_some() {
+        if let Some(depth) = self.scopes.iter().rposition(|s| s.contains_key(name)) {
             self.types.set_local(e);
+            let t = self.scopes[depth][name].ty.clone();
+            self.local_read(name, &t, depth, e.span);
+            return t;
         }
-        self.name(name, e.span)
+        let t = self.name(name, e.span);
+        self.member_read(name, &t, e.span);
+        t
     }
 
     fn name(&mut self, name: &str, at: Span) -> Type {

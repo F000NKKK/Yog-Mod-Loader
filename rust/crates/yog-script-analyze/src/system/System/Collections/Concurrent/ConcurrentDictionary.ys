@@ -1,7 +1,10 @@
 namespace System.Collections.Concurrent;
 
+using System.Threading;
+
 /// A dictionary many threads read and change at once (.NET's).
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class ConcurrentDictionary<TKey, TValue> {
     public ConcurrentDictionary() {}
 

@@ -19,6 +19,7 @@ public static class Channel {
 
 /// A channel: its writing end and its reading end.
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class Channel<T> {
     public ChannelWriter<T> Writer { get; }
     public ChannelReader<T> Reader { get; }
@@ -26,12 +27,16 @@ public readonly class Channel<T> {
 
 /// A channel's writing end.
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class ChannelWriter<T> {
     /// Writes `item` unless it's full or completed: whether it did.
+    [Crosses(nameof(item), Crossing.Moved)]
     public bool TryWrite(T item);
     /// Writes `item`, waiting for room (a full bounded channel).
+    [Crosses(nameof(item), Crossing.Moved)]
     public Task WriteAsync(T item);
     /// Writes `item`, blocking for room.
+    [Crosses(nameof(item), Crossing.Moved)]
     public void Write(T item);
     /// No more items: readers end once they've read the rest.
     public void Complete();
@@ -39,6 +44,7 @@ public readonly class ChannelWriter<T> {
 
 /// A channel's reading end.
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class ChannelReader<T> {
     /// The next item, if there's one now.
     public T? TryRead();

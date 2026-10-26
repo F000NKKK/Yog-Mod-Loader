@@ -1,0 +1,41 @@
+namespace System.Threading;
+
+/// How a type crosses threads, where its fields don't say it
+/// (`ys-concurrency.md` §2): the runtime's types written by hand.
+public enum ThreadSafety {
+    /// Shareable, and sendable, when its type arguments are sendable: one
+    /// thread at a time reaches them (a lock, a channel, an atomic).
+    Guarded,
+    /// Shareable, and sendable, when its type arguments are shareable:
+    /// every owner reaches them at once (`Shared<T>`, `Weak<T>`).
+    Shared,
+    /// Neither: it belongs to the thread that made it (a held lock's guard).
+    Bound,
+}
+
+/// How a type crosses threads (`ThreadSafety`), where its fields don't say it.
+public sealed class Threads : Attribute {
+    public Threads(ThreadSafety safety) {}
+}
+
+/// How what a parameter takes crosses threads.
+public enum Crossing {
+    /// Moved to another thread: sendable (a lambda: what it captures).
+    Moved,
+    /// Run on another thread that ends before the call returns
+    /// (`Thread.Scope`'s): sendable, borrows allowed.
+    Scoped,
+    /// Run on several threads at once (`Parallel.For`'s body): what a
+    /// lambda captures shareable.
+    Concurrent,
+}
+
+/// What parameter `parameter` (`nameof(work)`) takes crosses threads
+/// (`Crossing`): checked where the method is called.
+public sealed class Crosses : Attribute {
+    public Crosses(string parameter, Crossing crossing) {}
+}
+
+/// A static field each thread has its own of (.NET's): reached from any
+/// thread whatever it holds.
+public sealed class ThreadStatic : Attribute {}

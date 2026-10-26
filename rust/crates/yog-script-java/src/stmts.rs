@@ -34,7 +34,7 @@ impl Gen<'_> {
     fn branch(&mut self, head: &str, s: &Stmt) {
         self.code.open(head);
         match s {
-            Stmt::Block(b) => self.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.code.close("");
@@ -180,7 +180,7 @@ impl Gen<'_> {
 
     fn simple(&mut self, s: &Stmt) {
         match s {
-            Stmt::Block(b) => {
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => {
                 self.code.open("");
                 self.block_stmts(b);
                 self.code.close("");
@@ -408,7 +408,7 @@ impl Gen<'_> {
         self.continues.push(Some(format!("{BREAK} {label};")));
         self.breaks.push(None);
         match body {
-            Stmt::Block(b) => self.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.continues.pop();
@@ -495,7 +495,7 @@ impl Gen<'_> {
             ));
         }
         self.loop_body(|g| match body {
-            Stmt::Block(b) => g.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => g.block_stmts(b),
             other => g.stmt(other),
         });
         self.code.close("");

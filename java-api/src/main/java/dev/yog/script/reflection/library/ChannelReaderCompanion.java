@@ -9,7 +9,7 @@ public final class ChannelReaderCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Method("TryRead", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelReader) o).TryRead()).Returns(d.Parameter(0));
         d.Method("ReadAsync", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelReader) o).ReadAsync()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.Task1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
         d.Method("Read", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelReader) o).Read()).Returns(d.Parameter(0));

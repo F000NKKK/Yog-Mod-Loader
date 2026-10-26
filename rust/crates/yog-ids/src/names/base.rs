@@ -371,6 +371,12 @@ names! {
         /// `yield` outside an iterator (a method giving an `IEnumerable<T>`,
         /// `IEnumerator<T>` or `IAsyncEnumerable<T>`), or `return value` in one.
         ITERATOR = "YS0039",
+        /// A value crossing threads that can't (`ys-concurrency.md` §2): not
+        /// sendable where it moves to another thread, not shareable where
+        /// several reach it at once.
+        THREADS = "YS0040",
+        /// `unsafe { … }`: the threads checks skipped inside (a warning).
+        UNSAFE = "YS0041",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

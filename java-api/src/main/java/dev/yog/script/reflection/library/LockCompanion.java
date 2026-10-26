@@ -9,7 +9,7 @@ public final class LockCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.threading.Lock(a[0])).Takes("value", d.Parameter(0), false);
         d.Method("Enter", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.Lock) o).Enter()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.LockGuard.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
         d.Method("TryEnter", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.Lock) o).TryEnter()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.LockGuard.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));

@@ -150,6 +150,28 @@ thread. Everything above is real time, and none of it depends on Yog.
 - **Statics** reached from more than one thread must be shareable, or be
   `[ThreadStatic]`/`ThreadLocal`.
 
+As built (step 3):
+- The library says it in data, not a list in the checker:
+  `[Threads(ThreadSafety.Guarded | Shared | Bound)]` on a type whose
+  fields don't say it (`Lock<T>` is shareable when `T` is sendable,
+  `Shared<T>` when `T` is shareable, a lock's guard is neither), and
+  `[Crosses(nameof(work), Crossing.Moved | Scoped | Concurrent)]` on a
+  method or constructor whose parameter goes to another thread.
+- Without `[Threads]`, a type is sendable when its stored fields and type
+  arguments are; it's shareable only when it's also `readonly` (a record,
+  a `readonly class`/`struct`). `Cell<T>` is sendable but not shareable,
+  as Rust's. Game objects are neither. Interfaces, delegates, enums and
+  type parameters aren't checked.
+- A lambda's captures are recorded as it's checked. A local handed over
+  with `Moved`/`Scoped` must be sendable, and with `Concurrent` shareable;
+  `this` (or a member of it by name) and statics must always be shareable,
+  since their owner keeps reaching them. A value that isn't a lambda is
+  checked itself (a channel's item).
+- Not yet: a captured local isn't marked moved for the caller after a
+  `Moved` crossing (borrowck), a method of `this` called by its name alone
+  doesn't count as capturing `this`, and `Scoped` doesn't allow anything
+  `Moved` refuses, since the model has no borrow types yet.
+
 ## 3. Lowering
 
 | YS | JVM | Rust |
@@ -180,7 +202,7 @@ uses (CLAUDE.md, dedup + yog-sync).
    `Semaphore`, `Signal`, `Countdown`, `Barrier`,
    `ConcurrentDictionary`, `ConcurrentQueue`, `AsyncLocal`, `Task.Run`,
    `ThreadPool`, `Parallel`.
-3. The checker's sendable/shareable inference, errors and `unsafe`.
+3. The checker's sendable/shareable inference, errors and `unsafe`. ✅
 4. Rust lowering of the set (with step 3 of the plan: Rust lowering).
 
 ## 5. Decided

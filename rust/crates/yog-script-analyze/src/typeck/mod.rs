@@ -43,6 +43,7 @@ mod pick;
 mod shapes;
 mod stmts;
 pub(crate) mod surface;
+mod threads;
 mod tuples;
 mod types;
 mod variance;
@@ -108,6 +109,11 @@ pub(crate) struct Checker<'r, 's, 'i> {
     delegates: delegates::Delegates,
     /// Each type's operators, typed.
     operators: operators::Operators,
+    /// The lambdas being checked, innermost last: each by its expression,
+    /// and the scopes outside it (a local of one of those it captures).
+    lambdas: Vec<(usize, usize)>,
+    /// The `unsafe` blocks the code is in: the threads checks skipped.
+    unsafe_code: usize,
 }
 
 /// What a source may reach: the game's classes (a `.yns`), sending to the
@@ -173,6 +179,8 @@ pub(crate) fn check<'d>(
         bases: lineage::Bases::new(),
         delegates: delegates::Delegates::new(),
         operators: operators::Operators::new(),
+        lambdas: Vec::new(),
+        unsafe_code: 0,
     };
     c.type_bases();
     c.type_delegates();

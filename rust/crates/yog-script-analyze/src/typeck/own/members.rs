@@ -1,7 +1,7 @@
 //! A type's body as its members: values by type as written, methods,
 //! indexers, which methods are `readonly`.
 
-use super::{Indexer, OwnType};
+use super::{Indexer, OwnType, threads};
 use crate::ast::{self, Decl, DeclKind};
 
 /// The values, methods and indexers of a body.
@@ -10,20 +10,28 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
         match &d.kind {
             DeclKind::Field(f) => {
                 t.values.insert(f.name.text.clone(), f.ty.clone());
+                threads::field(t, d, &f.name.text);
             }
             DeclKind::Property {
                 ty,
                 name,
                 explicit: None,
+                accessors,
                 ..
             } => {
                 t.values.insert(name.text.clone(), ty.clone());
+                if accessors.iter().all(|a| a.body.is_none()) {
+                    threads::field(t, d, &name.text);
+                }
             }
             DeclKind::Event { ty, name } => {
                 t.values.insert(name.text.clone(), ty.clone());
             }
             DeclKind::Operator(op) => t.operators.push(op.clone()),
-            DeclKind::Ctor(c) => t.ctors.push(c.params.clone()),
+            DeclKind::Ctor(c) => {
+                t.ctors.push(c.params.clone());
+                t.ctor_crossings.push(threads::crossings(d));
+            }
             DeclKind::Indexer(ix) => {
                 if let Some(get) = ix.getter() {
                     t.indexers.push(Indexer {
@@ -43,6 +51,10 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                     .entry(m.name.text.clone())
                     .or_default()
                     .push(m.clone());
+                t.crossings
+                    .entry(m.name.text.clone())
+                    .or_default()
+                    .push(threads::crossings(d));
             }
             _ => {}
         }

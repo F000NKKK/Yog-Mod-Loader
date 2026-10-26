@@ -9,7 +9,7 @@ public final class AtomicCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.threading.Atomic(a[0])).Takes("value", d.Parameter(0), false);
         d.Method("Load", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.Atomic) o).Load((dev.yog.script.threading.MemoryOrder) a[0])).Returns(d.Parameter(0)).Takes("order", dev.yog.script.Type.Of(dev.yog.script.threading.MemoryOrder.class), true);
         d.Method("Store", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.Atomic) o).Store(a[0], (dev.yog.script.threading.MemoryOrder) a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("value", d.Parameter(0), false).Takes("order", dev.yog.script.Type.Of(dev.yog.script.threading.MemoryOrder.class), true);

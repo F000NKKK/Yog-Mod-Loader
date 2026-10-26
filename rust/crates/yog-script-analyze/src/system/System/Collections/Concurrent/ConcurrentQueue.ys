@@ -1,7 +1,10 @@
 namespace System.Collections.Concurrent;
 
+using System.Threading;
+
 /// A queue many threads add to and take from at once (.NET's).
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class ConcurrentQueue<T> {
     public ConcurrentQueue() {}
 

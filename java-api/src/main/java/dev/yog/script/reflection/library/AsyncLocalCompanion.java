@@ -9,7 +9,7 @@ public final class AsyncLocalCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.threading.AsyncLocal());
         d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.threading.AsyncLocal) o).Value(), (o, v) -> ((dev.yog.script.threading.AsyncLocal) o).set_Value(v));
     }

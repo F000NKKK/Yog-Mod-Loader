@@ -9,7 +9,7 @@ public final class WeakCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Shared));
         d.Constructor(0, a -> new dev.yog.script.Weak(a[0])).Takes("value", d.Parameter(0), false);
         d.Method("TryGet", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Weak) o).TryGet()).Returns(d.Parameter(0));
     }

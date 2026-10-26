@@ -9,7 +9,7 @@ public final class ConcurrentDictionaryCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Constructor(0, a -> new dev.yog.script.collections.concurrent.ConcurrentDictionary());
         d.Method("TryAdd", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.concurrent.ConcurrentDictionary) o).TryAdd(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
         d.Method("TryGetValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.concurrent.ConcurrentDictionary) o).TryGetValue(a[0])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false);

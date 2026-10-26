@@ -10,7 +10,7 @@ public final class ThreadPoolCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
-        d.Method("QueueUserWorkItem", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.ThreadPool.QueueUserWorkItem((dev.yog.script.Action) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Action.class), false);
+        d.Method("QueueUserWorkItem", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.threading.ThreadPool.QueueUserWorkItem((dev.yog.script.Action) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Action.class), false).Attribute(() -> new dev.yog.script.threading.Crosses("work", dev.yog.script.threading.Crossing.Moved));
         d.Property("ThreadCount", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> dev.yog.script.threading.ThreadPool.ThreadCount(), null);
     }
 }

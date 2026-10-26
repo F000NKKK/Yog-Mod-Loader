@@ -119,7 +119,7 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
         Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => {
             awaits(cond) || stmt_awaits(body)
         }
-        Stmt::Block(b) => all(&b.stmts),
+        Stmt::Block(b) | Stmt::Unsafe(b, _) => all(&b.stmts),
         Stmt::Return(v, _) | Stmt::Skip(v, _) => v.as_ref().is_some_and(awaits),
         // An iterator's `yield` leaves its machine as an `await` does.
         Stmt::Yield(..) => true,

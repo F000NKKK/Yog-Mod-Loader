@@ -6,6 +6,7 @@
 
 mod collect;
 mod members;
+mod threads;
 
 use std::collections::HashMap;
 
@@ -92,6 +93,22 @@ pub(crate) struct OwnType {
     pub delegate: Option<Method>,
     /// The operators and conversions it declares.
     pub operators: Vec<ast::Operator>,
+    /// How it crosses threads where its fields don't say: its
+    /// `[Threads(ThreadSafety.…)]`'s case.
+    pub threads: Option<String>,
+    /// Its stored fields (fields and auto-properties, not static): what
+    /// says whether it may cross threads.
+    pub stored: Vec<String>,
+    /// Its static fields, and those of them each thread has its own of
+    /// (`[ThreadStatic]`).
+    pub statics: Vec<String>,
+    pub thread_statics: Vec<String>,
+    /// How what its methods' parameters take crosses threads
+    /// (`[Crosses("work", Crossing.Moved)]`), by name and overload as
+    /// `methods`: each parameter's name and crossing.
+    pub crossings: HashMap<String, Vec<Vec<(String, String)>>>,
+    /// Its body's constructors' crossings, as `ctors`.
+    pub ctor_crossings: Vec<Vec<(String, String)>>,
 }
 
 /// An indexer as written: its getter (`get_Item`, what `x[i]` is typed as

@@ -146,3 +146,20 @@ pub const ARGS_SUFFIX: &str = "Args";
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";
 pub const PROVIDE: &str = "Provide";
+
+/// How values cross threads (`System.Threading.ThreadSafety`'s file,
+/// `ys-concurrency.md` §2): the attributes and their enums' cases.
+pub mod threads {
+    /// `[Threads(ThreadSafety.…)]`: how a type crosses, where its fields don't say.
+    pub const THREADS: &str = "Threads";
+    pub const GUARDED: &str = "Guarded";
+    pub const SHARED: &str = "Shared";
+    pub const BOUND: &str = "Bound";
+    /// `[Crosses("work", Crossing.…)]`: how what a parameter takes crosses.
+    pub const CROSSES: &str = "Crosses";
+    pub const MOVED: &str = "Moved";
+    pub const SCOPED: &str = "Scoped";
+    pub const CONCURRENT: &str = "Concurrent";
+    /// `[ThreadStatic]`: a static field each thread has its own of.
+    pub const THREAD_STATIC: &str = "ThreadStatic";
+}

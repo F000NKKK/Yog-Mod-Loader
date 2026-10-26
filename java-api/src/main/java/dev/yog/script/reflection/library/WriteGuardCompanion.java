@@ -10,7 +10,7 @@ public final class WriteGuardCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IDisposable.class));
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Bound));
         d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.threading.WriteGuard) o).Value(), (o, v) -> ((dev.yog.script.threading.WriteGuard) o).set_Value(v));
         d.Method("Dispose", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.WriteGuard) o).Dispose(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
     }

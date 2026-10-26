@@ -1,10 +1,13 @@
 namespace System;
 
+using System.Threading;
+
 /// A value with several owners, each a cheap `Clone()` of it (Rust's `Rc`
 /// and `Arc`: which one is the compiler's choice, by whether it crosses a
 /// thread). What's shared is read; changing it is a `Cell`'s or a
 /// `Lock`'s inside.
 [Intrinsic]
+[Threads(ThreadSafety.Shared)]
 public readonly sealed class Shared<T> {
     public Shared(T value) {}
 

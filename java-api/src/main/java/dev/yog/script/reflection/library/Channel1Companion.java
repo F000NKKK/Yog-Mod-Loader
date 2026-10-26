@@ -9,7 +9,7 @@ public final class Channel1Companion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
         d.Property("Writer", 0, dev.yog.script.Type.Of(dev.yog.script.threading.channels.ChannelWriter.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.threading.channels.Channel1) o).Writer(), null);
         d.Property("Reader", 0, dev.yog.script.Type.Of(dev.yog.script.threading.channels.ChannelReader.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.threading.channels.Channel1) o).Reader(), null);
     }

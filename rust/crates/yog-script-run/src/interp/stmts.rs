@@ -82,7 +82,7 @@ impl<'p> Interp<'p> {
 
     fn leaf(&mut self, s: &Stmt) -> Run<()> {
         match s {
-            Stmt::Block(b) => self.block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
             Stmt::Break(_) => Err(Stop::Break),
             Stmt::Continue(_) => Err(Stop::Continue),
             Stmt::Return(value, _) | Stmt::Skip(value, _) => {
@@ -98,7 +98,10 @@ impl<'p> Interp<'p> {
             }
             Stmt::Yield(None, _) => Err(Stop::Return(Value::Void)),
             // Threads are the JVM's and the native's: the interpreter has none.
-            Stmt::Lock { at, .. } => self.panic("a `lock` isn't run by the interpreter: it has no threads", *at),
+            Stmt::Lock { at, .. } => self.panic(
+                "a `lock` isn't run by the interpreter: it has no threads",
+                *at,
+            ),
             Stmt::Expr(e) => self.eval(e).map(drop),
             // A block lambda's last value: what it gives.
             Stmt::Value(e) => Err(Stop::Return(self.eval(e)?)),

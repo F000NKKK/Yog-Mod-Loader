@@ -23,6 +23,8 @@ public readonly sealed class TaskFactory {
     public TaskFactory(TaskScheduler scheduler) {}
 
     public TaskScheduler Scheduler { get; }
+    [Crosses(nameof(work), Crossing.Moved)]
     public Task<TResult> StartNew<TResult>(Func<TResult> work);
+    [Crosses(nameof(work), Crossing.Moved)]
     public Task StartNew(Action work);
 }

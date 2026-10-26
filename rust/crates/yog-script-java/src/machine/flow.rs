@@ -85,7 +85,7 @@ impl Gen<'_> {
                 }
             }
             s if !stmt_awaits(s) => self.stmt(s),
-            Stmt::Block(b) => self.machine_block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.machine_block(b),
             Stmt::If {
                 cond,
                 then,
@@ -152,7 +152,7 @@ impl Gen<'_> {
     /// A branch of a split statement: a block's statements, or the one.
     fn machine_branch(&mut self, s: &Stmt) {
         match s {
-            Stmt::Block(b) => self.machine_block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.machine_block(b),
             other => {
                 let depth = self.renamed.len();
                 self.machine_stmt(other);

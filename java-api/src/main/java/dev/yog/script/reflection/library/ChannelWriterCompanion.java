@@ -9,10 +9,10 @@ public final class ChannelWriterCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Attribute(() -> new dev.yog.script.Intrinsic());
-        d.Method("TryWrite", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelWriter) o).TryWrite(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
-        d.Method("WriteAsync", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelWriter) o).WriteAsync(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.Task.class)).Takes("item", d.Parameter(0), false);
-        d.Method("Write", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.channels.ChannelWriter) o).Write(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.threading.Threads(dev.yog.script.threading.ThreadSafety.Guarded));
+        d.Method("TryWrite", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelWriter) o).TryWrite(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false).Attribute(() -> new dev.yog.script.threading.Crosses("item", dev.yog.script.threading.Crossing.Moved));
+        d.Method("WriteAsync", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.channels.ChannelWriter) o).WriteAsync(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.Task.class)).Takes("item", d.Parameter(0), false).Attribute(() -> new dev.yog.script.threading.Crosses("item", dev.yog.script.threading.Crossing.Moved));
+        d.Method("Write", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.channels.ChannelWriter) o).Write(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false).Attribute(() -> new dev.yog.script.threading.Crosses("item", dev.yog.script.threading.Crossing.Moved));
         d.Method("Complete", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.channels.ChannelWriter) o).Complete(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
     }
 }

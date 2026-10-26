@@ -10,6 +10,6 @@ public final class ThreadScopeCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
-        d.Method("Run", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.ThreadScope) o).Run((dev.yog.script.Action) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Action.class), false);
+        d.Method("Run", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.threading.ThreadScope) o).Run((dev.yog.script.Action) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("work", dev.yog.script.Type.Of(dev.yog.script.Action.class), false).Attribute(() -> new dev.yog.script.threading.Crosses("work", dev.yog.script.threading.Crossing.Scoped));
     }
 }

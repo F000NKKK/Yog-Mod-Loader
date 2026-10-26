@@ -4,6 +4,7 @@ namespace System.Threading;
 /// the tasks started from it, across its `await`s, back in its context.
 /// A change made in a task stays in it.
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly class AsyncLocal<T> {
     public AsyncLocal() {}
 

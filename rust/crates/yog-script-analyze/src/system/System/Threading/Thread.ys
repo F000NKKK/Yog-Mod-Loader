@@ -7,7 +7,9 @@ public enum ThreadPriority { Lowest, BelowNormal, Normal, AboveNormal, Highest }
 /// runs owns what it captures (`move`). Tasks (`Task`) are the light way;
 /// a thread is for work that blocks or runs long.
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public sealed class Thread {
+    [Crosses(nameof(start), Crossing.Moved)]
     public Thread(Action start) {}
 
     public readonly void Start();
@@ -30,6 +32,7 @@ public sealed class Thread {
     /// Spins `iterations` times: waiting without letting go of the processor.
     public static void SpinWait(i32 iterations);
     /// `work` run on a thread of its own: its handle, `Join()` giving its value.
+    [Crosses(nameof(work), Crossing.Moved)]
     public static ThreadHandle<T> Run<T>(Func<T> work);
     /// Threads that may borrow the caller's values: each started by the
     /// scope's `Run`, all joined before `Scope` returns.
@@ -47,5 +50,6 @@ public readonly sealed class ThreadHandle<T> {
 /// What `Thread.Scope` gives its body: threads joined at its end.
 [Intrinsic]
 public readonly sealed class ThreadScope {
+    [Crosses(nameof(work), Crossing.Scoped)]
     public readonly void Run(Action work);
 }

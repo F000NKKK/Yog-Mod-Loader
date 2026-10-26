@@ -4,6 +4,7 @@ namespace System.Threading;
 /// by entering it, the guard giving the value until it's dropped; its
 /// condition waited on and notified (Rust's `Condvar`, `Monitor.Wait`/`Pulse`).
 [Intrinsic]
+[Threads(ThreadSafety.Guarded)]
 public readonly sealed class Lock<T> {
     public Lock(T value) {}
 
@@ -21,6 +22,7 @@ public readonly sealed class Lock<T> {
 
 /// A held `Lock`: its value, until it's dropped (`using`).
 [Intrinsic]
+[Threads(ThreadSafety.Bound)]
 public sealed class LockGuard<T> : IDisposable {
     public T Value { get; set; }
     /// Lets go of the lock until notified, then holds it again.

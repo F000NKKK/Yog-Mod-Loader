@@ -4,6 +4,7 @@ namespace System.Threading;
 /// many as the processors.
 [Intrinsic]
 public static class ThreadPool {
+    [Crosses(nameof(work), Crossing.Moved)]
     public static void QueueUserWorkItem(Action work);
     public static i32 ThreadCount { get; }
 }

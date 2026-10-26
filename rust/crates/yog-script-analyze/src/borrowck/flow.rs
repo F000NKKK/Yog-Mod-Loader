@@ -88,7 +88,7 @@ impl Checker<'_, '_> {
     /// The statements with no paths of their own.
     fn leaf(&mut self, s: &Stmt) {
         match s {
-            Stmt::Block(b) => self.block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
             Stmt::Return(value, at) | Stmt::Skip(value, at) => {
                 self.opt_expr(value.as_ref());
                 self.ended(*at);
