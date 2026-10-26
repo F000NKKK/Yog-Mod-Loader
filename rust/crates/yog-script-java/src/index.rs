@@ -61,6 +61,8 @@ pub(crate) struct Index {
     /// they're the library's.
     namespace: Vec<String>,
     library: bool,
+    /// The units the source declares (`unit Energy;`), beside the game's.
+    units: HashSet<String>,
     /// The `[Host]` types: built-in types' members' companions.
     hosts: HashSet<String>,
     /// The `[Intrinsic]` types: the runtime's, written by hand.
@@ -116,6 +118,9 @@ impl Index {
                 }
                 DeclKind::Type { .. } => self.type_decl(d),
                 DeclKind::Enum { .. } => self.enum_decl(d),
+                DeclKind::Unit { name, .. } => {
+                    self.units.insert(name.text.clone());
+                }
                 kind => self.walk(kind.members()),
             }
         }
@@ -322,6 +327,11 @@ impl Index {
     /// Whether type `name` is the runtime's, written by hand.
     pub fn is_intrinsic(&self, name: &str) -> bool {
         self.intrinsics.contains(name)
+    }
+
+    /// Whether `name` is a unit: the game's (`Ticks`) or one declared.
+    pub fn is_unit(&self, name: &str) -> bool {
+        yog_script_ids::units::GAME_UNITS.contains(&name) || self.units.contains(name)
     }
 
     /// Whether type `name` (of no type parameters: an attribute) is made with arguments.

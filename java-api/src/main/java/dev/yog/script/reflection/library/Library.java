@@ -99,6 +99,7 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.host.UInt16.class, () -> UInt16Companion.TYPE),
             java.util.Map.entry(dev.yog.script.host.UInt32.class, () -> UInt32Companion.TYPE),
             java.util.Map.entry(dev.yog.script.host.UInt64.class, () -> UInt64Companion.TYPE),
+            java.util.Map.entry(dev.yog.script.Units.class, () -> UnitsCompanion.TYPE),
             java.util.Map.entry(Void.class, () -> VoidCompanion.TYPE),
             java.util.Map.entry(void.class, () -> VoidCompanion.TYPE));
 

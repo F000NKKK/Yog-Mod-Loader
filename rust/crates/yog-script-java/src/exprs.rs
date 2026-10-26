@@ -12,6 +12,7 @@ use yog_script_ids::jvm::{
     COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
 };
 use yog_script_ids::members::TO_STRING;
+use yog_script_ids::units::SECOND_SUFFIXES;
 
 use super::Gen;
 use crate::index::Kind;
@@ -147,9 +148,17 @@ impl Gen<'_> {
     }
 
     /// `20t`, `5u8`: a number of its type.
+    /// A quantity as written (`250ms`): a number of its unit, a multiple of
+    /// seconds as seconds (`0.25`).
     fn unit(&mut self, value: &str, unit: &str, e: &Expr) -> String {
-        let _ = unit;
-        self.number(value, e)
+        let factor = SECOND_SUFFIXES
+            .iter()
+            .find(|(s, _)| *s == unit)
+            .map_or(1.0, |(_, f)| *f);
+        match value.parse::<f64>() {
+            Ok(v) if factor != 1.0 => self.number(&format!("{:?}", v * factor), e),
+            _ => self.number(value, e),
+        }
     }
 
     /// A number written `value`, of the type `e` is where it stands (`1L`

@@ -99,6 +99,10 @@ impl Gen<'_> {
                 {
                     return self.java(&b, boxed);
                 }
+                // A quantity (`Ticks`, a mod's `Energy`): a number.
+                if args.is_empty() && self.index.is_unit(name) {
+                    return self.java(&Type::Unit(name.to_string()), boxed);
+                }
                 let base = self.index.place(name, args.len());
                 let inner: Vec<String> = args.iter().map(|a| self.written(a, true)).collect();
                 if inner.is_empty() {

@@ -171,6 +171,21 @@ fn builtin_macros_are_helpers() {
     }
 }
 
+/// Quantities: a multiple of seconds as seconds, seconds made ticks where
+/// ticks are wanted.
+#[test]
+fn units_are_numbers_of_their_unit() {
+    let src = "f64 T(Ticks t) => t;\nf64 S(Seconds s) => s;\nf64 F() => T(5s) + S(250ms);\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static double T(double t) {",
+        "T(dev.yog.script.Units.ToTicks(5))",
+        "S(0.25)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
 /// A method as an event's handler: made once, called with each event.
 #[test]
 fn a_method_handles_an_event() {

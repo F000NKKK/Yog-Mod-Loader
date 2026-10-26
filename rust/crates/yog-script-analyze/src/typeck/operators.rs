@@ -155,6 +155,17 @@ impl Checker<'_, '_, '_> {
             self.types.set_conversion(e, used);
             return;
         }
+        // Seconds where ticks are wanted: made ticks (`Units.ToTicks`).
+        if matches!(got.non_null(), Type::Unit(u) if u == yog_script_ids::units::SECONDS)
+            && matches!(wanted.non_null(), Type::Unit(u) if u == yog_script_ids::units::TICKS)
+        {
+            let used = OperatorUse {
+                owner: Type::own(yog_script_ids::system::UNITS.to_string()),
+                method: yog_script_ids::system::TO_TICKS.to_string(),
+            };
+            self.types.set_conversion(e, used);
+            return;
+        }
         self.note_variance(e, got, wanted);
         if !self.converts_plainly(got, wanted)
             && let Some(used) = self.implicit(got, wanted)

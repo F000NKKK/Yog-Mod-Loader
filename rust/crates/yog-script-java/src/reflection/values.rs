@@ -30,6 +30,9 @@ impl Gen<'_> {
                     if let Some(b) = builtin_type(name).or_else(|| system_type(name)) {
                         return self.value_of(&b);
                     }
+                    if self.index.is_unit(name) {
+                        return self.value_of(&Type::Unit(name.to_string()));
+                    }
                 }
                 // A game's class, as written (`net.minecraft.world.Item`).
                 if path.len() > 1 && path[0].text != yog_script_ids::system::ROOT {
@@ -120,6 +123,8 @@ impl Gen<'_> {
                     &args,
                 ))
             }
+            // A quantity is its number on the JVM: an `f64`'s.
+            Type::Unit(_) => self.value_of(&Type::F64),
             // A built-in type: its type in `System` (`Int32` for `i32`), by
             // its companion's class.
             builtin => {

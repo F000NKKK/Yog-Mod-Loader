@@ -85,6 +85,9 @@ pub const FUNC: &str = "Func";
 
 /// Numbers' functions (`Math.Max`).
 pub const MATH: &str = "Math";
+/// The game's units of time as numbers, and what makes seconds ticks.
+pub const UNITS: &str = "Units";
+pub const TO_TICKS: &str = "ToTicks";
 
 /// The collections Yog's values come as: a list (`List<T>`), a map
 /// (`Dictionary<string, T>`); what `foreach` goes through (`IEnumerable<T>`);

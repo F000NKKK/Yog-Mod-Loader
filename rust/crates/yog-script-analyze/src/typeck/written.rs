@@ -5,7 +5,7 @@
 use yog_ids::script_problem;
 
 use super::Checker;
-use super::model::{BLOCKS, SECONDS, TICKS, Type};
+use super::model::Type;
 use crate::ast::{self, TypeKind};
 use crate::index::Side;
 use crate::source::token::Span;
@@ -44,7 +44,7 @@ impl Checker<'_, '_, '_> {
         if let Some(t) = super::builtin::by_word(name) {
             return t;
         }
-        if [TICKS, SECONDS, BLOCKS].contains(&name) {
+        if yog_script_ids::units::GAME_UNITS.contains(&name) {
             return Type::Unit(name.to_string());
         }
         // `ValueTuple<A, B>` is `(A, B)`, as C#'s.

@@ -355,7 +355,7 @@ fn unit_of(suffix: &str) -> String {
     match suffix {
         TICK_SUFFIX => TICKS.to_string(),
         BLOCK_SUFFIX => BLOCKS.to_string(),
-        s if SECOND_SUFFIXES.contains(&s) => SECONDS.to_string(),
+        s if SECOND_SUFFIXES.iter().any(|(x, _)| *x == s) => SECONDS.to_string(),
         own => own.to_string(),
     }
 }
