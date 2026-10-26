@@ -19,12 +19,13 @@ impl Checker<'_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Local { binding, value, .. } => {
-                if let Some(v) = value {
+            Stmt::Local { binding, value, .. } => match value {
+                Some(v) => {
                     self.expr(v);
+                    self.bind(binding);
                 }
-                self.bind(binding);
-            }
+                None => self.bind_unset(binding),
+            },
             Stmt::Assign { place, op, value } => {
                 self.expr(value);
                 match (&place.kind, op) {
@@ -88,8 +89,9 @@ impl Checker<'_, '_> {
     fn leaf(&mut self, s: &Stmt) {
         match s {
             Stmt::Block(b) => self.block(b),
-            Stmt::Return(value, _) | Stmt::Skip(value, _) => {
+            Stmt::Return(value, at) | Stmt::Skip(value, at) => {
                 self.opt_expr(value.as_ref());
+                self.ended(*at);
                 self.state.dead = true;
             }
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
@@ -115,10 +117,21 @@ impl Checker<'_, '_> {
         }
     }
 
-    /// `x = …`: what `x` was moved from holds a value again.
+    /// `T x;`: names with no value yet.
+    fn bind_unset(&mut self, b: &Binding) {
+        match b {
+            Binding::One(n) => self.state.declare(&n.text, Var::unset(n.span)),
+            Binding::Tuple(names) => names
+                .iter()
+                .for_each(|n| self.state.declare(&n.text, Var::unset(n.span))),
+        }
+    }
+
+    /// `x = …`: what `x` was moved from, or declared without, holds a value.
     pub(super) fn renew(&mut self, name: &str) {
         if let Some(v) = self.state.get_mut(name) {
             v.moved = None;
+            v.unset = None;
         }
     }
 }

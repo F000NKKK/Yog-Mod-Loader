@@ -6,7 +6,9 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
 use yog_script_ids::java::{BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, ZERO, ZERO_CHAR};
-use yog_script_ids::jvm::{COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE};
+use yog_script_ids::jvm::{
+    COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
+};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
@@ -56,14 +58,17 @@ impl Gen<'_> {
             ExprKind::RawStr(s) | ExprKind::Text(s) | ExprKind::Tag(s) => self.code.str(s),
             ExprKind::Content { id, .. } => self.code.str(id),
             ExprKind::Str(segs) => self.interpolated(segs),
+            ExprKind::Ident(name) if self.cells.contains(name) => {
+                format!("{}.{REF_VALUE}", Self::ident(name))
+            }
             ExprKind::Ident(name) => Self::ident(name),
             ExprKind::This => "this".into(),
             ExprKind::Base => "super".into(),
             ExprKind::Member { expr, name, safe } => self.member(e, expr, &name.text, *safe),
-            ExprKind::Call { callee, args } => self.call(e, callee, args),
-            ExprKind::New { ty, args, init } => {
-                self.new_object(e, ty.as_ref(), args.as_deref().unwrap_or_default(), init)
-            }
+            ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
+            ExprKind::New { ty, args, init } => self.giving_back(e, |g| {
+                g.new_object(e, ty.as_ref(), args.as_deref().unwrap_or_default(), init)
+            }),
             ExprKind::Unary { op, expr } => self.unary(*op, expr),
             ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
             ExprKind::Conditional {
@@ -179,11 +184,18 @@ impl Gen<'_> {
     }
 
     /// Value `v` of type `t` as Yog Script writes it in text: a number,
-    /// a `bool`, a `decimal` as .NET does (`2`, `True`); else Java's.
+    /// a `bool`, a `decimal` as .NET does (`2`, `True`), boxed too; else Java's.
     pub(crate) fn text_of(&self, t: Option<&Type>, v: String) -> String {
         match t.map(Type::non_null) {
             Some(t @ (Type::F32 | Type::F64 | Type::Bool | Type::Decimal)) => {
                 match self.index.host(t) {
+                    Some(host) => format!("{host}.{TO_STRING}({v})"),
+                    None => v,
+                }
+            }
+            // What may hold one boxed: as its own type writes it.
+            Some(Type::Object | Type::Dynamic | Type::Param(_)) => {
+                match self.index.host(&Type::Object) {
                     Some(host) => format!("{host}.{TO_STRING}({v})"),
                     None => v,
                 }

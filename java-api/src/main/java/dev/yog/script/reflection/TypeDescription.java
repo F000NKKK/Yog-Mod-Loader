@@ -80,7 +80,12 @@ public final class TypeDescription {
 
     /** The last method's or constructor's next parameter. */
     public TypeDescription Takes(String name, Type type, boolean hasDefault) {
-        last.parameters.add(new ParameterInfo(name, type, last.parameters.size(), hasDefault));
+        return Takes(name, type, hasDefault, 0);
+    }
+
+    /** The last method's or constructor's next parameter, passed as {@code passing} says ({@link ParameterInfo#OUT}, none). */
+    public TypeDescription Takes(String name, Type type, boolean hasDefault, int passing) {
+        last.parameters.add(new ParameterInfo(name, type, last.parameters.size(), hasDefault, passing));
         return this;
     }
 

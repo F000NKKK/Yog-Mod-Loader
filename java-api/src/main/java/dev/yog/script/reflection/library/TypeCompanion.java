@@ -22,6 +22,7 @@ public final class TypeCompanion {
         d.Property("IsValueType", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsValueType(), null);
         d.Property("IsEnum", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsEnum(), null);
         d.Property("IsArray", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsArray(), null);
+        d.Property("IsByRef", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsByRef(), null);
         d.Property("IsAbstract", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsAbstract(), null);
         d.Property("IsSealed", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsSealed(), null);
         d.Property("IsPrimitive", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsPrimitive(), null);
@@ -37,6 +38,7 @@ public final class TypeCompanion {
         d.Method("GetArrayRank", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetArrayRank()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class));
         d.Method("MakeArrayType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeArrayType()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
         d.Method("MakeArrayType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeArrayType((Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class)).Takes("rank", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("MakeByRefType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeByRefType()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
         d.Method("GetInterfaces", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetInterfaces()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1));
         d.Method("IsAssignableFrom", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).IsAssignableFrom((dev.yog.script.Type) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("c", dev.yog.script.Type.Of(dev.yog.script.Type.class), false);
         d.Method("IsInstanceOfType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).IsInstanceOfType((Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("o", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);

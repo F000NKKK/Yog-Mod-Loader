@@ -18,7 +18,7 @@ public final class ValueTuple1<T1> implements Cloneable, dev.yog.script.Typed {
         this.Item1 = item1;
     }
     public String ToString() {
-        return (("(" + Item1) + ")");
+        return (("(" + dev.yog.script.host.Object.ToString(Item1)) + ")");
     }
     @Override
     public boolean equals(Object other) {

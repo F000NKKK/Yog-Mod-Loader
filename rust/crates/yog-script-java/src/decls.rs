@@ -16,7 +16,7 @@ use yog_script_ids::java::{
     ABSTRACT, CLASS, DEFAULT, EXTENDS, FINAL, IMPLEMENTS, INTERFACE, NULL, OVERRIDE, PACKAGE,
     PRIVATE, PROTECTED, PUBLIC, RECORD, RETURN, STATIC, THIS, VOID,
 };
-use yog_script_ids::jvm::{OBJECTS, TO_STRING};
+use yog_script_ids::jvm::{OBJECTS, REF, TO_STRING};
 
 /// Where a member is written.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -107,12 +107,6 @@ impl Gen<'_> {
     }
 
     pub(crate) fn method(&mut self, d: &Decl, m: &Method, place: Place) {
-        if m.params
-            .iter()
-            .any(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)))
-        {
-            return self.not_yet("a `ref` or `out` parameter", m.name.span);
-        }
         let ret = m
             .ret
             .as_ref()
@@ -148,7 +142,9 @@ impl Gen<'_> {
             self.code.line(format!("{head};"));
             return;
         }
+        let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&m.params));
         self.body(&head, m.body.as_ref(), void);
+        self.cells = outer;
     }
 
     /// A property's accessors with bodies as Java's methods: its getter
@@ -190,11 +186,13 @@ impl Gen<'_> {
         params
             .iter()
             .map(|p| {
-                format!(
-                    "{} {}",
-                    self.written(&p.ty, false),
-                    Self::ident(&p.name.text)
-                )
+                let t = match p.pass {
+                    Some(Pass::Ref | Pass::Out) => {
+                        format!("{REF}<{}>", self.written(&p.ty, true))
+                    }
+                    _ => self.written(&p.ty, false),
+                };
+                format!("{t} {}", Self::ident(&p.name.text))
             })
             .collect::<Vec<_>>()
             .join(", ")

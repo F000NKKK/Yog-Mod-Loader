@@ -15,5 +15,6 @@ public final class ParameterInfoCompanion {
         d.Property("Position", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).Position(), null);
         d.Property("HasDefaultValue", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).HasDefaultValue(), null);
         d.Property("IsOptional", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).IsOptional(), null);
+        d.Property("IsOut", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).IsOut(), null);
     }
 }

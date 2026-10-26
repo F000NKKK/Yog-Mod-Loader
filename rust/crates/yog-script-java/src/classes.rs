@@ -233,7 +233,9 @@ impl Gen<'_> {
                     self.first_values(body);
                 }
             }
+            let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&c.params));
             self.block_stmts(&c.body);
+            self.cells = outer;
             self.code.close("");
         }
     }

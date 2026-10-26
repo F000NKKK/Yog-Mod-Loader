@@ -66,7 +66,8 @@ fn members_and_calls_are_the_types() {
 #[test]
 fn with_copies_records_and_structs() {
     let types = "record Pos(i32 X, i32 Y);\nstruct Pt {\n    public i32 X;\n}\nclass Box {\n    public i32 X;\n}\n";
-    let ok = format!("{types}Pos F(Pos p) => p with {{ Y = 1 }};\nPt G(Pt p) => p with {{ X = 2 }};\n");
+    let ok =
+        format!("{types}Pos F(Pos p) => p with {{ Y = 1 }};\nPt G(Pt p) => p with {{ X = 2 }};\n");
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
     let class = format!("{types}Box F(Box b) => b with {{ X = 1 }};\n");
     assert_eq!(codes(&class), [script_problem::TYPE_MISMATCH]);
@@ -74,6 +75,14 @@ fn with_copies_records_and_structs() {
     assert_eq!(codes(&unknown), [script_problem::UNKNOWN_MEMBER]);
     let wrong = format!("{types}Pos F(Pos p) => p with {{ X = \"1\" }};\n");
     assert_eq!(codes(&wrong), [script_problem::TYPE_MISMATCH]);
+}
+
+/// `out let x` is of the type its parameter gives.
+#[test]
+fn out_let_takes_its_parameters_type() {
+    let src = "bool Half(i32 n, out i32 half) {\n    half = n / 2;\n    return true;\n}\n\
+               string F() {\n    Half(4, out let h);\n    string s = h;\n    return s;\n}\n";
+    assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
 }
 
 /// The game's classes by C#'s names, and their sides.

@@ -85,6 +85,10 @@ pub const HELPERS: &str = "Ys";
 /// `x++`'s old value (`Ys.before(x, x = …)`), a number's `GetType()`.
 pub const BEFORE: &str = "before";
 
+/// A `ref` or `out` parameter's cell (`Ref<T>`), and its value.
+pub const REF: &str = concat!(runtime!(), sep!(), "Ref");
+pub const REF_VALUE: &str = "value";
+
 /// The helper binding a pattern's name inside a condition
 /// (`x instanceof Mode.Charging c && Ys.bound(r = c.Rate()) && r > 3`).
 pub const BOUND: &str = "bound";
@@ -209,6 +213,14 @@ pub mod reflection {
     pub const VIRTUAL: &str = "VIRTUAL";
     pub const INIT_ONLY: &str = "INIT_ONLY";
     pub const LITERAL: &str = "LITERAL";
+    /// A parameter passed by reference: its type's (`Int32&`), how
+    /// (`ParameterInfo`'s flags), its cells in a reflection call.
+    pub const MAKE_BY_REF: &str = "MakeByRefType";
+    pub const PARAMETER_INFO: &str = concat!(reflection!(), sep!(), "ParameterInfo");
+    pub const PASSED_OUT: &str = "OUT";
+    pub const CELLS: &str = "$cells";
+    pub const CELL_OF: &str = OF;
+    pub const CELLS_BACK: &str = "back";
 }
 
 /// Expression trees as compiled code makes them: a quoted lambda is

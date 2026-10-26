@@ -341,6 +341,9 @@ names! {
         /// A type name nothing declares where it's written: no type of the
         /// code's namespace nor of one a `using` brings in (C#'s CS0246).
         UNKNOWN_TYPE = "YS0035",
+        /// A local read before it's given a value, or an `out` parameter
+        /// not given one on a path out of its method (C#'s CS0165, CS0177).
+        UNASSIGNED = "YS0036",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

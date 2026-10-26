@@ -30,7 +30,7 @@ public final class ValueTuple5<T1, T2, T3, T4, T5> implements Cloneable, dev.yog
         this.Item5 = item5;
     }
     public String ToString() {
-        return (((((((((("(" + Item1) + ", ") + Item2) + ", ") + Item3) + ", ") + Item4) + ", ") + Item5) + ")");
+        return (((((((((("(" + dev.yog.script.host.Object.ToString(Item1)) + ", ") + dev.yog.script.host.Object.ToString(Item2)) + ", ") + dev.yog.script.host.Object.ToString(Item3)) + ", ") + dev.yog.script.host.Object.ToString(Item4)) + ", ") + dev.yog.script.host.Object.ToString(Item5)) + ")");
     }
     @Override
     public boolean equals(Object other) {

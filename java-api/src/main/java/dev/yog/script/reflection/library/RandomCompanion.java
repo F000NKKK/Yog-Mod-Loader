@@ -20,5 +20,6 @@ public final class RandomCompanion {
         d.Method("NextInt64", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextInt64((Long) a[0], (Long) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int64.class)).Takes("minValue", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false).Takes("maxValue", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
         d.Method("NextDouble", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextDouble()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Double.class));
         d.Method("NextSingle", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextSingle()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Single.class));
+        d.Method("Shuffle", 0, new String[] { "T" }, (o, a) -> { a[0] = ((dev.yog.script.Random) o).Shuffle((Object[]) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("values", d.MethodParameter(0).MakeArrayType(1).MakeByRefType(), false, 0);
     }
 }

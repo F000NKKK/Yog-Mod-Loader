@@ -18,7 +18,12 @@ use yog_script_ids::jvm::OBJECT;
 impl Gen<'_> {
     pub(crate) fn args(&mut self, args: &[Arg]) -> String {
         args.iter()
-            .map(|a| self.handed_expr(&a.value))
+            .map(|a| match a.pass {
+                Some(pass @ (Pass::Ref | Pass::Out)) if !self.runtime_call => {
+                    self.cell_arg(&a.value, pass)
+                }
+                _ => self.handed_expr(&a.value),
+            })
             .collect::<Vec<_>>()
             .join(", ")
     }
@@ -185,11 +190,7 @@ impl Gen<'_> {
     /// n)`): Java has no `ref`, so the runtime's gives the new value back
     /// and the place takes it (`xs = Array.Resize(xs, n)`).
     fn given_back(&mut self, e: &Expr, args: &[Arg], called: String) -> String {
-        let runtime = self
-            .types
-            .method(e)
-            .and_then(|m| m.owner.as_deref())
-            .is_some_and(|o| self.index.is_intrinsic(o));
+        let runtime = self.calls_runtime(e);
         let Some((at, place)) = args
             .iter()
             .enumerate()
@@ -215,6 +216,14 @@ impl Gen<'_> {
             _ => called,
         };
         format!("{} = {value}", self.expr(&place.value))
+    }
+
+    /// Whether call `e`'s method is one the runtime writes by hand.
+    pub(crate) fn calls_runtime(&self, e: &Expr) -> bool {
+        self.types
+            .method(e)
+            .and_then(|m| m.owner.as_deref())
+            .is_some_and(|o| self.index.is_intrinsic(o))
     }
 
     /// `called`, an array generic code gave, made Java's array of `t`.

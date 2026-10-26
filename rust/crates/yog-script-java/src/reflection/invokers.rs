@@ -2,25 +2,19 @@
 //! parameters, what calls it (`(o, a) -> ((Box) o).Get((Integer) a[0])`, by
 //! its Java name), its result and its parameters.
 
-use yog_script_analyze::ast::{Decl, Method, Modifier, Pass};
+use yog_script_analyze::ast::{Decl, Method, Modifier};
 use yog_script_ids::jvm::reflection::{METHOD, RETURNS};
 
 use super::consts::{ARGS, DESCRIPTION, OBJECT};
-use super::members::{Owner, member_traits};
+use super::members::{Owner, around_cells, member_traits};
 use crate::Gen;
 use yog_script_ids::java::{NEW, NULL, RETURN};
 
 impl Gen<'_> {
     /// Method `m` (declaration `d`) of `owner` described, when Reflection
-    /// sees it: not an explicit implementation, not one taking `ref`/`out`
-    /// (not compiled), not the bus's (`extern`).
+    /// sees it: not an explicit implementation, not the bus's (`extern`).
     pub(super) fn method_described(&self, owner: &Owner, d: &Decl, m: &Method) -> Option<String> {
-        let skipped = m.explicit.is_some()
-            || d.has(Modifier::Extern)
-            || m.params
-                .iter()
-                .any(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)));
-        if skipped {
+        if m.explicit.is_some() || d.has(Modifier::Extern) {
             return None;
         }
         let generics: Vec<String> = m
@@ -67,10 +61,12 @@ impl Gen<'_> {
             _ if stat => format!("{}.{n}({args})", owner.raw),
             _ => format!("(({}) {OBJECT}).{n}({args})", owner.raw),
         };
-        if m.ret.is_none() {
-            format!("({OBJECT}, {ARGS}) -> {{ {call}; {RETURN} {NULL}; }}")
-        } else {
-            format!("({OBJECT}, {ARGS}) -> {call}")
+        let gives = m.ret.is_some();
+        let runtime = self.index.is_intrinsic(owner.name);
+        match around_cells(&m.params, &call, (gives, runtime)) {
+            Some(block) => format!("({OBJECT}, {ARGS}) -> {block}"),
+            None if gives => format!("({OBJECT}, {ARGS}) -> {call}"),
+            None => format!("({OBJECT}, {ARGS}) -> {{ {call}; {RETURN} {NULL}; }}"),
         }
     }
 }

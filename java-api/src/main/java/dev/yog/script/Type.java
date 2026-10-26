@@ -2,6 +2,7 @@ package dev.yog.script;
 
 import dev.yog.script.reflection.ArrayType;
 import dev.yog.script.reflection.BindingFlags;
+import dev.yog.script.reflection.ByRefType;
 import dev.yog.script.reflection.ConstructorInfo;
 import dev.yog.script.reflection.DeclaredType;
 import dev.yog.script.reflection.FieldInfo;
@@ -48,6 +49,8 @@ public abstract class Type extends MemberInfo {
     };
 
     private final Map<Integer, Type> arrays = new ConcurrentHashMap<>();
+    /** Its by-reference type ({@code Int32&}), made once asked for. */
+    private volatile Type byRef;
 
     /** Type {@code fullName} (its namespace, a dot, its name) of class {@code java}: what it is ({@link #CLASS}…), its type parameters, its bases. */
     public static Type Declare(Class<?> java, String fullName, int traits, String[] parameters, Consumer<TypeDescription> describe) {
@@ -174,6 +177,10 @@ public abstract class Type extends MemberInfo {
         return false;
     }
 
+    public boolean IsByRef() {
+        return false;
+    }
+
     public boolean IsAbstract() {
         return (traits() & (ABSTRACT | INTERFACE)) != 0;
     }
@@ -234,6 +241,19 @@ public abstract class Type extends MemberInfo {
 
     public Type MakeArrayType(int rank) {
         return arrays.computeIfAbsent(rank, r -> new ArrayType(this, r));
+    }
+
+    public Type MakeByRefType() {
+        Type made = byRef;
+        if (made == null) {
+            synchronized (this) {
+                if (byRef == null) {
+                    byRef = new ByRefType(this);
+                }
+                made = byRef;
+            }
+        }
+        return made;
     }
 
     /** This type with its type parameters as {@code arguments} say (a definition's own as they are). */

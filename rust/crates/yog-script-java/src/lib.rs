@@ -24,6 +24,7 @@ mod library;
 mod operators;
 mod patterns;
 mod reflection;
+mod refs;
 mod reified;
 mod stmts;
 mod switch;
@@ -134,6 +135,14 @@ pub(crate) struct Gen<'c> {
     /// The loops being written, innermost last: a loop written in steps
     /// its label a `continue` leaves its body by; Java's own none.
     continues: Vec<Option<String>>,
+    /// The method's `ref` and `out` parameters: cells (`x.value`).
+    cells: std::collections::HashSet<String>,
+    /// What the call being written gives back to its `ref` and `out`
+    /// arguments' places after it (`a = $t1.value`).
+    given_back: Vec<String>,
+    /// The call being written is the runtime's: its `ref` arguments passed
+    /// as values, the value it gives the place's (`xs = Array.Resize(xs, n)`).
+    runtime_call: bool,
 }
 
 impl<'c> Gen<'c> {
@@ -151,6 +160,9 @@ impl<'c> Gen<'c> {
             owner: None,
             kept_types: Vec::new(),
             continues: Vec::new(),
+            cells: std::collections::HashSet::new(),
+            given_back: Vec::new(),
+            runtime_call: false,
         }
     }
 }

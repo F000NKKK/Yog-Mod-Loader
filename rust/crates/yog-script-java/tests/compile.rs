@@ -54,9 +54,29 @@ fn with_makes_a_changed_copy() {
     }
 }
 
+/// `ref` and `out`: a parameter a cell, an argument a cell of its place,
+/// given back after the call.
+#[test]
+fn ref_and_out_pass_cells() {
+    let src = "void Bump(ref i32 x) {\n    x += 1;\n}\n\
+               bool Get(out i32 v) {\n    v = 2;\n    return true;\n}\n\
+               i32 F() {\n    let mut a = 1;\n    Bump(ref a);\n    if (Get(out let v)) {\n        return a + v;\n    }\n    return a;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static void Bump(dev.yog.script.Ref<Integer> x) {",
+        "x.value += 1;",
+        "Bump($t1 = new dev.yog.script.Ref<>(a));",
+        "a = $t1.value;",
+        "int v;",
+        "if (dev.yog.script.Ys.before(Get($t2 = new dev.yog.script.Ref<>()), v = $t2.value)) {",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
 #[test]
 fn what_isnt_written_yet_is_said() {
-    let src = "void F(ref i32 x) { }\n";
+    let src = "i32 F() => await 1;\n";
     let checked = yog_script_analyze::check("a.ys", src);
     let err = compile("a.ys", src, &checked, "p")
         .err()

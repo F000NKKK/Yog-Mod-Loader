@@ -10,4 +10,6 @@ public readonly class ParameterInfo {
     /// Whether a call may leave it out: it has a default.
     public bool HasDefaultValue { get; }
     public bool IsOptional { get; }
+    /// Given by the method (`out`): its type a by-reference one.
+    public bool IsOut { get; }
 }

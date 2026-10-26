@@ -13,6 +13,19 @@ pub(super) struct Var {
     pub lent: Option<Pass>,
     /// Where `move` handed it on, on some path to here.
     pub moved: Option<Span>,
+    /// Where it was declared without a value, not given one on some path
+    /// to here (a local without one, an `out` parameter).
+    pub unset: Option<Span>,
+}
+
+impl Var {
+    /// Declared at `at` with no value yet.
+    pub fn unset(at: Span) -> Self {
+        Var {
+            unset: Some(at),
+            ..Var::default()
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -69,6 +82,7 @@ impl State {
                 for (name, var) in theirs {
                     if let Some(m) = mine.get_mut(&name) {
                         m.moved = m.moved.or(var.moved);
+                        m.unset = m.unset.or(var.unset);
                     }
                 }
                 mine

@@ -2,18 +2,21 @@
 //! writes or makes it — written as the compiler writes a use of it
 //! (`((Box) o).Item`, `((List) o).Count()`, `host.String.Length((String) o)`).
 
-use yog_script_analyze::ast::{Accessor, Decl, DeclKind, Modifier, Param, Type as Written};
+use yog_script_analyze::ast::{Accessor, Decl, DeclKind, Modifier, Param, Pass, Type as Written};
 use yog_script_analyze::words::{get, init, set};
 use yog_script_ids::clr::ACCESSOR_SEP;
 use yog_script_ids::jvm::reflection::{
-    ABSTRACT, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MEMBER_INFO, METHOD_PARAMETER,
-    PARAMETER, PRIVATE, PROPERTY, PROTECTED, STATIC, TAKES, VIRTUAL,
+    ABSTRACT, CELL_OF, CELLS, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MAKE_BY_REF,
+    MEMBER_INFO, METHOD_PARAMETER, PARAMETER, PARAMETER_INFO, PASSED_OUT, PRIVATE, PROPERTY,
+    PROTECTED, STATIC, TAKES, VIRTUAL,
 };
 
 use super::consts::{ARGS, DESCRIPTION, NO_TRAITS, OBJECT, VALUE};
 use crate::Gen;
 use crate::index::Kind;
-use yog_script_ids::java::{NEW, NULL};
+use yog_script_ids::java::{NEW, NULL, RETURN, VAR};
+use yog_script_ids::jvm::reflection::CELLS_BACK;
+use yog_script_ids::jvm::{REF, TEMP};
 
 /// The type whose members are described, as their uses need it.
 pub(super) struct Owner<'o> {
@@ -172,10 +175,13 @@ impl Gen<'_> {
         params: &[Param],
     ) -> String {
         let args = self.args_cast(owner, params, &[]);
-        let mut out = format!(
-            "{DESCRIPTION}.{CONSTRUCTOR}({traits}, {ARGS} -> {NEW} {}({args}))",
-            owner.raw
-        );
+        let made = format!("{NEW} {}({args})", owner.raw);
+        let runtime = self.index.is_intrinsic(owner.name);
+        let make = match around_cells(params, &made, (true, runtime)) {
+            Some(block) => block,
+            None => made,
+        };
+        let mut out = format!("{DESCRIPTION}.{CONSTRUCTOR}({traits}, {ARGS} -> {make})");
         out.push_str(&self.takes(owner, params, &[]));
         out.push(';');
         out
@@ -186,22 +192,33 @@ impl Gen<'_> {
         params
             .iter()
             .map(|p| {
-                format!(
-                    ".{TAKES}({}, {}, {})",
+                let (name, t) = (
                     self.code.str(&p.name.text),
                     self.member_type(owner, &p.ty, generics),
-                    p.default.is_some()
-                )
+                );
+                let given = p.default.is_some();
+                match p.pass.and_then(passing) {
+                    Some(how) => format!(".{TAKES}({name}, {t}.{MAKE_BY_REF}(), {given}, {how})"),
+                    None => format!(".{TAKES}({name}, {t}, {given})"),
+                }
             })
             .collect()
     }
 
     /// `a[0], a[1]`, each cast to its parameter's type.
+    /// A compiled method's `ref` and `out` ones each a cell of it; the
+    /// runtime's take it as it is.
     pub(super) fn args_cast(&self, owner: &Owner, params: &[Param], generics: &[String]) -> String {
+        let cells = !self.index.is_intrinsic(owner.name);
         params
             .iter()
             .enumerate()
-            .map(|(i, p)| self.cast_value(owner, &p.ty, generics, &format!("{ARGS}[{i}]")))
+            .map(|(i, p)| match p.pass {
+                Some(Pass::Ref | Pass::Out) if cells => {
+                    format!("{REF}.{CELL_OF}({ARGS}, {i}, {CELLS})")
+                }
+                _ => self.cast_value(owner, &p.ty, generics, &format!("{ARGS}[{i}]")),
+            })
             .collect::<Vec<_>>()
             .join(", ")
     }
@@ -302,4 +319,39 @@ impl Owner<'_> {
             && !d.has(Modifier::Static)
             && g.index.kind(&(self.name.to_string(), self.arity)) != Some(Kind::Interface)
     }
+}
+
+/// How parameter passing `pass` is described: by reference, `ParameterInfo`'s
+/// flags (none for `ref`); `None` for a value's — `in` lends it, `move`
+/// hands it on, neither a reference as .NET's.
+fn passing(pass: Pass) -> Option<String> {
+    match pass {
+        Pass::Out => Some(format!("{PARAMETER_INFO}.{PASSED_OUT}")),
+        Pass::Ref => Some(NO_TRAITS.to_string()),
+        Pass::In | Pass::Move => None,
+    }
+}
+
+/// A reflection call `call` taking `params`, as a lambda's block: its `ref`
+/// and `out` arguments' cells given back into the arguments after it, its
+/// value (`gives`) or `null` the result — a `runtime` method's `ref` one
+/// given what it gives back. `None` when none's passed so.
+pub(super) fn around_cells(
+    params: &[Param],
+    call: &str,
+    (gives, runtime): (bool, bool),
+) -> Option<String> {
+    let first = params
+        .iter()
+        .position(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)))?;
+    if runtime {
+        return Some(format!("{{ {ARGS}[{first}] = {call}; {RETURN} {NULL}; }}"));
+    }
+    let cells = format!("{REF}<?>[] {CELLS} = {NEW} {REF}<?>[{}];", params.len());
+    let back = format!("{REF}.{CELLS_BACK}({ARGS}, {CELLS});");
+    Some(if gives {
+        format!("{{ {cells} {VAR} {TEMP} = {call}; {back} {RETURN} {TEMP}; }}")
+    } else {
+        format!("{{ {cells} {call}; {back} {RETURN} {NULL}; }}")
+    })
 }

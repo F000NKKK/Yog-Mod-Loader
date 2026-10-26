@@ -41,7 +41,16 @@ impl Checker<'_, '_, '_> {
             self.check_passing(&s.passes, args, given);
             let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
             for ((arg, g), p) in args.iter().zip(given).zip(&params) {
-                if is_lambda(&arg.value) || is_collection(&arg.value) {
+                if let ExprKind::Declare {
+                    ty: None,
+                    name,
+                    mutable,
+                } = &arg.value.kind
+                {
+                    // `out let x`: of the type its parameter gives.
+                    self.bind_as(&name.text, p.clone(), !mutable);
+                    self.types.set(&arg.value, p.clone());
+                } else if is_lambda(&arg.value) || is_collection(&arg.value) {
                     self.fits(&arg.value, p);
                 } else {
                     self.note_conversion(&arg.value, g, p);
