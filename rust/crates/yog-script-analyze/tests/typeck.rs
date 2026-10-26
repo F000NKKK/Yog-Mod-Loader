@@ -153,6 +153,14 @@ fn content_props_are_its_definitions() {
     );
 }
 
+/// Content is its kind's object (`BlockObject`): its events, its place.
+#[test]
+fn content_inherits_its_kinds_object() {
+    let src = "block Lamp {\n    LightLevel = 15;\n    public i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n    i32 Height() => Pos.Y;\n}\n\
+               item Gem {\n    Gem() {\n        Use += player => { };\n    }\n}\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
+}
+
 /// The game's classes by C#'s names, and their sides.
 fn game() -> ClassIndex {
     let m = |name: &str, desc: &str| Member {

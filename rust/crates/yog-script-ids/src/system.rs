@@ -25,6 +25,9 @@ pub const FOLDER_SEP: char = '/';
 pub const RESULT: &str = "Result";
 /// What an `async` method gives and `await` waits for.
 pub const TASK: &str = "Task";
+/// What a mod's content inherits: a block's, an item's.
+pub const BLOCK_OBJECT: &str = "BlockObject";
+pub const ITEM_OBJECT: &str = "ItemObject";
 
 /// A value type's `T?` as Reflection names it (`Nullable<Int32>`).
 pub const NULLABLE: &str = "Nullable";

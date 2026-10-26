@@ -5,11 +5,12 @@
 //! their parameters, as a `[Service]`'s).
 
 use yog_script_analyze::ast::{Decl, Method};
+use yog_script_ids::java::METHOD_REF;
 use yog_script_ids::java::{
     BYTE, CLASS, CLASS_LITERAL, FINAL, IMPLEMENTS, NEW, NULL, PUBLIC, RANK, RECORD, RETURN, STATIC,
 };
 use yog_script_ids::jvm::SERVICE_CALL;
-use yog_script_ids::jvm::{BUS_PROVIDE, LOAD, REQUEST};
+use yog_script_ids::jvm::{BUS_PROVIDE, LOAD, OBJECTS_REGISTER, REQUEST};
 use yog_script_ids::system::PROVIDE;
 
 use crate::{ContentDef, Gen};
@@ -52,6 +53,10 @@ impl Gen<'_> {
 
     /// Content `defs` registered when the mods load.
     pub(crate) fn registered(&mut self, defs: &[ContentDef]) {
+        self.content_ids = defs
+            .iter()
+            .map(|d| (d.name.clone(), d.id.clone()))
+            .collect();
         let Some(record) = yog_script_analyze::yog::content_register() else {
             return;
         };
@@ -82,5 +87,51 @@ impl Gen<'_> {
         self.code.close("");
         self.code.close("");
         true
+    }
+}
+
+impl Gen<'_> {
+    /// Content `name` of kind `kind` with members: a class of its kind's
+    /// object (`BlockObject`), its objects made by it once registered.
+    pub(crate) fn content_class(
+        &mut self,
+        d: &Decl,
+        (kind, name): (&str, &str),
+        header: &yog_script_analyze::ast::TypeHeader,
+        body: &[Decl],
+    ) {
+        let Some(base) = yog_script_analyze::content_base(kind) else {
+            return self.not_yet(
+                "members of content of this kind",
+                crate::decls::decl_span(d),
+            );
+        };
+        let mut header = header.clone();
+        header.bases.insert(0, written_named(base));
+        self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
+        let Some(id) = self.content_ids.get(name).cloned() else {
+            return;
+        };
+        let line = format!(
+            "{}.{OBJECTS_REGISTER}({}, {name}{METHOD_REF}{NEW});",
+            self.index.place(base, 0),
+            self.code.str(&id)
+        );
+        self.on_load.push(line);
+    }
+}
+
+/// Type `name` as written (no arguments), where no source wrote it.
+fn written_named(name: &str) -> yog_script_analyze::ast::Type {
+    use yog_script_analyze::ast::{Name, Type, TypeKind};
+    Type {
+        kind: TypeKind::Path {
+            path: vec![Name {
+                text: name.to_string(),
+                span: Default::default(),
+            }],
+            args: Vec::new(),
+        },
+        span: Default::default(),
     }
 }

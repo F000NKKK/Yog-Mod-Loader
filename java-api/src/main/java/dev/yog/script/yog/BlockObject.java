@@ -1,0 +1,109 @@
+package dev.yog.script.yog;
+
+import dev.yog.YogLog;
+import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogTypes;
+import dev.yog.script.Action1;
+import dev.yog.script.Event;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+
+/**
+ * Yog Script's {@code System.Yog.BlockObject}: a block a mod declares, at
+ * its place in a world. Made the first time something happens there (its
+ * constructor subscribes), kept while the server runs, gone when it's
+ * broken. A handler's panic is logged: the game goes on.
+ */
+public abstract class BlockObject {
+    /** Where an object is: its world and its place in it. */
+    private record At(String dimension, int x, int y, int z) {
+        static At of(String dimension, YogTypes.BlockPos pos) {
+            return new At(dimension, pos.x(), pos.y(), pos.z());
+        }
+    }
+
+    /** Each declared block's maker, by its id. */
+    private static final Map<String, Supplier<? extends BlockObject>> MAKERS = new ConcurrentHashMap<>();
+    /** The objects made so far, by where they are. */
+    private static final Map<At, BlockObject> MADE = new ConcurrentHashMap<>();
+    /** Where the object being made is: its constructor reads it. */
+    private static final ThreadLocal<At> MAKING = new ThreadLocal<>();
+
+    private final YogTypes.BlockPos pos;
+    private final String dimension;
+
+    public final Event<Action1<String>> Use = new Event<>();
+    public final Event<Action1<String>> Place = new Event<>();
+    public final Event<Action1<String>> Break = new Event<>();
+
+    protected BlockObject() {
+        At at = MAKING.get();
+        this.pos = new YogTypes.BlockPos(at.x(), at.y(), at.z());
+        this.dimension = at.dimension();
+    }
+
+    public YogTypes.BlockPos Pos() {
+        return pos;
+    }
+
+    public String Dimension() {
+        return dimension;
+    }
+
+    /** Block {@code id}'s objects made by {@code make}; the first one declared listens to the blocks' events. */
+    public static void register(String id, Supplier<? extends BlockObject> make) {
+        boolean first = MAKERS.isEmpty();
+        MAKERS.put(id, make);
+        if (first) {
+            listen();
+        }
+    }
+
+    private static void listen() {
+        YogEvents.Block.Use.on(0, e -> {
+            raised(found(e.blockId(), At.of(e.dimension(), e.pos())), o -> o.Use, e.playerName());
+            return null;
+        });
+        YogEvents.Block.Place.on(0, e -> {
+            At at = At.of(e.dimension(), e.pos());
+            MADE.remove(at);
+            raised(found(e.blockId(), at), o -> o.Place, e.playerName());
+            return null;
+        });
+        YogEvents.Block.Break.on(0, e -> {
+            At at = At.of(e.dimension(), e.pos());
+            raised(found(e.blockId(), at), o -> o.Break, e.playerName());
+            MADE.remove(at);
+            return null;
+        });
+    }
+
+    /** The object of block {@code id} at {@code at}: made now if it wasn't; none for a block no mod declared. */
+    private static BlockObject found(String id, At at) {
+        Supplier<? extends BlockObject> make = MAKERS.get(id);
+        if (make == null) {
+            return null;
+        }
+        return MADE.computeIfAbsent(at, p -> {
+            MAKING.set(p);
+            try {
+                return make.get();
+            } finally {
+                MAKING.remove();
+            }
+        });
+    }
+
+    /** {@code o}'s event {@code which} raised with {@code player}; a panic logged, the game going on. */
+    private static void raised(BlockObject o, java.util.function.Function<BlockObject, Event<Action1<String>>> which, String player) {
+        if (o == null) {
+            return;
+        }
+        try {
+            which.apply(o).each(h -> h.Invoke(player));
+        } catch (RuntimeException e) {
+            YogLog.error("Yog Script: a block's handler panicked: " + e.getMessage());
+        }
+    }
+}

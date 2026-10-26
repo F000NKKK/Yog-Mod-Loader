@@ -33,6 +33,9 @@ impl Gen<'_> {
                     if self.index.is_unit(name) {
                         return self.value_of(&Type::Unit(name.to_string()));
                     }
+                    if let Some(t) = self.yog_written(name, 0) {
+                        return self.value_of(&t);
+                    }
                 }
                 // A game's class, as written (`net.minecraft.world.Item`).
                 if path.len() > 1 && path[0].text != yog_script_ids::system::ROOT {
@@ -125,6 +128,8 @@ impl Gen<'_> {
             }
             // A quantity is its number on the JVM: an `f64`'s.
             Type::Unit(_) => self.value_of(&Type::F64),
+            // Yog's: its class's (a handle's, its subject's: a string's).
+            Type::Yog(_) => Some(of_class(&crate::reified::erased(&self.java(t, true)))),
             // A built-in type: its type in `System` (`Int32` for `i32`), by
             // its companion's class.
             builtin => {

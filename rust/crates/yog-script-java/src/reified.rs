@@ -77,7 +77,7 @@ pub(crate) fn names_parameter(t: &Type) -> bool {
 }
 
 /// A Java type without its type arguments (`List<String>[]` is `List[]`).
-fn erased(java: &str) -> String {
+pub(crate) fn erased(java: &str) -> String {
     let mut out = String::new();
     let mut depth = 0usize;
     for c in java.chars() {

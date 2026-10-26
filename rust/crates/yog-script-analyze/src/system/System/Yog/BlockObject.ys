@@ -1,0 +1,20 @@
+namespace System.Yog;
+
+/// A block a mod declares (`block Lamp { … }`), at its place in a world:
+/// made the first time something happens there (its constructor
+/// subscribes), kept while the server runs, gone when it's broken. Its
+/// fields are the server's memory (`saved` ones are kept with the world).
+[Intrinsic]
+public abstract class BlockObject {
+    /// Where it is.
+    public BlockPos Pos { get; }
+    /// The world it's in (`minecraft:overworld`).
+    public string Dimension { get; }
+
+    /// A player right-clicked it.
+    public event Action<Player> Use;
+    /// A player placed it (it's just been made).
+    public event Action<Player> Place;
+    /// A player broke it (it's gone after).
+    public event Action<Player> Break;
+}

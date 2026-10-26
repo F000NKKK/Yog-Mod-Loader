@@ -12,7 +12,10 @@ fn content_is_its_kinds_definition() {
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let defs = yog_script_build::content_defs(("a.ys", SRC), &checked, "test")
         .unwrap_or_else(|p| panic!("{p:#?}"));
-    let ids: Vec<_> = defs.iter().map(|d| (d.kind.as_str(), d.id.as_str())).collect();
+    let ids: Vec<_> = defs
+        .iter()
+        .map(|d| (d.kind.as_str(), d.id.as_str()))
+        .collect();
     assert_eq!(ids, [("block", "test:lamp"), ("item", "test:gem")]);
     let lamp = yog_data::binary::decode(&defs[0].data).unwrap_or_default();
     let Value::Map(fields) = lamp else {
@@ -25,11 +28,17 @@ fn content_is_its_kinds_definition() {
     let java = yog_script_java::compile_in(("a.ys", SRC), &checked, "p", &defs)
         .unwrap_or_else(|p| panic!("{p:#?}"));
     assert!(
-        java.source.contains("new dev.yog.bus.YogServices.Content.Register(\"block\", \"test:lamp\", new byte[] {"),
+        java.source.contains(
+            "new dev.yog.bus.YogServices.Content.Register(\"block\", \"test:lamp\", new byte[] {"
+        ),
         "{}",
         java.source
     );
-    assert!(java.mods.iter().any(|m| m == "p.AScript$$Load"), "{:?}", java.mods);
+    assert!(
+        java.mods.iter().any(|m| m == "p.AScript$$Load"),
+        "{:?}",
+        java.mods
+    );
 }
 
 #[test]
@@ -39,4 +48,26 @@ fn a_definition_its_kind_refuses_is_reported() {
     let checked = yog_script_analyze::check("a.ys", src);
     let defs = yog_script_build::content_defs(("a.ys", src), &checked, "test");
     assert!(defs.is_err());
+}
+
+/// Content with members is its kind's object's class, its objects made by
+/// it once it's registered when the mods load.
+#[test]
+fn content_with_members_is_its_kinds_object() {
+    let src = "block Lamp {\n    LightLevel = 15;\n    public i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n    public i32 Height() => Pos.Y;\n}\n";
+    let checked = yog_script_analyze::check("a.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let defs = yog_script_build::content_defs(("a.ys", src), &checked, "test")
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    let java = yog_script_java::compile_in(("a.ys", src), &checked, "p", &defs)
+        .unwrap_or_else(|p| panic!("{p:#?}"))
+        .source;
+    for want in [
+        "public static class Lamp extends dev.yog.script.yog.BlockObject {",
+        "Use.add((player) -> {",
+        "return Pos().y();",
+        "dev.yog.script.yog.BlockObject.register(\"test:lamp\", Lamp::new);",
+    ] {
+        assert!(java.contains(want), "missing `{want}` in:\n{java}");
+    }
 }

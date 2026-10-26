@@ -97,6 +97,7 @@ fn definition(
         return None;
     }
     Some(ContentDef {
+        name: name.text.clone(),
         kind: k.kind.to_string(),
         id,
         data: yog_data::binary::encode(&def),

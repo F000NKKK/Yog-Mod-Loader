@@ -128,6 +128,8 @@ impl OwnTypes {
                 kind,
             } if kind.text != yog_ids::kind::RECIPE => {
                 let t = self.declared(&name.text, &header.generics);
+                t.content = Some(kind.text.clone());
+                t.heap = true;
                 (t, body.as_slice(), header.has.as_slice())
             }
             DeclKind::Component { name, header, body }

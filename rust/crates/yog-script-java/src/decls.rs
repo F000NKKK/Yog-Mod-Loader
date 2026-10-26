@@ -107,10 +107,16 @@ impl Gen<'_> {
                 body,
             } => self.enum_decl(d, (&name.text, generics, base.as_ref()), variants, body),
             DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
-            // Its properties are its definition, made by `yog build`.
-            DeclKind::Content { body, .. } => {
-                if let Some(m) = body.iter().find(|m| !matches!(m.kind, DeclKind::Prop(_))) {
-                    self.not_yet("a content's members", decl_span(m));
+            // Its properties are its definition, made by `yog build`; its
+            // members, its kind's object's class.
+            DeclKind::Content {
+                kind,
+                name,
+                header,
+                body,
+            } => {
+                if body.iter().any(|m| !matches!(m.kind, DeclKind::Prop(_))) {
+                    self.content_class(d, (&kind.text, &name.text), header, body);
                 }
             }
             DeclKind::Namespace {

@@ -131,8 +131,7 @@ impl Gen<'_> {
             _ => None,
         }
         .unwrap_or(Type::Unknown);
-        let java = self.java(&t, true);
-        let erased = java.split('<').next().unwrap_or_default().to_string();
+        let erased = crate::reified::erased(&self.java(&t, true));
         format!("{erased}{CLASS_LITERAL}")
     }
 

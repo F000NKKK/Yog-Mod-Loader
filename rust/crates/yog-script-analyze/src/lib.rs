@@ -221,3 +221,14 @@ fn check_targets(file: &ast::File, nanites: bool, report: &mut yog_analysis::Rep
         _ => {}
     }
 }
+
+/// The library class content of kind `kind` inherits (`block`'s
+/// `BlockObject`), when its kind has one.
+#[must_use]
+pub fn content_base(kind: &str) -> Option<&'static str> {
+    match kind {
+        k if k == yog_ids::kind::BLOCK => Some(yog_script_ids::system::BLOCK_OBJECT),
+        k if k == yog_ids::kind::ITEM => Some(yog_script_ids::system::ITEM_OBJECT),
+        _ => None,
+    }
+}

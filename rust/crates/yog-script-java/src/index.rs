@@ -121,6 +121,7 @@ impl Index {
                         .insert((m.name.text.clone(), arity(&m.generics)), info);
                 }
                 DeclKind::Type { .. } => self.type_decl(d),
+                DeclKind::Content { .. } => self.content_decl(d),
                 DeclKind::Enum { .. } => self.enum_decl(d),
                 DeclKind::Unit { name, .. } => {
                     self.units.insert(name.text.clone());
@@ -207,6 +208,46 @@ impl Index {
         };
         self.types
             .insert((name.text.clone(), arity(&header.generics)), info);
+    }
+
+    /// Content of a kind with an object (`block Lamp { … }`): a class of
+    /// its kind's object (`BlockObject`), its events among its members.
+    fn content_decl(&mut self, d: &Decl) {
+        let DeclKind::Content {
+            kind,
+            name,
+            header,
+            body,
+        } = &d.kind
+        else {
+            return;
+        };
+        let Some(base) = yog_script_analyze::content_base(&kind.text) else {
+            return;
+        };
+        self.declared(&name.text, 0);
+        for m in body {
+            if let DeclKind::Event { name: e, .. } = &m.kind {
+                self.events.insert(
+                    (name.text.clone(), e.text.clone()),
+                    attribute_text(m, EVENT),
+                );
+            }
+        }
+        self.shapes.insert(
+            (name.text.clone(), 0),
+            crate::java_names::shape_of(header, body),
+        );
+        let info = Info {
+            kind: Kind::Class,
+            computed: computed(body),
+            bases: vec![(base.to_string(), 0)],
+            takes_args: false,
+            is_abstract: false,
+            record_params: Vec::new(),
+            record_fields: Vec::new(),
+        };
+        self.types.insert((name.text.clone(), 0), info);
     }
 
     /// An enum: its cases' fields, whether any case holds data.
@@ -348,9 +389,15 @@ impl Index {
     /// Event `name` of type `owner` (the file's or a mod's: none): its bus
     /// address, when it's on the bus; `None` when there's no such event.
     pub fn event(&self, owner: Option<&str>, name: &str) -> Option<Option<&str>> {
-        self.events
-            .get(&(owner.unwrap_or_default().to_string(), name.to_string()))
-            .map(Option::as_deref)
+        let owner = owner.unwrap_or_default();
+        if let Some(found) = self.events.get(&(owner.to_string(), name.to_string())) {
+            return Some(found.as_deref());
+        }
+        // What it inherits declares it (a block's `Use`: `BlockObject`'s).
+        let (_, info) = self.types.iter().find(|((n, _), _)| n == owner)?;
+        info.bases
+            .iter()
+            .find_map(|(b, _)| self.event(Some(b), name))
     }
 
     /// Whether `name` is a unit: the game's (`Ticks`) or one declared.
@@ -411,6 +458,15 @@ impl Index {
             .and_then(|a| a.first().copied())
             .unwrap_or_default();
         (name.to_string(), arity)
+    }
+
+    /// Whether `name` is a computed property of type `of` (or of what it
+    /// inherits): read by calling its getter. A record's component is its
+    /// field inside it; a name no member is (a local) isn't.
+    pub fn member_called(&self, of: &TypeRef, name: &str) -> bool {
+        self.types.get(of).is_some_and(|i| {
+            i.computed.contains(name) || i.bases.iter().any(|b| self.member_called(b, name))
+        })
     }
 
     /// Whether `name` of type `of` is read by calling it (a computed

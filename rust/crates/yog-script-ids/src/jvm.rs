@@ -134,6 +134,8 @@ pub const BUS_PRIORITY: &str = "0";
 pub const BUS_PROVIDE: &str = concat!(bus_api!(), sep!(), "provide");
 pub const LOAD: &str = "$Load";
 pub const SERVICE_CALL: &str = "call";
+/// A content's objects made by its class once registered (`BlockObject.register`).
+pub const OBJECTS_REGISTER: &str = "register";
 /// An `event`'s handlers (the runtime's `Event`): added (by a key),
 /// removed by it, each called, the last's value given; a method's key
 /// made of its object and itself (`List.of(c, "Times#0")`).

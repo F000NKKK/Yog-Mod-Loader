@@ -72,6 +72,15 @@ impl Gen<'_> {
         format!("{base}<{}>", args.join(", "))
     }
 
+    /// Type `name` (of `arity` arguments) as written, when it's Yog's — a
+    /// payload's struct or a handle — and no type the source or the library
+    /// declares is named so.
+    pub(crate) fn yog_written(&self, name: &str, arity: usize) -> Option<Type> {
+        let yogs = yog::is_handle(name) || yog::data(name).is_some();
+        (arity == 0 && yogs && self.index.kind(&(name.to_string(), 0)).is_none())
+            .then(|| Type::Yog(name.to_string()))
+    }
+
     /// A type as written (a signature's, a field's) in Java.
     pub(crate) fn written(&self, t: &Written, boxed: bool) -> String {
         match &t.kind {
@@ -102,6 +111,10 @@ impl Gen<'_> {
                 // A quantity (`Ticks`, a mod's `Energy`): a number.
                 if args.is_empty() && self.index.is_unit(name) {
                     return self.java(&Type::Unit(name.to_string()), boxed);
+                }
+                // Yog's (`BlockPos`, a handle) where no type of the source's is named so.
+                if let Some(t) = self.yog_written(name, args.len()) {
+                    return self.java(&t, boxed);
                 }
                 let base = self.index.place(name, args.len());
                 let inner: Vec<String> = args.iter().map(|a| self.written(a, true)).collect();

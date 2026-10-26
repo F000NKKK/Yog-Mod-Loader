@@ -61,6 +61,8 @@ pub struct JavaClass {
 /// A content definition `yog build` made of a declaration: registered
 /// when the mods load.
 pub struct ContentDef {
+    /// Its declaration's name (`Lamp`).
+    pub name: String,
     pub kind: String,
     pub id: String,
     /// Its Yog Data, binary.
@@ -203,6 +205,8 @@ pub(crate) struct Gen<'c> {
     /// What the file does when the mods load, for its `$Load`: content
     /// registered, `[Provide]` methods answering.
     on_load: Vec<String>,
+    /// Each content declaration's id (`Lamp`: `mymod:lamp`).
+    content_ids: std::collections::HashMap<String, String>,
     /// The file has a `$Load`.
     has_load: bool,
 }
@@ -235,6 +239,7 @@ impl<'c> Gen<'c> {
             class_name: String::new(),
             boxed: std::collections::HashSet::new(),
             on_load: Vec::new(),
+            content_ids: std::collections::HashMap::new(),
             has_load: false,
         }
     }

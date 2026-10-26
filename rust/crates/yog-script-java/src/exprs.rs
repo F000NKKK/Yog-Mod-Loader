@@ -68,6 +68,15 @@ impl Gen<'_> {
             ExprKind::Ident(name) if self.cells.contains(name) => {
                 format!("{}.{REF_VALUE}", Self::ident(name))
             }
+            // A property of `this` by its name: its getter.
+            ExprKind::Ident(name)
+                if self
+                    .owner
+                    .as_ref()
+                    .is_some_and(|o| self.index.member_called(o, name)) =>
+            {
+                format!("{}()", Self::ident(name))
+            }
             ExprKind::Ident(name) => Self::ident(name),
             ExprKind::This => self.this_ref(),
             ExprKind::Base => self.base_ref(),

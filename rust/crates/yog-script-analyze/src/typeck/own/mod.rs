@@ -69,6 +69,8 @@ pub(crate) struct OwnType {
     pub readonly_all: bool,
     /// A record: set once, never changed; shared, so `Copy`.
     pub record: bool,
+    /// Content of this kind (`block`): it inherits the kind's object.
+    pub content: Option<String>,
     /// Its primary constructor's parameters (`class Obsolete(string message)`).
     pub ctor: Vec<ast::Param>,
     /// Its constructors written in its body, by their parameters.
@@ -181,14 +183,21 @@ impl OwnTypes {
         out
     }
 
-    /// What type `key` inherits unwritten, as C#'s: an enum's `Enum`, then
-    /// `object`, every type's base — those the library declares.
+    /// What type `key` inherits unwritten, as C#'s: an enum's `Enum`, a
+    /// content's its kind's object (`BlockObject`), then `object`, every
+    /// type's base — those the library declares.
     pub fn implicit_bases(&self, key: &TypeKey) -> Vec<TypeKey> {
-        let is_enum = self.types.get(key).is_some_and(|t| t.is_enum);
+        let own = self.types.get(key);
+        let is_enum = own.is_some_and(|t| t.is_enum);
         let enum_base = is_enum.then(|| TypeKey::new(yog_script_ids::system::ENUM, 0));
+        let content_base = own
+            .and_then(|t| t.content.as_deref())
+            .and_then(crate::content_base)
+            .map(|b| TypeKey::new(b, 0));
         let object = TypeKey::new(yog_script_ids::clr::OBJECT, 0);
         enum_base
             .into_iter()
+            .chain(content_base)
             .chain([object])
             .filter(|k| k != key && self.types.contains_key(k))
             .collect()
