@@ -45,17 +45,7 @@ impl Gen<'_> {
             ExprKind::Call { callee, args } => self.call_node(e, callee, args, scopes)?,
             ExprKind::Binary { op, left, right } => {
                 let factory = binary_factory(*op)?;
-                let (l, r) = (self.tree(left, scopes)?, self.tree(right, scopes)?);
-                match self.types.operator(e).cloned() {
-                    Some(used) => {
-                        let method = self.operator_node(&used, &[left, right])?;
-                        format!(
-                            "{ex}.{MAKE_BINARY}({}.{factory}, {l}, {r}, false, {method})",
-                            self.node_types()
-                        )
-                    }
-                    None => format!("{ex}.{factory}({l}, {r})"),
-                }
+                self.binary_node(e, factory, (left, right), scopes)?
             }
             ExprKind::Unary { op, expr } => {
                 let factory = match op {
@@ -79,16 +69,7 @@ impl Gen<'_> {
             ExprKind::Cast { ty, expr } => {
                 let operand = self.tree(expr, scopes)?;
                 let to = self.type_value(ty, &|_| None)?;
-                match self.types.operator(e).cloned() {
-                    Some(used) => {
-                        let method = self.operator_node(&used, &[expr])?;
-                        format!(
-                            "{ex}.{MAKE_UNARY}({}.{CONVERT}, {operand}, {to}, {method})",
-                            self.node_types()
-                        )
-                    }
-                    None => format!("{ex}.{CONVERT}({operand}, {to})"),
-                }
+                self.cast_node(e, (&operand, &to), expr)?
             }
             ExprKind::Index { expr, args }
                 if args.len() == 1
@@ -117,6 +98,43 @@ impl Gen<'_> {
     /// `Expression`'s node types' enum (`ExpressionType`).
     fn node_types(&self) -> String {
         self.index.place(EXPRESSION_TYPE, 0)
+    }
+
+    /// `l op r`: the language's, or a type's own operator.
+    fn binary_node(
+        &mut self,
+        e: &Expr,
+        factory: &str,
+        (left, right): (&Expr, &Expr),
+        scopes: &Scopes,
+    ) -> Option<String> {
+        let ex = self.expressions();
+        let (l, r) = (self.tree(left, scopes)?, self.tree(right, scopes)?);
+        match self.types.operator(e).cloned() {
+            Some(used) => {
+                let method = self.operator_node(&used, &[left, right])?;
+                Some(format!(
+                    "{ex}.{MAKE_BINARY}({}.{factory}, {l}, {r}, false, {method})",
+                    self.node_types()
+                ))
+            }
+            None => Some(format!("{ex}.{factory}({l}, {r})")),
+        }
+    }
+
+    /// `(T)x`: a number's conversion, or a type's own.
+    fn cast_node(&mut self, e: &Expr, (operand, to): (&str, &str), of: &Expr) -> Option<String> {
+        let ex = self.expressions();
+        match self.types.operator(e).cloned() {
+            Some(used) => {
+                let method = self.operator_node(&used, &[of])?;
+                Some(format!(
+                    "{ex}.{MAKE_UNARY}({}.{CONVERT}, {operand}, {to}, {method})",
+                    self.node_types()
+                ))
+            }
+            None => Some(format!("{ex}.{CONVERT}({operand}, {to})")),
+        }
     }
 
     /// `-x`, `!x`: the language's, or a type's own operator.
