@@ -1,0 +1,88 @@
+namespace System.Logging;
+
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
+
+/// One entry a queued provider writes later: its message made when it was
+/// logged (its state may change after), what else it was logged with.
+public readonly record QueuedEntry(LogLevel Level, string Category, EventId EventId, string Message, Error? Error);
+
+/// A provider writing its entries later, in order, off the thread that
+/// logged them (as .NET's console provider queues its own): logging only
+/// puts an entry in a channel; a task of its own awaits `WriteAsync` of each.
+/// `FlushAsync` waits for what's queued so far; disposing it writes the
+/// rest, then stops.
+public abstract readonly class QueuedLoggerProvider : ILoggerProvider, IAsyncDisposable {
+    private readonly Channel<Queued> _queue = Channel.CreateUnbounded<Queued>();
+    private readonly Once<Task> _writing = new Once<Task>();
+
+    /// What it's asked to write: an entry, or where a flush waits.
+    private readonly record Queued(QueuedEntry? Entry, TaskCompletionSource? Flushed);
+
+    /// Writes `entry` (to a file, a socket, the game's log).
+    protected abstract Task WriteAsync(QueuedEntry entry);
+
+    /// Whether entries of `level` are queued at all (all but `None`).
+    protected virtual bool Enabled(LogLevel level) => level != LogLevel.None;
+
+    public readonly ILogger CreateLogger(string categoryName) => new QueuedLogger(this, categoryName);
+
+    /// `entry` queued, its writer started the first time.
+    private void Enqueue(QueuedEntry entry) {
+        Started();
+        _queue.Writer.TryWrite(new Queued(entry, null));
+    }
+
+    /// Waits for every entry queued so far to be written.
+    public Task FlushAsync() {
+        Started();
+        let flushed = new TaskCompletionSource();
+        _queue.Writer.TryWrite(new Queued(null, flushed));
+        return flushed.Task;
+    }
+
+    /// Its writer, started once.
+    private Task Started() => _writing.GetOrInit(() => Task.Run(() => Drain()));
+
+    private async Task Drain() {
+        await foreach (let q in _queue.Reader.ReadAllAsync()) {
+            if (q.Entry != null) {
+                await WriteAsync(q.Entry);
+            }
+            q.Flushed?.TrySetResult();
+        }
+    }
+
+    /// Writes what's queued, then stops.
+    public async Task DisposeAsync() {
+        _queue.Writer.Complete();
+        await Started();
+    }
+
+    public void Dispose() {
+        DisposeAsync().Wait();
+    }
+
+    /// A queued provider's logger of a category.
+    private readonly sealed class QueuedLogger : ILogger {
+        private readonly QueuedLoggerProvider _provider;
+        private readonly string _category;
+
+        public QueuedLogger(QueuedLoggerProvider provider, string category) {
+            _provider = provider;
+            _category = category;
+        }
+
+        public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {
+            if (IsEnabled(logLevel)) {
+                let message = formatter(state, error);
+                _provider.Enqueue(new QueuedEntry(logLevel, _category, eventId, message, error));
+            }
+        }
+
+        public readonly bool IsEnabled(LogLevel logLevel) => _provider.Enabled(logLevel);
+
+        public readonly IDisposable? BeginScope<TState>(TState state) => NullScope.Instance;
+    }
+}

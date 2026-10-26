@@ -28,12 +28,20 @@ public final class Quaternion implements dev.yog.script.IEquatable<dev.yog.scrip
         d.Constructor(0, a -> new dev.yog.script.numerics.Quaternion((Float) a[0], (Float) a[1], (Float) a[2], (Float) a[3])).Takes("x", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("y", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("z", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("w", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
     }
     public static final dev.yog.script.numerics.Quaternion Identity = new dev.yog.script.numerics.Quaternion(0, 0, 0, 1);
+    private final float x;
+    private final float y;
+    private final float z;
+    private final float w;
     public float X;
     public float Y;
     public float Z;
     public float W;
     public Quaternion(float x, float y, float z, float w) {
         super();
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
         this.X = x;
         this.Y = y;
         this.Z = z;

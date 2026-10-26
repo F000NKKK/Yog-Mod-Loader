@@ -20,7 +20,10 @@ fn conditions_prove_names_not_null() {
                bool E(string? s) => s == null || s.Length > 2;\n\
                i32 F(string? s) { if (!(s is null)) { return s.Length; } return 0; }\n\
                i32 G(string? s) { while (s != null) { return s.Length; } return 0; }\n\
-               i32 H(string? s) { let mut t = s; t = \"x\"; return t.Length; }\n";
+               i32 H(string? s) { let mut t = s; t = \"x\"; return t.Length; }\n\
+               class Rule { public string? Name; }\n\
+               i32 I(Rule r) => r.Name == null ? 0 : r.Name.Length;\n\
+               bool J(Rule r) => r.Name != null && r.Name.StartsWith(\"a\");\n";
     assert_eq!(codes(src), Vec::<String>::new());
 }
 

@@ -1,0 +1,80 @@
+namespace System.Logging;
+
+using System.Collections.Generic;
+using System.Threading;
+
+/// A factory's logger of a category (.NET's internal `Logger`): each entry
+/// written by every provider whose rule lets it through; its scopes begun
+/// in the factory's scope provider and in the providers keeping their own.
+public readonly sealed class AggregateLogger : ILogger {
+    public readonly string Category;
+    private readonly Lock<List<ProviderLogger>> _loggers = new Lock<List<ProviderLogger>>(new List<ProviderLogger>());
+    private readonly IExternalScopeProvider? _scopes;
+
+    public AggregateLogger(string category, IExternalScopeProvider? scopes) {
+        Category = category;
+        _scopes = move scopes;
+    }
+
+    /// The providers' loggers now (a copy: one added meanwhile isn't in it).
+    public ProviderLogger[] Loggers() {
+        lock (_loggers, ref let all) {
+            return all.ToArray();
+        }
+    }
+
+    /// `logger` writing its entries from now on.
+    public void Add(ProviderLogger logger) {
+        lock (_loggers, ref let all) {
+            all.Add(logger);
+        }
+    }
+
+    public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {
+        foreach (let l in Loggers()) {
+            if (l.Lets(logLevel) && l.Logger.IsEnabled(logLevel)) {
+                l.Logger.Log(logLevel, eventId, state, error, formatter);
+            }
+        }
+    }
+
+    public readonly bool IsEnabled(LogLevel logLevel) {
+        foreach (let l in Loggers()) {
+            if (l.Lets(logLevel) && l.Logger.IsEnabled(logLevel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public readonly IDisposable? BeginScope<TState>(TState state) {
+        let mut begun = new List<IDisposable>();
+        if (_scopes != null) {
+            begun.Add(_scopes.Push(state));
+        }
+        foreach (let l in Loggers()) {
+            if (_scopes == null || l.KeepsOwnScopes) {
+                let scope = l.Logger.BeginScope(state);
+                if (scope != null) {
+                    begun.Add(move scope);
+                }
+            }
+        }
+        return new Scopes(move begun);
+    }
+
+    /// The scopes one `BeginScope` began, ended together, the last first.
+    private readonly sealed class Scopes : IDisposable {
+        private readonly List<IDisposable> _all;
+
+        public Scopes(List<IDisposable> all) {
+            _all = move all;
+        }
+
+        public void Dispose() {
+            for (let mut i = _all.Count - 1; i >= 0; i -= 1) {
+                _all[i].Dispose();
+            }
+        }
+    }
+}

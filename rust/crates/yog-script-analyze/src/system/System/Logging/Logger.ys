@@ -2,7 +2,7 @@ namespace System.Logging;
 
 /// A logger of the category `T` names (.NET's `Logger<T>`): its type's full
 /// name, made by the factory's providers.
-public sealed class Logger<T> : ILogger<T> {
+public readonly sealed class Logger<T> : ILogger<T> {
     private readonly ILogger _logger;
 
     public Logger(in ILoggerFactory factory) {

@@ -516,10 +516,32 @@ impl Index {
             return Some(found.as_deref());
         }
         // What it inherits declares it (a block's `Use`: `BlockObject`'s).
-        let (_, info) = self.types.iter().find(|((n, _), _)| n == owner)?;
-        info.bases
-            .iter()
-            .find_map(|(b, _)| self.event(Some(b), name))
+        let mut seen = HashSet::new();
+        self.types
+            .keys()
+            .filter(|(n, _)| n == owner)
+            .find_map(|t| self.inherited_event(t, name, &mut seen))
+    }
+
+    /// Event `name` declared by a type `t` inherits (each type looked in once).
+    fn inherited_event(
+        &self,
+        t: &TypeRef,
+        name: &str,
+        seen: &mut HashSet<TypeRef>,
+    ) -> Option<Option<&str>> {
+        if !seen.insert(t.clone()) {
+            return None;
+        }
+        for base in &self.types.get(t)?.bases {
+            if let Some(found) = self.events.get(&(base.0.clone(), name.to_string())) {
+                return Some(found.as_deref());
+            }
+            if let Some(found) = self.inherited_event(base, name, seen) {
+                return Some(found);
+            }
+        }
+        None
     }
 
     /// Whether `name` is a unit: the game's (`Ticks`) or one declared.

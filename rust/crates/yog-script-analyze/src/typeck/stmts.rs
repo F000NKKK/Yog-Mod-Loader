@@ -37,10 +37,10 @@ impl Checker<'_, '_, '_> {
                     _ => {
                         self.fits(value, &t);
                         self.handed(value, &t);
-                        if let ExprKind::Ident(name) = &place.kind
+                        if let Some(path) = super::nulls::path_of(place)
                             && let Some(v) = self.types.of(value).cloned()
                         {
-                            self.assigned_to(name, &v);
+                            self.assigned_to(&path, &v);
                         }
                     }
                 }

@@ -27,6 +27,12 @@ public final class Matrix3x2 implements dev.yog.script.IEquatable<dev.yog.script
         d.Constructor(0, a -> new dev.yog.script.numerics.Matrix3x2((Float) a[0], (Float) a[1], (Float) a[2], (Float) a[3], (Float) a[4], (Float) a[5])).Takes("m11", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m12", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m21", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m22", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m31", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m32", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
     }
     public static final dev.yog.script.numerics.Matrix3x2 Identity = new dev.yog.script.numerics.Matrix3x2(1, 0, 0, 1, 0, 0);
+    private final float m11;
+    private final float m12;
+    private final float m21;
+    private final float m22;
+    private final float m31;
+    private final float m32;
     public float M11;
     public float M12;
     public float M21;
@@ -35,6 +41,12 @@ public final class Matrix3x2 implements dev.yog.script.IEquatable<dev.yog.script
     public float M32;
     public Matrix3x2(float m11, float m12, float m21, float m22, float m31, float m32) {
         super();
+        this.m11 = m11;
+        this.m12 = m12;
+        this.m21 = m21;
+        this.m22 = m22;
+        this.m31 = m31;
+        this.m32 = m32;
         this.M11 = m11;
         this.M12 = m12;
         this.M21 = m21;

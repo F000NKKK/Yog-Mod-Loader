@@ -8,7 +8,9 @@ public final class Provide extends dev.yog.script.Attribute {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
         d.Constructor(0, a -> new dev.yog.script.yog.native_.Provide((String) a[0])).Takes("address", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    private final String address;
     public Provide(String address) {
         super();
+        this.address = address;
     }
 }

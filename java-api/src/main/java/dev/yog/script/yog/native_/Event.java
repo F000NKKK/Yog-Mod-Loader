@@ -8,7 +8,9 @@ public final class Event extends dev.yog.script.Attribute {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
         d.Constructor(0, a -> new dev.yog.script.yog.native_.Event((String) a[0])).Takes("address", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    private final String address;
     public Event(String address) {
         super();
+        this.address = address;
     }
 }

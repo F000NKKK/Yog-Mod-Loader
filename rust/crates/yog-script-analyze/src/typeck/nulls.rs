@@ -27,7 +27,10 @@ impl Checker<'_, '_, '_> {
     /// Something of type `t` assigned to `name`: not null when `t` isn't
     /// nullable, else no longer known.
     pub(super) fn assigned_to(&mut self, name: &str, t: &Type) {
-        self.non_null.retain(|(_, n)| n != name);
+        // What's known of it and of its members goes with what it was.
+        let members = format!("{name}{PATH_SEP}");
+        self.non_null
+            .retain(|(_, n)| n != name && !n.starts_with(&members));
         if t.known() && !t.is_nullable() && *t != Type::Null {
             self.narrow(vec![name.to_string()]);
         }
@@ -69,23 +72,44 @@ pub(super) fn proven(cond: &Expr, when: bool) -> Vec<String> {
             op: UnOp::Not,
             expr,
         } => proven(expr, !when),
-        ExprKind::Is { expr, pattern } => match (&expr.kind, matched_not_null(pattern)) {
-            (ExprKind::Ident(n), Some(m)) if m == when => vec![n.clone()],
+        ExprKind::Is { expr, pattern } => match (path_of(expr), matched_not_null(pattern)) {
+            (Some(path), Some(m)) if m == when => vec![path],
             _ => Vec::new(),
         },
         _ => Vec::new(),
     }
 }
 
-/// `x` of `x op null` or `null op x`.
+/// `x` of `x op null` or `null op x` (a name, or members of one: `a.B`).
 fn compared_to_null(left: &Expr, right: &Expr) -> Vec<String> {
-    match (&left.kind, &right.kind) {
-        (ExprKind::Ident(n), ExprKind::Null) | (ExprKind::Null, ExprKind::Ident(n)) => {
-            vec![n.clone()]
-        }
-        _ => Vec::new(),
+    let x = match (&left.kind, &right.kind) {
+        (_, ExprKind::Null) => left,
+        (ExprKind::Null, _) => right,
+        _ => return Vec::new(),
+    };
+    path_of(x).into_iter().collect()
+}
+
+/// `e` as a path the null state knows: a name (`x`), members of one (`a.B.C`).
+pub(super) fn path_of(e: &Expr) -> Option<String> {
+    match &e.kind {
+        ExprKind::Ident(n) => Some(n.clone()),
+        ExprKind::Member {
+            expr,
+            name,
+            safe: false,
+        } => Some(member_path(&path_of(expr)?, &name.text)),
+        _ => None,
     }
 }
+
+/// Member `name` of path `of` (`a.B`).
+pub(super) fn member_path(of: &str, name: &str) -> String {
+    format!("{of}{PATH_SEP}{name}")
+}
+
+/// What joins a path's names.
+const PATH_SEP: char = '.';
 
 /// When matching `p` proves a value not null: `Some(true)` when it
 /// matches (`T`, `not null`), `Some(false)` when it doesn't (`null`).

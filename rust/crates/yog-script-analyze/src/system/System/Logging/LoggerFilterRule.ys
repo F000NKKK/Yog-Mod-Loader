@@ -1,0 +1,96 @@
+namespace System.Logging;
+
+/// Which entries a provider writes (.NET's `LoggerFilterRule`): of the
+/// provider named (`null`: any), of the categories starting with the one
+/// named (`*` anywhere in it: any text there; `null`: all), at the level
+/// and above, and what `Filter` lets through.
+public readonly sealed class LoggerFilterRule {
+    public readonly string? ProviderName;
+    public readonly string? CategoryName;
+    public readonly LogLevel? LogLevel;
+    public readonly Func<string?, string?, LogLevel, bool>? Filter;
+
+    public LoggerFilterRule(string? providerName, string? categoryName, LogLevel? logLevel, Func<string?, string?, LogLevel, bool>? filter) {
+        ProviderName = providerName;
+        CategoryName = categoryName;
+        LogLevel = logLevel;
+        Filter = filter;
+    }
+
+    public override string ToString() => "ProviderName: '" + (ProviderName ?? "") + "', CategoryName: '" + (CategoryName ?? "") + "', LogLevel: '" + LogLevel + "'";
+}
+
+/// The rules a factory's loggers are filtered by (.NET's `LoggerFilterOptions`):
+/// its minimum level where no rule says, its rules, and whether scopes are kept.
+public sealed class LoggerFilterOptions {
+    public LogLevel MinLevel = LogLevel.Information;
+    public readonly List<LoggerFilterRule> Rules = new List<LoggerFilterRule>();
+    public bool CaptureScopes = true;
+}
+
+/// A provider's name in the rules where its type's isn't (.NET's `ProviderAlias`): `"Game"`.
+public sealed class ProviderAlias : Attribute {
+    public readonly string Alias;
+
+    public ProviderAlias(string alias) {
+        Alias = alias;
+    }
+}
+
+/// The rule a provider's logger of a category follows (.NET's
+/// `LoggerRuleSelector`): the one naming the provider over one that
+/// doesn't, then the one of the longest category.
+public static class LoggerRuleSelector {
+    /// The character standing for any text in a rule's category.
+    private const char Wildcard = '*';
+
+    /// The minimum level and the filter `options` give `provider`'s (its
+    /// names: its type's and its alias) logger of `category`.
+    public static (LogLevel, Func<string?, string?, LogLevel, bool>?) Select(in LoggerFilterOptions options, (string, string?) provider, string category) {
+        let mut best = (LoggerFilterRule?) null;
+        foreach (let rule in options.Rules) {
+            if (IsBetter(rule, best, provider, category)) {
+                best = rule;
+            }
+        }
+        if (best == null) {
+            return (options.MinLevel, null);
+        }
+        return (best.LogLevel ?? options.MinLevel, best.Filter);
+    }
+
+    private static bool IsBetter(LoggerFilterRule rule, LoggerFilterRule? current, (string, string?) provider, string category) {
+        if (rule.ProviderName != null && rule.ProviderName != provider.Item1 && rule.ProviderName != provider.Item2) {
+            return false;
+        }
+        if (rule.CategoryName != null && !Matches(rule.CategoryName, category)) {
+            return false;
+        }
+        if (current == null) {
+            return true;
+        }
+        if (current.ProviderName != null && rule.ProviderName == null) {
+            return false;
+        }
+        if (current.ProviderName == null && rule.ProviderName != null) {
+            return true;
+        }
+        let ruleLength = rule.CategoryName == null ? 0 : rule.CategoryName.Length;
+        let currentLength = current.CategoryName == null ? 0 : current.CategoryName.Length;
+        return ruleLength >= currentLength;
+    }
+
+    /// Whether `category` is of rule category `pattern` (ignoring case).
+    private static bool Matches(string pattern, string category) {
+        let (p, c) = (pattern.ToLower(), category.ToLower());
+        let star = p.IndexOf(Wildcard);
+        if (star < 0) {
+            return c.StartsWith(p);
+        }
+        if (p.LastIndexOf(Wildcard) != star) {
+            panic!("a logging rule's category holds one `*` at most");
+        }
+        let (prefix, suffix) = (p.Substring(0, star), p.Substring(star + 1));
+        return c.Length >= prefix.Length + suffix.Length && c.StartsWith(prefix) && c.EndsWith(suffix);
+    }
+}

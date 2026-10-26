@@ -1,0 +1,91 @@
+namespace System.Logging;
+
+using System.Collections.Generic;
+using System.Threading;
+
+/// Loggers of categories, written by the providers added to it, filtered by
+/// its rules (.NET's `LoggerFactory`): one logger per category, shared; a
+/// provider added later writes for the loggers made before it too.
+public readonly sealed class LoggerFactory : ILoggerFactory {
+    private readonly Lock<State> _state;
+    private readonly LoggerExternalScopeProvider _scopes = new LoggerExternalScopeProvider();
+
+    /// What changes as it's used: its providers, its loggers, its rules.
+    private sealed class State {
+        public readonly List<ILoggerProvider> Providers = new List<ILoggerProvider>();
+        public readonly Dictionary<string, AggregateLogger> Loggers = new Dictionary<string, AggregateLogger>();
+        public LoggerFilterOptions Options = new LoggerFilterOptions();
+        public bool Disposed;
+    }
+
+    public LoggerFactory() {
+        _state = new Lock<State>(new State());
+    }
+
+    public LoggerFactory(List<ILoggerProvider> providers) : this(move providers, new LoggerFilterOptions()) { }
+
+    /// A factory of `providers`, filtered by `filterOptions`.
+    public LoggerFactory(List<ILoggerProvider> providers, LoggerFilterOptions filterOptions) {
+        foreach (let p in providers) {
+            if (p is ISupportExternalScope supports) {
+                supports.SetScopeProvider(_scopes);
+            }
+        }
+        let mut state = new State();
+        state.Options = move filterOptions;
+        state.Providers.AddRange(providers);
+        _state = new Lock<State>(move state);
+    }
+
+    /// A factory as `configure` builds it: its providers, its rules.
+    public static ILoggerFactory Create(Action<ILoggingBuilder> configure) {
+        let builder = new LoggingBuilder();
+        configure(builder);
+        return builder.Build();
+    }
+
+    public readonly ILogger CreateLogger(string categoryName) {
+        lock (_state, ref let s) {
+            if (s.Disposed) {
+                panic!("the logger factory is disposed");
+            }
+            let made = s.Loggers.TryGetValue(categoryName);
+            if (made != null) {
+                return made;
+            }
+            let logger = new AggregateLogger(categoryName, s.Options.CaptureScopes ? _scopes : null);
+            foreach (let p in s.Providers) {
+                logger.Add(new ProviderLogger(in p, categoryName, in s.Options));
+            }
+            s.Loggers[categoryName] = logger;
+            return logger;
+        }
+    }
+
+    public readonly void AddProvider(ILoggerProvider provider) {
+        if (provider is ISupportExternalScope supports) {
+            supports.SetScopeProvider(_scopes);
+        }
+        lock (_state, ref let s) {
+            if (s.Disposed) {
+                panic!("the logger factory is disposed");
+            }
+            foreach (let entry in s.Loggers) {
+                entry.Value.Add(new ProviderLogger(in provider, entry.Key, in s.Options));
+            }
+            s.Providers.Add(move provider);
+        }
+    }
+
+    public void Dispose() {
+        lock (_state, ref let s) {
+            if (s.Disposed) {
+                return;
+            }
+            s.Disposed = true;
+            foreach (let mut p in s.Providers) {
+                p.Dispose();
+            }
+        }
+    }
+}

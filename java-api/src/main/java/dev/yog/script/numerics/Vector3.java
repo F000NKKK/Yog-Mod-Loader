@@ -45,11 +45,17 @@ public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static final dev.yog.script.numerics.Vector3 UnitX = new dev.yog.script.numerics.Vector3(1, 0, 0);
     public static final dev.yog.script.numerics.Vector3 UnitY = new dev.yog.script.numerics.Vector3(0, 1, 0);
     public static final dev.yog.script.numerics.Vector3 UnitZ = new dev.yog.script.numerics.Vector3(0, 0, 1);
+    private final float x;
+    private final float y;
+    private final float z;
     public float X;
     public float Y;
     public float Z;
     public Vector3(float x, float y, float z) {
         super();
+        this.x = x;
+        this.y = y;
+        this.z = z;
         this.X = x;
         this.Y = y;
         this.Z = z;

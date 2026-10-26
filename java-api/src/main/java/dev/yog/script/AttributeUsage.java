@@ -11,11 +11,13 @@ public final class AttributeUsage extends dev.yog.script.Attribute {
         d.Field("Inherited", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.AttributeUsage) o).Inherited, (o, v) -> ((dev.yog.script.AttributeUsage) o).Inherited = (Boolean) v);
         d.Constructor(0, a -> new dev.yog.script.AttributeUsage((dev.yog.script.AttributeTargets) a[0])).Takes("on", dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), false);
     }
+    private final dev.yog.script.AttributeTargets on;
     public dev.yog.script.AttributeTargets ValidOn;
     public boolean AllowMultiple;
     public boolean Inherited;
     public AttributeUsage(dev.yog.script.AttributeTargets on) {
         super();
+        this.on = on;
         this.ValidOn = on;
     }
 }

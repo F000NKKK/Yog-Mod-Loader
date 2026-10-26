@@ -39,10 +39,14 @@ public final class Vector2 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static final dev.yog.script.numerics.Vector2 One = new dev.yog.script.numerics.Vector2(1, 1);
     public static final dev.yog.script.numerics.Vector2 UnitX = new dev.yog.script.numerics.Vector2(1, 0);
     public static final dev.yog.script.numerics.Vector2 UnitY = new dev.yog.script.numerics.Vector2(0, 1);
+    private final float x;
+    private final float y;
     public float X;
     public float Y;
     public Vector2(float x, float y) {
         super();
+        this.x = x;
+        this.y = y;
         this.X = x;
         this.Y = y;
     }

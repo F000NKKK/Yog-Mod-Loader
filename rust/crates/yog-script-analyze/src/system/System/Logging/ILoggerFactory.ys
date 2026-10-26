@@ -1,7 +1,7 @@
 namespace System.Logging;
 
 /// What makes loggers of categories, from the providers added to it (.NET's `ILoggerFactory`).
-public interface ILoggerFactory : IDisposable {
+public readonly interface ILoggerFactory : IDisposable {
     readonly ILogger CreateLogger(string categoryName);
 
     readonly void AddProvider(ILoggerProvider provider);
@@ -9,6 +9,6 @@ public interface ILoggerFactory : IDisposable {
 
 /// What makes the loggers that write somewhere (.NET's `ILoggerProvider`):
 /// a console, a file, the game's log.
-public interface ILoggerProvider : IDisposable {
+public readonly interface ILoggerProvider : IDisposable {
     readonly ILogger CreateLogger(string categoryName);
 }

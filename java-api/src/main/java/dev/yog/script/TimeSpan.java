@@ -66,9 +66,11 @@ public final class TimeSpan implements dev.yog.script.IEquatable<dev.yog.script.
     public static final long TicksPerHour = (TicksPerMinute * 60);
     public static final long TicksPerDay = (TicksPerHour * 24);
     public static final dev.yog.script.TimeSpan Zero = new dev.yog.script.TimeSpan(0);
+    private final long ticks;
     public long Ticks;
     public TimeSpan(long ticks) {
         super();
+        this.ticks = ticks;
         this.Ticks = ticks;
     }
     public int Days() {

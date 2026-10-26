@@ -8,7 +8,9 @@ public final class Service extends dev.yog.script.Attribute {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
         d.Constructor(0, a -> new dev.yog.script.yog.native_.Service((String) a[0])).Takes("address", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    private final String address;
     public Service(String address) {
         super();
+        this.address = address;
     }
 }

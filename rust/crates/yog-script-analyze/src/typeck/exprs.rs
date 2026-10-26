@@ -123,7 +123,13 @@ impl Checker<'_, '_, '_> {
         {
             self.types.set_bounded(expr, bound);
         }
-        self.member(&on, &name.text, safe, name.span)
+        let t = self.member(&on, &name.text, safe, name.span);
+        // `a.B` known not null where a condition proved it.
+        let path = super::nulls::path_of(expr).map(|p| super::nulls::member_path(&p, &name.text));
+        if !safe && path.is_some_and(|p| self.is_narrowed(&p, 0)) {
+            return t.non_null().clone();
+        }
+        t
     }
 
     /// `this` (`e`): its type, read (a lambda captures it).

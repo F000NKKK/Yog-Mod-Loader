@@ -1,5 +1,6 @@
 //! Inheritance's rules, as C#'s: one base class, written first, never a
-//! sealed one; structs and interfaces inherit interfaces only; an
+//! sealed one; structs and interfaces inherit interfaces only (a
+//! `readonly` one's implementers `readonly` too); an
 //! `override` replaces a `virtual`, `abstract` or `override` member of a
 //! base; a class that isn't abstract implements every abstract member and
 //! interface member it inherits.
@@ -48,6 +49,18 @@ fn bases(index: &Index, info: &Info, report: &mut Report<'_>) {
             continue;
         };
         if base.interface {
+            // A `readonly interface`'s values are shared: what implements it
+            // is never changed either.
+            if base.readonly && !info.readonly {
+                report.error(
+                    script_problem::INHERIT,
+                    name.span,
+                    format!(
+                        "`{}` is shared, so what implements it is `readonly` too",
+                        name.text
+                    ),
+                );
+            }
             continue;
         }
         classes += 1;

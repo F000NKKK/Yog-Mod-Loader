@@ -316,11 +316,11 @@ public class Task {
      * result first under the same lock — the first to settle it wins, its
      * result with it; what waits is woken outside the lock.
      */
-    final void settle(int to, Throwable why, Runnable store) {
+    final boolean settle(int to, Throwable why, Runnable store) {
         List<Runnable> woken;
         synchronized (this) {
             if (IsCompleted()) {
-                return;
+                return false;
             }
             if (store != null) {
                 store.run();
@@ -331,6 +331,17 @@ public class Task {
             waiting = List.of();
         }
         woken.forEach(Runnable::run);
+        return true;
+    }
+
+    /** It done, unless it's settled already: whether this settled it. */
+    public boolean tryFinish() {
+        return settle(DONE, null, null);
+    }
+
+    /** It failed with {@code why}, unless it's settled already: whether this settled it. */
+    public boolean tryFail(Throwable why) {
+        return settle(FAILED, why, null);
     }
 
     private static Task done() {

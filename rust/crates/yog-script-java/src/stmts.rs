@@ -245,10 +245,14 @@ impl Gen<'_> {
             return;
         }
         let v = self.expr(e);
+        // `on?.M()` giving a value is a conditional in Java: kept, not a call.
+        let safe = matches!(&e.kind, ExprKind::Call { callee, .. }
+            if matches!(callee.kind, ExprKind::Member { safe: true, .. }));
         if matches!(
             e.kind,
             ExprKind::Call { .. } | ExprKind::New { .. } | ExprKind::Macro { .. }
-        ) && !v.is_empty()
+        ) && !safe
+            && !v.is_empty()
         {
             self.code.line(format!("{v};"));
         } else if !v.is_empty() {

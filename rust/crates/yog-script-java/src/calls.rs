@@ -70,6 +70,8 @@ impl Gen<'_> {
                 _ => None,
             })
             .unwrap_or(Type::Unknown);
+        // An extension's receiver is its first argument, not one written here.
+        let from = from - usize::from(used.extension);
         self.packed_args(args, from, &item)
     }
 

@@ -181,7 +181,7 @@ impl Gen<'_> {
             (Place::Interface, None) => String::new(),
             (Place::Interface, Some(_)) if !d.has(Modifier::Static) => modifier(DEFAULT),
             (Place::File, _) => modifier(PUBLIC) + &modifier(STATIC),
-            (_, None) => modifier(PUBLIC) + &modifier(ABSTRACT),
+            (_, None) => access_of(d) + &modifier(ABSTRACT),
             _ => format!("{}{}{}", access_of(d), stat_of(d), final_of(d)),
         };
         let head = format!("{lead}{generics}{ret} {name}({params})");

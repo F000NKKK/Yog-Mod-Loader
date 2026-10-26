@@ -85,3 +85,33 @@ public readonly class TaskAwaiter {
 public readonly class TaskAwaiter<TResult> : TaskAwaiter {
     public new TResult GetResult();
 }
+
+/// A task settled by hand (.NET's `TaskCompletionSource`): what bridges a
+/// callback to `await`.
+[Intrinsic]
+[Threads(ThreadSafety.Guarded)]
+public readonly sealed class TaskCompletionSource {
+    public TaskCompletionSource() {}
+
+    public Task Task { get; }
+    /// It done; a panic when it's settled already.
+    public readonly void SetResult();
+    /// It done, unless it's settled already: whether this settled it.
+    public readonly bool TrySetResult();
+    /// It failed with `error`; a panic when it's settled already.
+    public readonly void SetException(Error error);
+    public readonly bool TrySetException(Error error);
+}
+
+/// A task given its result by hand (.NET's `TaskCompletionSource<TResult>`).
+[Intrinsic]
+[Threads(ThreadSafety.Guarded)]
+public readonly sealed class TaskCompletionSource<TResult> {
+    public TaskCompletionSource() {}
+
+    public Task<TResult> Task { get; }
+    public readonly void SetResult(TResult result);
+    public readonly bool TrySetResult(TResult result);
+    public readonly void SetException(Error error);
+    public readonly bool TrySetException(Error error);
+}

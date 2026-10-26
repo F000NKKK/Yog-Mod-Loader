@@ -55,6 +55,14 @@ impl Gen<'_> {
         self.describe(d);
         self.constants(body);
         self.statics_holder(&(ys.to_string(), arity), header, body);
+        // Its primary constructor's parameters, reached by its members (C# 12's).
+        for p in captured(header, body) {
+            self.code.line(format!(
+                "{PRIVATE} {FINAL} {} {};",
+                self.written(&p.ty, false),
+                Self::ident(&p.name.text)
+            ));
+        }
         for f in fields(body) {
             self.code.line(format!(
                 "{PUBLIC} {} {};",
@@ -233,6 +241,10 @@ impl Gen<'_> {
                 let base = g.base_types(header);
                 g.code.line(format!("{SUPER}({base});"));
                 g.keep_types(taking);
+                for p in captured(header, body) {
+                    let n = Self::ident(&p.name.text);
+                    g.code.line(format!("{THIS}.{n} = {n};"));
+                }
                 g.first_values(body);
                 g.code.close("");
             }
@@ -455,4 +467,16 @@ fn joined(first: &str, rest: &str) -> String {
     } else {
         format!("{first}, {rest}")
     }
+}
+
+/// The primary constructor's parameters its type keeps for its members: all
+/// but those a field or property of the name takes over.
+fn captured<'h>(header: &'h TypeHeader, body: &[Decl]) -> Vec<&'h Param> {
+    let stored: Vec<&str> = fields(body).into_iter().map(|(_, n)| n).collect();
+    header
+        .ctor
+        .iter()
+        .flatten()
+        .filter(|p| !stored.contains(&p.name.text.as_str()))
+        .collect()
 }

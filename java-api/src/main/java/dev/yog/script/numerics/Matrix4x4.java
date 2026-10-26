@@ -46,6 +46,22 @@ public final class Matrix4x4 implements dev.yog.script.IEquatable<dev.yog.script
         d.Constructor(0, a -> new dev.yog.script.numerics.Matrix4x4((Float) a[0], (Float) a[1], (Float) a[2], (Float) a[3], (Float) a[4], (Float) a[5], (Float) a[6], (Float) a[7], (Float) a[8], (Float) a[9], (Float) a[10], (Float) a[11], (Float) a[12], (Float) a[13], (Float) a[14], (Float) a[15])).Takes("m11", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m12", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m13", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m14", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m21", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m22", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m23", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m24", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m31", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m32", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m33", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m34", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m41", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m42", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m43", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m44", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
     }
     public static final dev.yog.script.numerics.Matrix4x4 Identity = new dev.yog.script.numerics.Matrix4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    private final float m11;
+    private final float m12;
+    private final float m13;
+    private final float m14;
+    private final float m21;
+    private final float m22;
+    private final float m23;
+    private final float m24;
+    private final float m31;
+    private final float m32;
+    private final float m33;
+    private final float m34;
+    private final float m41;
+    private final float m42;
+    private final float m43;
+    private final float m44;
     public float M11;
     public float M12;
     public float M13;
@@ -64,6 +80,22 @@ public final class Matrix4x4 implements dev.yog.script.IEquatable<dev.yog.script
     public float M44;
     public Matrix4x4(float m11, float m12, float m13, float m14, float m21, float m22, float m23, float m24, float m31, float m32, float m33, float m34, float m41, float m42, float m43, float m44) {
         super();
+        this.m11 = m11;
+        this.m12 = m12;
+        this.m13 = m13;
+        this.m14 = m14;
+        this.m21 = m21;
+        this.m22 = m22;
+        this.m23 = m23;
+        this.m24 = m24;
+        this.m31 = m31;
+        this.m32 = m32;
+        this.m33 = m33;
+        this.m34 = m34;
+        this.m41 = m41;
+        this.m42 = m42;
+        this.m43 = m43;
+        this.m44 = m44;
         this.M11 = m11;
         this.M12 = m12;
         this.M13 = m13;

@@ -664,3 +664,75 @@ fn indexers_and_enumerators() {
     };
     assert_eq!(out, "1bb1");
 }
+
+/// `System.Logging`: a factory of a provider, its minimum level and
+/// filters, message templates, scopes, `LoggerMessage`, a queued provider.
+#[test]
+fn logging() {
+    let src = "using System.Logging;\n\
+               using System.Threading;\n\
+               using System.Threading.Tasks;\n\
+               public readonly sealed class Sink : ILoggerProvider, ISupportExternalScope {\n\
+                   public readonly Lock<List<string>> Lines = new Lock<List<string>>(new List<string>());\n\
+                   private readonly Once<IExternalScopeProvider> _scopes = new Once<IExternalScopeProvider>();\n\
+                   public readonly ILogger CreateLogger(string categoryName) => new SinkLogger(this, categoryName);\n\
+                   public readonly void SetScopeProvider(IExternalScopeProvider scopeProvider) { _scopes.TrySet(scopeProvider); }\n\
+                   public readonly string Scopes() {\n\
+                       let mut text = \"\";\n\
+                       let provider = _scopes.Get();\n\
+                       if (provider != null) { provider.ForEachScope((scope, state) => { text = text + \"[\" + scope + \"]\"; }, 0); }\n\
+                       return text;\n\
+                   }\n\
+                   public void Dispose() { }\n\
+               }\n\
+               public readonly sealed class SinkLogger(Sink sink, string category) : ILogger {\n\
+                   public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {\n\
+                       let line = logLevel + \" \" + category + sink.Scopes() + \": \" + formatter(state, error);\n\
+                       lock (sink.Lines, ref let lines) { lines.Add(line); }\n\
+                   }\n\
+                   public readonly bool IsEnabled(LogLevel logLevel) => true;\n\
+                   public readonly IDisposable? BeginScope<TState>(TState state) => null;\n\
+               }\n\
+               public readonly sealed class Memory : QueuedLoggerProvider {\n\
+                   public readonly Lock<List<string>> Written = new Lock<List<string>>(new List<string>());\n\
+                   protected override async Task WriteAsync(QueuedEntry entry) {\n\
+                       await Task.Yield();\n\
+                       lock (Written, ref let w) { w.Add(entry.Message); }\n\
+                   }\n\
+               }\n\
+               public static class L {\n\
+                   public static string Run() {\n\
+                       let sink = new Sink();\n\
+                       let factory = LoggerFactory.Create(b => {\n\
+                           b.AddProvider(sink);\n\
+                           b.SetMinimumLevel(LogLevel.Debug);\n\
+                           b.AddFilter(\"Noisy\", LogLevel.Error);\n\
+                       });\n\
+                       let log = factory.CreateLogger(\"App\");\n\
+                       log.LogTrace(\"hidden\");\n\
+                       log.LogInformation(\"\"\"Moved {Count} items to {Target}\"\"\", 3, \"chest\");\n\
+                       using (let scope = log.BeginScope(\"\"\"Request {Id}\"\"\", 7)) {\n\
+                           log.LogWarning(\"inside\");\n\
+                       }\n\
+                       factory.CreateLogger(\"Noisy.Part\").LogWarning(\"dropped\");\n\
+                       let said = LoggerMessage.Define<i32>(LogLevel.Error, 5, \"\"\"Failed {Code}\"\"\");\n\
+                       said(log, 42, null);\n\
+                       let memory = new Memory();\n\
+                       let queued = memory.CreateLogger(\"Q\");\n\
+                       queued.LogInformation(\"\"\"one {N}\"\"\", 1);\n\
+                       queued.LogInformation(\"two\");\n\
+                       memory.FlushAsync().Wait();\n\
+                       let mut text = \"\";\n\
+                       lock (sink.Lines, ref let lines) { text = string.Join(\" | \", lines); }\n\
+                       lock (memory.Written, ref let w) { text = text + \" || \" + string.Join(\",\", w); }\n\
+                       return text + \" || \" + NullLogger.Instance.IsEnabled(LogLevel.Critical);\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("l.ys", src)], "t.LScript.L.Run()") else {
+        return;
+    };
+    assert_eq!(
+        out,
+        "Information App: Moved 3 items to chest | Warning App[Request 7]: inside | Error App: Failed 42 || one 1,two || False"
+    );
+}

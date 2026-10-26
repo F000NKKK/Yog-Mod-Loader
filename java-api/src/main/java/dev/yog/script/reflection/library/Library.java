@@ -125,6 +125,8 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.threading.tasks.Task1.class, () -> Task1Companion.TYPE),
             java.util.Map.entry(dev.yog.script.threading.tasks.TaskAwaiter.class, () -> TaskAwaiterCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.threading.tasks.TaskAwaiter1.class, () -> TaskAwaiter1Companion.TYPE),
+            java.util.Map.entry(dev.yog.script.threading.tasks.TaskCompletionSource.class, () -> TaskCompletionSourceCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.threading.tasks.TaskCompletionSource1.class, () -> TaskCompletionSource1Companion.TYPE),
             java.util.Map.entry(dev.yog.script.threading.tasks.TaskScheduler.class, () -> TaskSchedulerCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.threading.tasks.TaskFactory.class, () -> TaskFactoryCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.threading.Thread.class, () -> ThreadCompanion.TYPE),

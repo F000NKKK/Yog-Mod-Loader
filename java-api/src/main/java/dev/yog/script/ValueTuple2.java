@@ -10,6 +10,8 @@ public final class ValueTuple2<T1, T2> implements Cloneable, dev.yog.script.Type
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.ValueTuple2) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
         d.Constructor(0, a -> new dev.yog.script.ValueTuple2(a[0], a[1])).Takes("item1", d.Parameter(0), false).Takes("item2", d.Parameter(1), false);
     }
+    private final T1 item1;
+    private final T2 item2;
     public T1 Item1;
     public T2 Item2;
     private dev.yog.script.Type[] $types;
@@ -17,6 +19,8 @@ public final class ValueTuple2<T1, T2> implements Cloneable, dev.yog.script.Type
     @Override public void $types(dev.yog.script.Type[] arguments) { this.$types = arguments; }
     public ValueTuple2(T1 item1, T2 item2) {
         super();
+        this.item1 = item1;
+        this.item2 = item2;
         this.Item1 = item1;
         this.Item2 = item2;
     }

@@ -28,6 +28,9 @@ pub const ADD: &str = "Add";
 /// made (`new List<i32> { 1, 2 }` is `$made.Add(1); $made.Add(2);`). No
 /// source can name it.
 pub const MADE: &str = "$made";
+/// What `using (expr) …` names the value it disposes at its end. No source
+/// can name it.
+pub const USED: &str = "$used";
 pub const CONTAINS: &str = "Contains";
 pub const INDEX_OF: &str = "IndexOf";
 pub const CLEAR: &str = "Clear";

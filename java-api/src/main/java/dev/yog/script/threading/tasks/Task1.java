@@ -25,4 +25,9 @@ public class Task1<TResult> extends Task {
     public void finish(TResult value) {
         settle(DONE, null, () -> result = value);
     }
+
+    /** It done with {@code value}, unless it's settled already: whether this settled it. */
+    public boolean tryFinish(TResult value) {
+        return settle(DONE, null, () -> result = value);
+    }
 }

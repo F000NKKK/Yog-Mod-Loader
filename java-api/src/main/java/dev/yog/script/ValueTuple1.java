@@ -9,12 +9,14 @@ public final class ValueTuple1<T1> implements Cloneable, dev.yog.script.Typed {
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.ValueTuple1) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
         d.Constructor(0, a -> new dev.yog.script.ValueTuple1(a[0])).Takes("item1", d.Parameter(0), false);
     }
+    private final T1 item1;
     public T1 Item1;
     private dev.yog.script.Type[] $types;
     @Override public dev.yog.script.Type[] $types() { return $types; }
     @Override public void $types(dev.yog.script.Type[] arguments) { this.$types = arguments; }
     public ValueTuple1(T1 item1) {
         super();
+        this.item1 = item1;
         this.Item1 = item1;
     }
     public String ToString() {

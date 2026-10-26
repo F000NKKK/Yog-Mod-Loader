@@ -1,0 +1,44 @@
+namespace System.Logging;
+
+/// One provider's logger of a category, with the rule it follows: the
+/// minimum level and filter the factory's rules give it.
+public readonly sealed class ProviderLogger {
+    public readonly ILogger Logger;
+    /// Its provider keeps its own scopes (it doesn't write the factory's).
+    public readonly bool KeepsOwnScopes;
+    /// Its provider's names in the rules: its type's, its alias.
+    public readonly string ProviderName;
+    public readonly string? Alias;
+    public readonly string Category;
+    public readonly LogLevel MinLevel;
+    public readonly Func<string?, string?, LogLevel, bool>? Filter;
+
+    public ProviderLogger(in ILoggerProvider provider, string category, in LoggerFilterOptions options) {
+        Logger = provider.CreateLogger(category);
+        ProviderName = provider.GetType().FullName ?? provider.GetType().Name;
+        Alias = AliasOf(provider);
+        let (min, filter) = LoggerRuleSelector.Select(in options, (ProviderName, Alias), category);
+        MinLevel = min;
+        Filter = filter;
+        Category = category;
+        KeepsOwnScopes = !(provider is ISupportExternalScope);
+    }
+
+    /// `provider`'s `[ProviderAlias]`, if it has one.
+    private static string? AliasOf(in ILoggerProvider provider) {
+        foreach (let a in provider.GetType().GetCustomAttributes(false)) {
+            if (a is ProviderAlias alias) {
+                return alias.Alias;
+            }
+        }
+        return null;
+    }
+
+    /// Whether its rule lets entries of `level` through to its logger.
+    public bool Lets(LogLevel level) {
+        if (level < MinLevel || level == LogLevel.None) {
+            return false;
+        }
+        return Filter == null || Filter(ProviderName, Category, level);
+    }
+}
