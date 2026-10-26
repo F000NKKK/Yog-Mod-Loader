@@ -90,18 +90,7 @@ impl Resolver<'_, '_> {
                 value,
                 body,
                 ..
-            } => {
-                self.expr(target);
-                // No `await` while it's held.
-                let outer = std::mem::replace(&mut self.cx.locked, true);
-                self.scoped(|r| {
-                    if let Some(n) = value {
-                        r.bind(n, DefKind::Variable);
-                    }
-                    r.stmt(body);
-                });
-                self.cx.locked = outer;
-            }
+            } => self.lock_stmt(target, value.as_ref(), body),
             Stmt::Skip(value, at) => self.skip(value.as_ref(), *at),
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
         }
@@ -141,6 +130,19 @@ impl Resolver<'_, '_> {
             Binding::One(n) => self.bind(n, kind),
             Binding::Tuple(names) => names.iter().for_each(|n| self.bind(n, kind)),
         }
+    }
+
+    /// `lock (target, ref let value) body`: no `await` while it's held.
+    fn lock_stmt(&mut self, target: &Expr, value: Option<&crate::ast::Name>, body: &Stmt) {
+        self.expr(target);
+        let outer = std::mem::replace(&mut self.cx.locked, true);
+        self.scoped(|r| {
+            if let Some(n) = value {
+                r.bind(n, DefKind::Variable);
+            }
+            r.stmt(body);
+        });
+        self.cx.locked = outer;
     }
 
     /// `foreach (… in iter) body` (`awaits`: `await foreach`, in an `async` method only).

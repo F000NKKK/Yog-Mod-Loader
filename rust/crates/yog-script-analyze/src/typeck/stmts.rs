@@ -80,19 +80,7 @@ impl Checker<'_, '_, '_> {
                 body,
                 ..
             } => self.locked(target, value.as_ref(), body),
-            Stmt::Return(Some(v), at) if self.yields.is_some() => {
-                self.expr(v);
-                self.returned_from_iterator(*at);
-            }
-            Stmt::Return(Some(v), _) => match self.returns.clone() {
-                Some(r) if r != Type::Void => self.fits(v, &r),
-                _ => {
-                    let t = self.expr(v);
-                    if let Some(inferred) = &mut self.inferred {
-                        inferred.push(t);
-                    }
-                }
-            },
+            Stmt::Return(Some(v), at) => self.returned(v, *at),
             Stmt::Skip(Some(v), _) | Stmt::Expr(v) | Stmt::Value(v) => {
                 self.expr(v);
             }
@@ -145,6 +133,23 @@ impl Checker<'_, '_, '_> {
             c.bind_binding(binding, &t, !mutable);
             c.branch(body);
         });
+    }
+
+    /// `return v;`: what the method gives (inferred for a lambda's); none in an iterator.
+    fn returned(&mut self, v: &Expr, at: crate::source::token::Span) {
+        if self.yields.is_some() {
+            self.expr(v);
+            return self.returned_from_iterator(at);
+        }
+        match self.returns.clone() {
+            Some(r) if r != Type::Void => self.fits(v, &r),
+            _ => {
+                let t = self.expr(v);
+                if let Some(inferred) = &mut self.inferred {
+                    inferred.push(t);
+                }
+            }
+        }
     }
 
     /// `lock (target, ref let value) body`: `target` a `Lock<T>`, `value` its `T`, changeable.
