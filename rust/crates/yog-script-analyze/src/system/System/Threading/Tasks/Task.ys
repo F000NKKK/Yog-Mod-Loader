@@ -34,6 +34,12 @@ public readonly class Task {
     public static Task WhenAll(params Task[] tasks);
     /// Done when one of `tasks` is: that one.
     public static Task<Task> WhenAny(params Task[] tasks);
+    /// Done when every one of `tasks` is: their results, in order; failed
+    /// as the first that fails.
+    [Reified]
+    public static Task<TResult[]> WhenAll<TResult>(params Task<TResult>[] tasks);
+    /// Done when one of `tasks` is: that one.
+    public static Task<Task<TResult>> WhenAny<TResult>(params Task<TResult>[] tasks);
     /// Waits for every one of `tasks` (blocking; see `Wait`).
     public static void WaitAll(params Task[] tasks);
     /// Waits for one of `tasks` (blocking): its index.

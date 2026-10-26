@@ -67,15 +67,21 @@ impl Checker<'_, '_, '_> {
         // As written first, then a `params` one expanded (C#'s order).
         // A `params` one as written takes its array as its last argument.
         let as_written = |s: &Signature| !s.rest || given.len() == s.params.len();
-        let fitting = (0..sigs.len())
+        let written: Vec<_> = (0..sigs.len())
             .filter(|&i| as_written(&sigs[i]))
-            .find_map(|i| self.fit(&sigs[i], given, args).map(|f| (i, f, None)))
-            .or_else(|| {
-                (0..sigs.len()).find_map(|i| {
+            .filter_map(|i| self.fit(&sigs[i], given, args).map(|f| (i, f, None)))
+            .collect();
+        let fits = if written.is_empty() {
+            (0..sigs.len())
+                .filter_map(|i| {
                     let x = expanded(&sigs[i], given.len())?;
                     self.fit(&x, given, args).map(|f| (i, f, Some(x)))
                 })
-            });
+                .collect()
+        } else {
+            written
+        };
+        let fitting = self.best(sigs, fits, given);
         if let Some((i, found, expanded)) = fitting {
             let rest_from = expanded.as_ref().map(|_| sigs[i].params.len() - 1);
             let s = expanded.as_ref().unwrap_or(&sigs[i]);

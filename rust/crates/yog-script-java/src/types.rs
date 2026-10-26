@@ -9,7 +9,7 @@ use yog_script_analyze::{Type, builtin_type, system_type, yog};
 use super::Gen;
 
 use yog_script_ids::java::{
-    BOOLEAN, BOXED, BOXED_VOID, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT, VOID,
+    BOOLEAN, BOXED, BOXED_VOID, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, NEW, SHORT, VOID,
 };
 pub(crate) use yog_script_ids::jvm::RUNTIME;
 use yog_script_ids::jvm::{BIG_DECIMAL, OBJECT, STRING};
@@ -149,4 +149,32 @@ fn boxed_name(p: &str) -> &'static str {
         .iter()
         .find(|(primitive, _)| *primitive == p)
         .map_or(OBJECT, |(_, boxed)| boxed)
+}
+
+/// Java type `java` without its type arguments (`Task1<Integer>[]` is
+/// `Task1[]`): what an array of it is made as, Java making none of a
+/// generic type.
+pub(crate) fn raw(java: &str) -> String {
+    let mut depth = 0usize;
+    java.chars()
+        .filter(|c| {
+            match c {
+                '<' => depth += 1,
+                '>' => depth -= 1,
+                _ => return depth == 0,
+            }
+            false
+        })
+        .collect()
+}
+
+/// A new array of Java type `java` holding `items` (`{ a, b }`): made raw
+/// and cast back when its item type is generic, so overloads still see it.
+pub(crate) fn made_array(java: &str, items: &str) -> String {
+    let made = raw(java);
+    if made == java {
+        format!("{NEW} {java} {items}")
+    } else {
+        format!("(({java}) {NEW} {made} {items})")
+    }
 }

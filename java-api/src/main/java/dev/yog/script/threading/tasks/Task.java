@@ -115,6 +115,43 @@ public class Task {
         return all;
     }
 
+    /** {@code WhenAll<TResult>}: their results in an array of {@code item}s, in order. */
+    public static <T> Task1<Object> WhenAll(Class<?> item, Task1<T>[] tasks) {
+        Task1<Object> all = new Task1<>();
+        WhenAll((Task[]) tasks).onDoneUncaptured(() -> {
+            Throwable failed = firstFailure(tasks);
+            if (failed != null) {
+                all.fail(failed);
+                return;
+            }
+            Object results = java.lang.reflect.Array.newInstance(item, tasks.length);
+            for (int i = 0; i < tasks.length; i++) {
+                java.lang.reflect.Array.set(results, i, tasks[i].Result());
+            }
+            all.finish(results);
+        });
+        return all;
+    }
+
+    /** The first of {@code tasks} to have failed's failure, if one has. */
+    private static Throwable firstFailure(Task[] tasks) {
+        for (Task t : tasks) {
+            if (t.IsFaulted()) {
+                return t.failureOf();
+            }
+        }
+        return null;
+    }
+
+    /** {@code WhenAny<TResult>}: the first of {@code tasks} done. */
+    public static <T> Task1<Task1<T>> WhenAny(Task1<T>[] tasks) {
+        Task1<Task1<T>> any = new Task1<>();
+        for (Task1<T> t : tasks) {
+            t.onDoneUncaptured(() -> any.finish(t));
+        }
+        return any;
+    }
+
     /** Why it failed ({@code null} when it didn't). */
     Throwable failureOf() {
         return failure;

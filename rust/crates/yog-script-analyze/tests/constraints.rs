@@ -54,3 +54,24 @@ fn written_types_meet_their_types_constraints() {
                public static class U { public static void Run(Pile<string> p) { } }\n";
     assert_eq!(codes(src), [script_problem::CONSTRAINT]);
 }
+
+/// Of the overloads that fit, the best: an exact parameter over a
+/// conversion, the more specific type, a non-generic over a generic.
+#[test]
+fn the_best_overload_is_chosen() {
+    let src = "public class Animal { }\n\
+               public class Dog : Animal { }\n\
+               public static class O {\n\
+                   public static i32 F(Animal a) => 1;\n\
+                   public static string F(Dog d) => \"dog\";\n\
+                   public static i32 G<TItem>(TItem t) => 1;\n\
+                   public static string G(i32 n) => \"int\";\n\
+                   public static void Run() {\n\
+                       string a = F(new Dog());\n\
+                       i32 b = F(new Animal());\n\
+                       string c = G(5);\n\
+                       i32 d = G(\"x\");\n\
+                   }\n\
+               }\n";
+    assert_eq!(codes(src), Vec::<String>::new());
+}

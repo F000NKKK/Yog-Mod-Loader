@@ -90,7 +90,7 @@ impl Gen<'_> {
         let array = if crate::reified::names_parameter(item) {
             format!("({java}[]) {NEW} {OBJECT}[] {{ {tail} }}")
         } else {
-            format!("{NEW} {java}[] {{ {tail} }}")
+            crate::types::made_array(&format!("{java}[]"), &format!("{{ {tail} }}"))
         };
         if head.is_empty() {
             array

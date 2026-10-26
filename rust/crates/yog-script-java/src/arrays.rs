@@ -32,10 +32,15 @@ impl Gen<'_> {
             self.not_yet("an array of a type not known", e.span);
             return String::new();
         };
-        let java = self.java(&t, false);
+        let typed = self.java(&t, false);
+        // Java makes no array of a generic type with its arguments: a raw one.
+        let java = crate::types::raw(&typed);
         match init {
             // Java takes no sizes with the items.
-            Some(items) => format!("{NEW} {java} {}", self.array_items(items)),
+            Some(items) => {
+                let items = self.array_items(items);
+                crate::types::made_array(&typed, &items)
+            }
             None => {
                 let (item, ranks) = split_ranks(&java);
                 let sizes: Vec<String> = sizes.iter().map(|s| self.expr(s)).collect();

@@ -547,3 +547,23 @@ fn constraints_give_members() {
     };
     assert_eq!(out, "7 4 0 7 b 1 0");
 }
+
+/// `Task.WhenAll` of tasks with results: their results, in order, as an
+/// array of their type; `WhenAny` the first done.
+#[test]
+fn when_all_gives_results() {
+    let src = "using System.Threading.Tasks;\n\
+               public static class R {\n\
+                   static async Task<i32> Twice(i32 n) { await Task.Yield(); return n * 2; }\n\
+                   public static string Run() {\n\
+                       let all = Task.WhenAll(Twice(1), Twice(2), Twice(3)).Result;\n\
+                       let names = Task.WhenAll(Task.FromResult(\"a\"), Task.FromResult(\"b\")).Result;\n\
+                       let first = Task.WhenAny(Task.FromResult(9)).Result.Result;\n\
+                       return all[0] + all[1] + all[2] + \" \" + names[1] + \" \" + first;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("r.ys", src)], "t.RScript.R.Run()") else {
+        return;
+    };
+    assert_eq!(out, "12 b 9");
+}
