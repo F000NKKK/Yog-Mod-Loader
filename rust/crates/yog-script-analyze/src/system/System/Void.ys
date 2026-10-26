@@ -1,0 +1,7 @@
+namespace System;
+
+/// What a method that gives nothing gives (`void`), as .NET's
+/// `System.Void`: a type with no values, nor members.
+[Intrinsic]
+public readonly struct Void {
+}

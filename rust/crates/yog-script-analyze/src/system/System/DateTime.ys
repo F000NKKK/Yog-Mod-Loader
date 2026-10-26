@@ -1,0 +1,68 @@
+namespace System;
+
+/// A moment on the calendar, as .NET's: a count of ticks of 100
+/// nanoseconds since 0001-01-01, added to and compared by its operators.
+[Intrinsic]
+public readonly struct DateTime : IEquatable<DateTime>, IComparable<DateTime> {
+    public DateTime(i64 ticks) {}
+    public DateTime(i32 year, i32 month, i32 day) {}
+    public DateTime(i32 year, i32 month, i32 day, i32 hour, i32 minute, i32 second) {}
+
+    public static readonly DateTime MinValue;
+    public static readonly DateTime MaxValue;
+    /// Here and now, and in UTC; today at midnight.
+    public static DateTime Now { get; }
+    public static DateTime UtcNow { get; }
+    public static DateTime Today { get; }
+
+    public i64 Ticks { get; }
+    public i32 Year { get; }
+    public i32 Month { get; }
+    public i32 Day { get; }
+    public i32 Hour { get; }
+    public i32 Minute { get; }
+    public i32 Second { get; }
+    public i32 Millisecond { get; }
+    public DayOfWeek DayOfWeek { get; }
+    public i32 DayOfYear { get; }
+    /// The day, at midnight; how long past midnight it is.
+    public DateTime Date { get; }
+    public TimeSpan TimeOfDay { get; }
+
+    public DateTime Add(TimeSpan value);
+    public DateTime AddTicks(i64 value);
+    public DateTime AddMilliseconds(f64 value);
+    public DateTime AddSeconds(f64 value);
+    public DateTime AddMinutes(f64 value);
+    public DateTime AddHours(f64 value);
+    public DateTime AddDays(f64 value);
+    /// The same day of `months` later, the month's last when it's shorter.
+    public DateTime AddMonths(i32 months);
+    public DateTime AddYears(i32 value);
+    public TimeSpan Subtract(DateTime value);
+    public DateTime Subtract(TimeSpan value);
+
+    public static i32 DaysInMonth(i32 year, i32 month);
+    public static bool IsLeapYear(i32 year);
+    public static i32 Compare(DateTime t1, DateTime t2);
+    /// `s` read (`2024-03-01`, `2024-03-01T12:30:00`, `03/01/2024 12:30:00`); a panic when it isn't one.
+    public static DateTime Parse(string s);
+    public static DateTime? TryParse(string s);
+
+    public i32 CompareTo(DateTime value);
+    public bool Equals(DateTime value);
+    /// As the invariant culture writes it: `03/01/2024 12:30:00`.
+    public override string ToString();
+    /// As `format` says, .NET's: `yyyy-MM-dd HH:mm:ss.fff`, `dddd`, `tt`, ….
+    public string ToString(string format);
+
+    public static DateTime operator +(DateTime d, TimeSpan t);
+    public static DateTime operator -(DateTime d, TimeSpan t);
+    public static TimeSpan operator -(DateTime d1, DateTime d2);
+    public static bool operator ==(DateTime d1, DateTime d2);
+    public static bool operator !=(DateTime d1, DateTime d2);
+    public static bool operator <(DateTime t1, DateTime t2);
+    public static bool operator >(DateTime t1, DateTime t2);
+    public static bool operator <=(DateTime t1, DateTime t2);
+    public static bool operator >=(DateTime t1, DateTime t2);
+}

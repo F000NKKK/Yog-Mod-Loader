@@ -375,3 +375,24 @@ fn a_constructors_arguments_are_checked() {
         assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
     }
 }
+
+#[test]
+fn date_times_are_dotnets() {
+    let ok = "TimeSpan Age(DateTime born) => DateTime.Now - born;\n\
+              DateTime Later(DateTime d) => d + TimeSpan.FromDays(3) - TimeSpan.FromHours(1);\n\
+              bool Weekend(DateTime d) => d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;\n\
+              string Day(DateTime d) => d.AddMonths(1).ToString(\"yyyy-MM-dd\") + d.Year;\n\
+              bool Before(DateTime a, DateTime b) => a < b && DateTime.IsLeapYear(a.Year);\n\
+              DateTime New() => new DateTime(2024, 3, 1);\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("DateTime F(DateTime d) => d + 3;\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn void_is_system_void() {
+    assert!(codes("Void F() {}\nvoid G() {\n    F();\n}\n").is_empty());
+    assert_eq!(codes("Void F() {}\ni32 G() => F();\n"), [script_problem::TYPE_MISMATCH]);
+}

@@ -248,6 +248,6 @@ surface's delegates.
    Java's `BigDecimal`, its arithmetic methods, numbers made one through
    its implicit conversion), `Random`, `StringBuilder` (`System.Text`, an
    implicit `using`), `Lazy` (done; numbers and `bool`s put in text are
-   written as .NET writes them: `2`, `1E+20`, `True`, `∞`), `TimeSpan` (done), `DateTime`, `System.Numerics`' vectors
+   written as .NET writes them: `2`, `1E+20`, `True`, `∞`), `TimeSpan`, `DateTime` with `DayOfWeek`, `Void` (done), `System.Numerics`' vectors
    (done; matrices, quaternions next); query syntax.
 4. `System.Reflection`, `System.Linq.Expressions`.

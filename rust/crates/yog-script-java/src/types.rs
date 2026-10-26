@@ -4,7 +4,7 @@
 //! `Action` or `Func` of its arity, a game's array as Java's.
 
 use yog_script_analyze::ast::{Type as Written, TypeKind};
-use yog_script_analyze::{Type, builtin_type, yog};
+use yog_script_analyze::{Type, builtin_type, system_type, yog};
 
 use super::Gen;
 
@@ -88,8 +88,9 @@ impl Gen<'_> {
             }
             TypeKind::Path { path, args } => {
                 let name = path.last().map_or("", |n| n.text.as_str());
+                // `i32`, or its type in `System` written (`Int32`, `Void`).
                 if args.is_empty()
-                    && let Some(b) = builtin_type(name)
+                    && let Some(b) = builtin_type(name).or_else(|| system_type(name))
                 {
                     return self.java(&b, boxed);
                 }

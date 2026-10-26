@@ -353,3 +353,18 @@ fn random_text_and_lazy_are_the_runtimes() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn date_times_and_system_names_are_javas() {
+    let src = "TimeSpan Age(DateTime born) => DateTime.Now - born;\n\
+               Void Nothing() {}\n\
+               Int32 Count(String s) => s.Length;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.DateTime.op_Subtraction(dev.yog.script.DateTime.Now().copy(), born.copy())",
+        "public static void Nothing()",
+        "public static int Count(String s)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
