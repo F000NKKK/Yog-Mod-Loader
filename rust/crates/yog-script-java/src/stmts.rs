@@ -4,7 +4,7 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
-use yog_script_ids::clr::ACCESSOR_SEP;
+use yog_script_ids::clr::{ACCESSOR_SEP, TUPLE_ITEM};
 
 use super::Gen;
 use crate::modifier;
@@ -303,7 +303,10 @@ impl Gen<'_> {
 
     fn foreach(&mut self, binding: &Binding, iter: &Expr, body: &Stmt) {
         let Binding::One(n) = binding else {
-            return self.not_yet("a tuple taken apart", iter.span);
+            if let Binding::Tuple(names) = binding {
+                self.foreach_taken_apart(names, iter, body);
+            }
+            return;
         };
         let name = Self::ident(&n.text);
         if let ExprKind::Range {
@@ -319,13 +322,59 @@ impl Gen<'_> {
                 body,
             );
         }
+        let (items, rows) = self.gone_through(iter);
+        self.branch(&format!("{FOR} ({VAR} {name} : {items})"), body);
+        for _ in 0..rows {
+            self.code.close("");
+        }
+    }
+
+    /// What `foreach` goes through in Java (a string's `char`s, an array's
+    /// items row by row: the loops opened for the rows, how many).
+    fn gone_through(&mut self, iter: &Expr) -> (String, usize) {
         let items = self.expr(iter);
-        let (items, rows) = match self.types.of(iter).map(Type::non_null) {
+        match self.types.of(iter).map(Type::non_null) {
             Some(Type::String) => (format!("{items}.toCharArray()"), 0),
             Some(Type::Array(_, rank)) => self.array_loops(&items, *rank),
             _ => (items, 0),
-        };
-        self.branch(&format!("{FOR} ({VAR} {name} : {items})"), body);
+        }
+    }
+
+    /// `foreach (let (a, b) in items)`: each item taken apart — a tuple
+    /// by its items, a record by its constructor's parameters.
+    fn foreach_taken_apart(
+        &mut self,
+        names: &[yog_script_analyze::ast::Name],
+        iter: &Expr,
+        body: &Stmt,
+    ) {
+        let item = self.types.item(iter).cloned();
+        let (items, rows) = self.gone_through(iter);
+        let each = self.temp();
+        self.code.open(format!("{FOR} ({VAR} {each} : {items})"));
+        for (i, n) in names.iter().enumerate() {
+            let part = match item.as_ref().map(Type::non_null) {
+                Some(Type::Own(record, args)) => match self
+                    .index
+                    .record_params(&(record.clone(), args.len()))
+                    .get(i)
+                {
+                    Some(p) => format!("{each}.{}()", Self::ident(p)),
+                    None => return self.not_yet("this taken apart", n.span),
+                },
+                _ => format!("{each}.{TUPLE_ITEM}{}", i + 1),
+            };
+            self.code.line(format!(
+                "{} {VAR} {} = {part};",
+                FINAL,
+                Self::ident(&n.text)
+            ));
+        }
+        match body {
+            Stmt::Block(b) => self.block_stmts(b),
+            other => self.stmt(other),
+        }
+        self.code.close("");
         for _ in 0..rows {
             self.code.close("");
         }

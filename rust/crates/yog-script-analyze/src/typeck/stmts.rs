@@ -128,6 +128,7 @@ impl Checker<'_, '_, '_> {
         let items = self.expr(iter);
         let item = self.item_of(&items);
         let t = ty.map_or(item, |t| self.type_of(t));
+        self.types.set_item(iter, t.clone());
         self.scoped(|c| {
             c.bind_binding(binding, &t, true);
             c.branch(body);
@@ -138,12 +139,38 @@ impl Checker<'_, '_, '_> {
         self.scoped(|c| c.stmt(s));
     }
 
+    /// Record `name<args>`'s constructor's parameters' types (none for
+    /// what isn't a record).
+    fn record_params(&mut self, name: &str, args: &[Type]) -> Vec<Type> {
+        let Some(params) = self
+            .own
+            .get(name, args.len())
+            .filter(|o| o.record)
+            .map(|o| o.ctor.clone())
+        else {
+            return Vec::new();
+        };
+        let context = self.context_of(name, args);
+        self.in_context(&context, |c| {
+            params.iter().map(|p| c.type_of(&p.ty)).collect()
+        })
+    }
+
     fn bind_binding(&mut self, b: &Binding, t: &Type, fixed: bool) {
         match (b, t) {
             (Binding::One(n), _) => self.bind_as(&n.text, t.clone(), fixed),
             (Binding::Tuple(names), Type::Tuple(items, _)) if names.len() == items.len() => {
                 for (n, item) in names.iter().zip(items) {
                     self.bind_as(&n.text, item.clone(), fixed);
+                }
+            }
+            // A record taken apart by its constructor's parameters, as C#'s
+            // `Deconstruct` (`foreach (let (k, v) in dict)`).
+            (Binding::Tuple(names), Type::Own(record, args))
+                if self.record_params(record, args).len() == names.len() =>
+            {
+                for (n, item) in names.iter().zip(self.record_params(record, args)) {
+                    self.bind_as(&n.text, item, fixed);
                 }
             }
             (Binding::Tuple(names), _) => names

@@ -419,6 +419,17 @@ fn a_local_may_be_set_after() {
 }
 
 #[test]
+fn foreach_takes_items_apart() {
+    let src = "i32 Sum(Dictionary<string, i32> ages, List<(i32, string)> pairs) {\n    let mut t = 0;\n\
+               \x20   foreach (let (name, age) in ages) {\n        t += age;\n    }\n\
+               \x20   foreach (let (n, s) in pairs) {\n        t += n;\n    }\n    return t;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [".Key();", ".Value();", ".Item1;", ".Item2;"] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

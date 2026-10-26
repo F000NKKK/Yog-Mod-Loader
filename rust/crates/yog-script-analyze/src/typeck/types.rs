@@ -25,6 +25,8 @@ pub struct Types {
     /// The lambdas given where an expression tree is wanted
     /// (`Expression<Func<i32, bool>>`), by the lambda.
     quoted: HashMap<usize, Quoted>,
+    /// What each `foreach`'s items are, by what it goes through.
+    items: HashMap<usize, Type>,
     /// The type of each name a pattern binds (`let r`, `Monster m`), by the name.
     bindings: HashMap<usize, Type>,
     /// The constructor each `new T(…)` chose: which of the type's, its body's
@@ -95,6 +97,15 @@ impl Types {
     }
 
     /// The method call `e` chose, when it's an own one.
+    /// What `foreach` over `iter` gives each time.
+    pub fn item(&self, iter: &Expr) -> Option<&Type> {
+        self.items.get(&key(iter))
+    }
+
+    pub(super) fn set_item(&mut self, iter: &Expr, t: Type) {
+        self.items.insert(key(iter), t);
+    }
+
     /// The type of name `n` a pattern binds.
     pub fn binding(&self, n: &crate::ast::Name) -> Option<&Type> {
         self.bindings.get(&(std::ptr::from_ref(n) as usize))

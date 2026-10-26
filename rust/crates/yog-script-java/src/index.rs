@@ -39,6 +39,9 @@ pub(crate) struct Info {
     pub takes_args: bool,
     /// An `abstract` class: never made by `new`.
     pub is_abstract: bool,
+    /// A record's constructor's parameters, by name, in order: what taking
+    /// one apart gives (`let (k, v) = pair`).
+    pub record_params: Vec<String>,
 }
 
 #[derive(Default)]
@@ -102,6 +105,7 @@ impl Index {
                         bases: Vec::new(),
                         takes_args: false,
                         is_abstract: false,
+                        record_params: Vec::new(),
                     };
                     self.types
                         .insert((m.name.text.clone(), arity(&m.generics)), info);
@@ -168,6 +172,12 @@ impl Index {
             bases,
             takes_args,
             is_abstract: d.has(yog_script_analyze::ast::Modifier::Abstract),
+            record_params: header
+                .ctor
+                .iter()
+                .flatten()
+                .map(|p| p.name.text.clone())
+                .collect(),
         };
         self.types
             .insert((name.text.clone(), arity(&header.generics)), info);
@@ -197,6 +207,7 @@ impl Index {
             bases: Vec::new(),
             takes_args: false,
             is_abstract: false,
+            record_params: Vec::new(),
         };
         self.types
             .insert((name.text.clone(), arity(generics)), info);
@@ -312,6 +323,14 @@ impl Index {
         self.types
             .get(&(name.to_string(), 0))
             .is_some_and(|i| i.takes_args)
+    }
+
+    /// Record `t`'s constructor's parameters, in order (none for another type).
+    pub fn record_params(&self, t: &TypeRef) -> &[String] {
+        self.types
+            .get(t)
+            .filter(|i| i.kind == Kind::Record)
+            .map_or(&[], |i| i.record_params.as_slice())
     }
 
     /// Whether type `t` is made by `new` and keeps the type arguments it's
