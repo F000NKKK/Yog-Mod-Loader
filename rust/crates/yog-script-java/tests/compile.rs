@@ -155,6 +155,22 @@ fn type_parameters_are_values() {
     }
 }
 
+/// The built-in macros: runtime helpers; `dbg!` shows its expression as written.
+#[test]
+fn builtin_macros_are_helpers() {
+    let src = "i32 F(i32 rate) {\n    assert!(rate > 0);\n    assert_eq!(rate, 2);\n    return dbg!(rate * 2);\n}\n\
+               void G() {\n    todo!();\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.Ys.check((rate > 0), \"assertion failed\", \"sample.ys:2\");",
+        "dev.yog.script.Ys.checkEq(rate, 2, \"sample.ys:3\");",
+        "dev.yog.script.Ys.dbg((rate * 2), \"rate * 2\", \"sample.ys:4\")",
+        "dev.yog.script.Ys.panic(\"not done yet\", \"sample.ys:7\");",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
 /// A method as an event's handler: made once, called with each event.
 #[test]
 fn a_method_handles_an_event() {

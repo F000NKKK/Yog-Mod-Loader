@@ -28,6 +28,8 @@ pub struct JvmBuild<'a> {
     pub work: &'a Path,
     /// Its mod says it sends to the server (`yog.toml`'s `[network] to_server`).
     pub to_server: bool,
+    /// The mod's files its sources include.
+    pub files: Option<&'a dyn yog_script_analyze::macros::ModFiles>,
 }
 
 /// `sources` (name, text) built into the jar `jar`, or what's wrong.
@@ -51,6 +53,7 @@ pub fn build_jar(
     for (name, text) in sources {
         let env = yog_script_analyze::Env {
             to_server: b.to_server,
+            files: b.files,
             ..Default::default()
         };
         let checked = yog_script_analyze::check_in(name, text, env);

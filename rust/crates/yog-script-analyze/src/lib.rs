@@ -51,7 +51,7 @@ pub struct Checked {
 #[must_use]
 pub fn parse(name: &str, src: &str) -> Parsed {
     let mut report = yog_analysis::Report::new(name, src);
-    let file = read(name, src, (versions::newest(), None), &mut report);
+    let file = read(name, src, (versions::newest(), Env::default()), &mut report);
     Parsed {
         file,
         problems: report.out,
@@ -86,6 +86,8 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
 pub struct Env<'a> {
     pub game: Option<&'a index::ClassIndex>,
     pub macros: Option<&'a dyn macros::ProcMacros>,
+    /// The mod's files, for `include_str!`.
+    pub files: Option<&'a dyn macros::ModFiles>,
     /// The mod says it sends to the server (`yog.toml`: `[network] to_server`).
     pub to_server: bool,
 }
@@ -97,7 +99,7 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
     let mut report = yog_analysis::Report::new(name, src);
     // A `.yns` is read as the version whose classes it's checked with.
     let mc = game.map_or(versions::newest(), |g| g.mc.as_str());
-    let file = read(name, src, (mc, env.macros), &mut report);
+    let file = read(name, src, (mc, env), &mut report);
     let symbols = resolve::resolve(&file, &mut report);
     let game = game.filter(|_| is_nanites(name));
     // Types are checked in what reads and resolves cleanly: a broken tree
@@ -119,16 +121,21 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
     }
 }
 
-/// The source read as game version `mc`, with the build's macros `procs`.
+/// The source read as game version `mc`, with the build's macros and files (`env`).
 fn read(
     name: &str,
     src: &str,
-    (mc, procs): (&str, Option<&dyn macros::ProcMacros>),
+    (mc, env): (&str, Env<'_>),
     report: &mut yog_analysis::Report<'_>,
 ) -> ast::File {
     let nanites = is_nanites(name);
     let text = preprocessed(src, mc, nanites, report);
-    let tokens = macros::expand(lexer::lex(&text, report), &text, procs, report);
+    let tokens = macros::expand(
+        lexer::lex(&text, report),
+        (&text, name),
+        (env.macros, env.files),
+        report,
+    );
     let file = parser::Parser::new(&tokens, report, nanites).file();
     check_targets(&file, nanites, report);
     file

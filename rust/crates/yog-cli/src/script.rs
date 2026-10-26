@@ -19,8 +19,12 @@ pub(crate) fn check_text(name: &str, text: &str, root: &Path) -> Vec<yog_data::D
     let to_server =
         crate::project::manifest::YogToml::read(&root.join(crate::project::manifest::MANIFEST))
             .is_ok_and(|m| m.to_server);
+    let files = yog_script_build::FilesBeside {
+        base: root.to_path_buf(),
+    };
     let project = yog_script_build::Project {
         to_server,
+        files: Some(&files),
         ..Default::default()
     };
     yog_script_build::check_source_using(name, text, yog_script_build::index::load, project)

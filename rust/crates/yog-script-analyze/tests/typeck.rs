@@ -91,11 +91,15 @@ fn out_let_takes_its_parameters_type() {
 fn method_groups_are_delegates() {
     let base = "using System.Linq;\nclass Calc {\n    public i32 Times(i32 x) => x;\n    public static i32 Plus(i32 x) => x;\n}\n\
                 i32 Twice(i32 x) => x * 2;\n";
-    let ok = format!("{base}void F(Calc c, List<i32> xs) {{\n    Func<i32, i32> f = Twice;\n    Func<i32, i32> g = c.Times;\n    Func<i32, i32> h = Calc.Plus;\n    List<i32> ys = xs.Select(Twice).ToList();\n}}\n");
+    let ok = format!(
+        "{base}void F(Calc c, List<i32> xs) {{\n    Func<i32, i32> f = Twice;\n    Func<i32, i32> g = c.Times;\n    Func<i32, i32> h = Calc.Plus;\n    List<i32> ys = xs.Select(Twice).ToList();\n}}\n"
+    );
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
     let shape = format!("{base}void F() {{\n    Func<string, i32> f = Twice;\n}}\n");
     assert_eq!(codes(&shape), [script_problem::TYPE_MISMATCH]);
-    let inferred = format!("{base}void F(List<i32> xs) {{\n    List<string> ys = xs.Select(Twice).ToList();\n}}\n");
+    let inferred = format!(
+        "{base}void F(List<i32> xs) {{\n    List<string> ys = xs.Select(Twice).ToList();\n}}\n"
+    );
     assert_eq!(codes(&inferred), [script_problem::TYPE_MISMATCH]);
 }
 

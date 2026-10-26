@@ -7,6 +7,7 @@
 pub mod builtin;
 mod calls;
 mod fragment;
+mod includes;
 mod matcher;
 mod procs;
 mod rules;
@@ -23,6 +24,7 @@ use rules::Macro;
 use tree::{Tree, closer, tree_at};
 use yog_analysis::Report;
 
+pub use includes::ModFiles;
 pub use procs::ProcMacros;
 pub(crate) use transcribe::HYGIENE_MARK;
 
@@ -30,12 +32,13 @@ pub(crate) use transcribe::HYGIENE_MARK;
 /// forever stops here.
 const MAX_EXPANSIONS: usize = 4096;
 
-/// `tokens` (ending with `Eof`, cut from `text`) with the source's macros
-/// expanded: its declared ones, then the build's procedural ones.
+/// `tokens` (ending with `Eof`, cut from `text`, of source `source`) with
+/// the source's macros expanded: its declared ones, the build's procedural
+/// ones, then the files it includes.
 pub(crate) fn expand(
     mut tokens: Vec<Token>,
-    text: &str,
-    procs: Option<&dyn ProcMacros>,
+    (text, source): (&str, &str),
+    (procs, files): (Option<&dyn ProcMacros>, Option<&dyn ModFiles>),
     report: &mut Report<'_>,
 ) -> Vec<Token> {
     let eof = tokens.pop();
@@ -45,6 +48,9 @@ pub(crate) fn expand(
     }
     if let Some(procs) = procs {
         tokens = calls::expand(tokens, text, procs, report);
+    }
+    if let Some(files) = files {
+        tokens = includes::expand(tokens, (source, files), report);
     }
     tokens.extend(eof);
     tokens

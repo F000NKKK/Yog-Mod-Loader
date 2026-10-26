@@ -36,6 +36,7 @@ fn source(file: &str, text: &str, project: Project<'_>) -> usize {
     let env = Env {
         game: None,
         macros: project.macros.map(|m| m as &dyn ProcMacros),
+        files: project.files,
         to_server: project.to_server,
     };
     let checked = yog_script_analyze::check_in(file, text, env);

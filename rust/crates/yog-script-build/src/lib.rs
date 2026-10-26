@@ -7,6 +7,7 @@
 //! tool any.
 
 mod classfile;
+mod files;
 pub mod index;
 mod jvm;
 mod macros;
@@ -14,6 +15,7 @@ mod versions;
 
 use yog_data::Diagnostic;
 
+pub use files::FilesBeside;
 pub use jvm::{JvmBuild, build_jar};
 pub use macros::MacroLibrary;
 pub use yog_script_analyze::versions::targeted;
@@ -40,6 +42,8 @@ pub fn check_source_with(
 #[derive(Default, Clone, Copy)]
 pub struct Project<'a> {
     pub macros: Option<&'a MacroLibrary>,
+    /// The mod's files its sources include.
+    pub files: Option<&'a dyn yog_script_analyze::macros::ModFiles>,
     pub to_server: bool,
 }
 
@@ -55,6 +59,7 @@ pub fn check_source_using(
         macros: project
             .macros
             .map(|m| m as &dyn yog_script_analyze::macros::ProcMacros),
+        files: project.files,
         to_server: project.to_server,
     };
     if !yog_script_analyze::is_nanites(name) {

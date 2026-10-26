@@ -4,7 +4,6 @@
 //! `String.Length(s)`), the library's by their places.
 
 use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Pass, Type as Written};
-use yog_script_analyze::macros::builtin;
 use yog_script_analyze::{Type, yog};
 use yog_script_ids::system::RESULT;
 
@@ -348,49 +347,6 @@ impl Gen<'_> {
                 .line(format!("{tmp}.{} = {v};", Self::ident(&field.text)));
         }
         tmp
-    }
-
-    pub(crate) fn macro_call(&mut self, e: &Expr, name: &str, args: &[Expr]) -> String {
-        let at = self.at(e.span);
-        let given: Vec<String> = args.iter().map(|a| self.expr(a)).collect();
-        let first = given
-            .first()
-            .cloned()
-            .unwrap_or_else(|| self.code.str(name));
-        let ys = format!("{RUNTIME}.Ys");
-        let Some(m) = builtin::named(name) else {
-            self.not_yet("this macro", e.span);
-            return String::new();
-        };
-        if std::ptr::eq(m, &builtin::ASSERT) {
-            let message = given
-                .get(1)
-                .cloned()
-                .unwrap_or_else(|| self.code.str("assertion failed"));
-            return format!("{ys}.check({first}, {message}, {at})");
-        }
-        if std::ptr::eq(m, &builtin::ASSERT_EQ) {
-            return format!(
-                "{ys}.checkEq({first}, {}, {at})",
-                given.get(1).cloned().unwrap_or_default()
-            );
-        }
-        if std::ptr::eq(m, &builtin::DBG) {
-            let what = self
-                .code
-                .str(&format!("{}", args.first().map_or(0, |a| a.span.start)));
-            return format!("{ys}.dbg({first}, {what}, {at})");
-        }
-        if m.gives == builtin::Gives::Never {
-            let message = if given.is_empty() {
-                self.code.str(m.doc)
-            } else {
-                format!("String.valueOf({first})")
-            };
-            return format!("{ys}.panic({message}, {at})");
-        }
-        self.not_yet("this macro", e.span);
-        String::new()
     }
 }
 

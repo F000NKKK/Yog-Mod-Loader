@@ -37,6 +37,9 @@ pub fn jars(
     let api = resolver.java_api_jar().ok_or(
         "Yog Script needs the loader SDK's java-api jar: `./build.sh build api` in the SDK",
     )?;
+    let files = yog_script_build::FilesBeside {
+        base: root.to_path_buf(),
+    };
     let package = format!("{PACKAGE_ROOT}.{}", yog_ids::mod_lib_name(&meta.id));
     let mut out = Vec::new();
     for (mc, java) in versions(&resolver)? {
@@ -58,6 +61,7 @@ pub fn jars(
             package: &package,
             work: &work,
             to_server: meta.to_server,
+            files: Some(&files),
         };
         if let Err(problems) = build_jar(&sources, &b, &jar) {
             diagnostics::report_all(&problems);

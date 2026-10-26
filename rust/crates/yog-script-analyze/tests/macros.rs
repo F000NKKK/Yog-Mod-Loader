@@ -58,3 +58,36 @@ fn the_built_in_macros_are_typed() {
     // `x!` alone still says `x` isn't null.
     assert!(codes("i32 F(i32? x) => x!;\n").is_empty());
 }
+
+/// The files a test's source includes: one, `help.txt`.
+struct OneFile;
+
+impl yog_script_analyze::macros::ModFiles for OneFile {
+    fn read(&self, _source: &str, path: &str) -> Result<String, String> {
+        match path {
+            "help.txt" => Ok("say {hi}".to_string()),
+            _ => Err("no such file".to_string()),
+        }
+    }
+}
+
+/// `include_str!`: the file's text, written as it is; one that can't be read reported.
+#[test]
+fn include_str_is_the_files_text() {
+    let env = yog_script_analyze::Env {
+        files: Some(&OneFile),
+        ..Default::default()
+    };
+    let src = "string Help() => include_str!(\"help.txt\");\n";
+    let checked = yog_script_analyze::check_in("a.ys", src, env);
+    assert!(checked.problems.is_empty(), "{:?}", checked.problems);
+    let text = format!("{:?}", checked.file.decls);
+    assert!(text.contains("say {hi}"), "{text}");
+    let missing = "string Help() => include_str!(\"gone.txt\");\n";
+    let codes: Vec<_> = yog_script_analyze::check_in("a.ys", missing, env)
+        .problems
+        .into_iter()
+        .filter_map(|d| d.code)
+        .collect();
+    assert_eq!(codes, [script_problem::MACRO]);
+}

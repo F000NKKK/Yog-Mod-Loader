@@ -22,6 +22,7 @@ mod indexers;
 mod java_names;
 mod kept;
 mod library;
+mod macros;
 mod operators;
 mod patterns;
 mod reflection;

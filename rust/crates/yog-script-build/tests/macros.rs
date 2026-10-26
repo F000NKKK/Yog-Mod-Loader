@@ -31,7 +31,7 @@ fn codes(src: &str) -> Vec<String> {
         |_| Err(String::new()),
         Project {
             macros: Some(&lib),
-            to_server: false,
+            ..Project::default()
         },
     )
     .into_iter()

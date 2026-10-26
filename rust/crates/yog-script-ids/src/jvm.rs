@@ -93,6 +93,16 @@ pub const REF_VALUE: &str = "value";
 /// (`x instanceof Mode.Charging c && Ys.bound(r = c.Rate()) && r > 3`).
 pub const BOUND: &str = "bound";
 
+/// The helpers the built-in macros are: `panic!` (and `todo!`,
+/// `unreachable!`), `assert!`,
+/// `assert_eq!`, `dbg!`; a `switch` no arm takes; a value as text.
+pub const PANIC: &str = "panic";
+pub const CHECK: &str = "check";
+pub const CHECK_EQ: &str = "checkEq";
+pub const DBG: &str = "dbg";
+pub const NO_ARM: &str = "noArm";
+pub const VALUE_OF: &str = "valueOf";
+
 /// What every mod's class implements, the runtime finding it by.
 pub const MOD_INTERFACE: &str = concat!(runtime!(), sep!(), "YsMod");
 

@@ -14,6 +14,8 @@ pub(super) struct Given {
     pub macros: Option<MacroLibrary>,
     pub to_server: bool,
     pub files: Vec<String>,
+    /// What the files include, beside them (named from where the tool runs).
+    pub beside: yog_script_build::FilesBeside,
 }
 
 impl Given {
@@ -21,6 +23,7 @@ impl Given {
     pub fn project(&self) -> yog_script_build::Project<'_> {
         yog_script_build::Project {
             macros: self.macros.as_ref(),
+            files: Some(&self.beside),
             to_server: self.to_server,
         }
     }
@@ -48,6 +51,7 @@ pub(super) fn split(rest: &[String]) -> Result<Given, String> {
             macros: None,
             to_server,
             files,
+            beside: here(),
         });
     }
     let lib = MacroLibrary::load(&sources).map_err(|problems| {
@@ -58,5 +62,16 @@ pub(super) fn split(rest: &[String]) -> Result<Given, String> {
         macros: Some(lib),
         to_server,
         files,
+        beside: here(),
     })
 }
+
+/// Files beside the sources, named from where the tool runs.
+fn here() -> yog_script_build::FilesBeside {
+    yog_script_build::FilesBeside {
+        base: std::path::PathBuf::from(CURRENT_DIR),
+    }
+}
+
+/// The folder the tool runs in.
+const CURRENT_DIR: &str = ".";

@@ -7,7 +7,7 @@ use yog_script_analyze::ast::{Arm, Expr, ExprKind};
 use super::Gen;
 use crate::types::RUNTIME;
 use yog_script_ids::java::{BREAK, IF, THROW, VAR};
-use yog_script_ids::jvm::OBJECT;
+use yog_script_ids::jvm::{HELPERS, NO_ARM, OBJECT};
 
 impl Gen<'_> {
     pub(crate) fn switch(&mut self, e: &Expr, on: &Expr, arms: &[Arm]) -> String {
@@ -43,7 +43,7 @@ impl Gen<'_> {
             }
         }
         self.code.line(format!(
-            "{THROW} {RUNTIME}.Ys.noArm({value}, {});",
+            "{THROW} {RUNTIME}.{HELPERS}.{NO_ARM}({value}, {});",
             self.at(e.span)
         ));
         self.code.close("");
