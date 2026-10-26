@@ -7,6 +7,7 @@
 //! written wrong.
 
 mod arrays;
+mod bounds;
 mod calls;
 mod captures;
 mod classes;

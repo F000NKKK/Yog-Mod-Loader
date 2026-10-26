@@ -495,6 +495,11 @@ impl Index {
         self.keeps_types(t) && self.own.contains(t)
     }
 
+    /// Whether `name` is a static method of own type `t`.
+    pub fn is_static(&self, t: &TypeRef, name: &str) -> bool {
+        self.statics.contains(&(t.clone(), name.to_string()))
+    }
+
     /// Whether `name` is a static method of `t` that takes `t`'s type
     /// arguments first: one of an own generic type.
     pub fn static_taking_types(&self, t: &TypeRef, name: &str) -> bool {

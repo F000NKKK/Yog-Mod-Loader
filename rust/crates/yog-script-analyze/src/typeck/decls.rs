@@ -127,22 +127,24 @@ impl Checker<'_, '_, '_> {
                     .then(|| Type::Own(name.text.clone(), args));
                 let bound = generics::params_of(&header.generics);
                 self.with_types(bound, |c| {
-                    if let Some(this) = &own {
-                        c.check_operators(this, body);
-                    }
-                    let content = match &d.kind {
-                        DeclKind::Content { kind, .. } => Some(kind.text.clone()),
-                        _ => None,
-                    };
-                    c.within(own, side, None, |c| {
-                        c.params(header.ctor.as_deref().unwrap_or_default());
-                        let outer = std::mem::replace(&mut c.in_content, content.is_some());
-                        c.decls(body);
-                        c.in_content = outer;
-                        if let Some(word) = &content {
-                            c.content_decl(word, name, body);
+                    c.with_constraints(&header.constraints, |c| {
+                        if let Some(this) = &own {
+                            c.check_operators(this, body);
                         }
-                    });
+                        let content = match &d.kind {
+                            DeclKind::Content { kind, .. } => Some(kind.text.clone()),
+                            _ => None,
+                        };
+                        c.within(own, side, None, |c| {
+                            c.params(header.ctor.as_deref().unwrap_or_default());
+                            let outer = std::mem::replace(&mut c.in_content, content.is_some());
+                            c.decls(body);
+                            c.in_content = outer;
+                            if let Some(word) = &content {
+                                c.content_decl(word, name, body);
+                            }
+                        });
+                    })
                 });
             }
             _ => {}
@@ -167,24 +169,26 @@ impl Checker<'_, '_, '_> {
 
     fn method(&mut self, m: &Method, side: Side, is_async: bool) {
         self.with_types(generics::params_of(&m.generics), |c| {
-            let ret = m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t));
-            // An iterator: its items checked by `yield`, not its `return`s.
-            let item = super::iterators::body_yields(m.body.as_ref())
-                .then(|| super::iterators::item_of(&ret).cloned())
-                .flatten();
-            let ret = if is_async && item.is_none() {
-                c.async_returns(&ret, m.name.span)
-            } else {
-                ret
-            };
-            let outer = std::mem::replace(&mut c.yields, item);
-            c.body(
-                (m.body.as_ref(), m.requires.as_ref()),
-                &m.params,
-                Some(ret),
-                side,
-            );
-            c.yields = outer;
+            c.with_constraints(&m.constraints, |c| {
+                let ret = m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t));
+                // An iterator: its items checked by `yield`, not its `return`s.
+                let item = super::iterators::body_yields(m.body.as_ref())
+                    .then(|| super::iterators::item_of(&ret).cloned())
+                    .flatten();
+                let ret = if is_async && item.is_none() {
+                    c.async_returns(&ret, m.name.span)
+                } else {
+                    ret
+                };
+                let outer = std::mem::replace(&mut c.yields, item);
+                c.body(
+                    (m.body.as_ref(), m.requires.as_ref()),
+                    &m.params,
+                    Some(ret),
+                    side,
+                );
+                c.yields = outer;
+            })
         });
     }
 

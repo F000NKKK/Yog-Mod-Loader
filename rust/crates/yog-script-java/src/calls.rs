@@ -102,6 +102,7 @@ impl Gen<'_> {
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
+        let (target, on_type) = self.through_bound(on, target, on_type);
         let read = self.member_of(&target, on_type.as_ref(), name, safe);
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Yog(_)) => self.viewed(e, read),
@@ -204,7 +205,7 @@ impl Gen<'_> {
                 }
                 _ => {
                     let a = self.with_classes(e, Vec::new(), a);
-                    format!("{}({a})", self.called_name(e, name))
+                    format!("{}{}({a})", self.witnessed(e), self.called_name(e, name))
                 }
             },
             ExprKind::Member { expr, name, .. } => self.method_call(e, expr, &name.text, &a),
@@ -217,6 +218,28 @@ impl Gen<'_> {
                 }
             }
         }
+    }
+
+    /// What a call `e` by its name alone is qualified with to hand Java its
+    /// type arguments (`W.<List<Integer>>Made()`): its type, `this`, or the
+    /// source's class; nothing when none are written.
+    fn witnessed(&self, e: &Expr) -> String {
+        let witness = self.type_witness(e);
+        let Some(used) = self.types.method(e).filter(|_| !witness.is_empty()) else {
+            return String::new();
+        };
+        let qualifier = match &used.owner {
+            Some(o)
+                if self
+                    .index
+                    .is_static(&(o.clone(), used.owner_arity), &used.name) =>
+            {
+                self.index.place(o, used.owner_arity)
+            }
+            Some(_) => self.this_ref(),
+            None => self.class_name.clone(),
+        };
+        format!("{qualifier}.{witness}")
     }
 
     /// Call `e`'s arguments: a `[Reified]` method's classes or a generic
@@ -357,6 +380,7 @@ impl Gen<'_> {
         a: &str,
     ) -> String {
         let on_type = self.types.of(on).cloned();
+        let (target, on_type) = self.through_bound(on, target, on_type);
         let n = self.called_name(e, name);
         // A number's `GetType()`: its type as declared, read after the
         // value is — Java's box can't tell a `u8` from an `i32`.
@@ -432,6 +456,7 @@ impl Gen<'_> {
             return a;
         }
         let made = match self.types.of(e).cloned() {
+            Some(of) if let Some(made) = self.param_made(&of) => made,
             Some(of) => self.new_of(&of, &t, &a),
             None => format!("{NEW} {t}({a})"),
         };

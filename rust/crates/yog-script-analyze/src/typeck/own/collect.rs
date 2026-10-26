@@ -145,6 +145,7 @@ impl OwnTypes {
                 t.record = record;
                 t.readonly_all = d.has(ast::Modifier::Readonly) || record;
                 t.threads = super::threads::threads(d);
+                t.wheres = header.constraints.clone();
                 t.ctor = header.ctor.clone().unwrap_or_default();
                 // A record's constructor parameters are its properties.
                 if record {

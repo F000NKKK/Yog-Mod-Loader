@@ -40,10 +40,7 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::Move(expr) => self.expr(expr),
             ExprKind::Default(Some(ty)) => self.type_of(ty),
-            ExprKind::Member { expr, name, safe } => {
-                let on = self.expr(expr);
-                self.member(&on, &name.text, *safe, name.span)
-            }
+            ExprKind::Member { expr, name, safe } => self.member_expr(expr, name, *safe),
             ExprKind::Call { callee, args } => self.call(e, callee, args),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::With { expr, inits } => self.with(expr, inits, e.span),
@@ -114,6 +111,18 @@ impl Checker<'_, '_, '_> {
     }
 
     /// A name: a local, a member of `this`, the file's own, a type.
+    /// `expr.name`: a type parameter's through its bound (noted for the
+    /// code that reads it).
+    fn member_expr(&mut self, expr: &Expr, name: &crate::ast::Name, safe: bool) -> Type {
+        let on = self.expr(expr);
+        if let Type::Param(p) = on.non_null()
+            && let Some((bound, _)) = self.param_member(p, &name.text)
+        {
+            self.types.set_bounded(expr, bound);
+        }
+        self.member(&on, &name.text, safe, name.span)
+    }
+
     /// `this` (`e`): its type, read (a lambda captures it).
     fn this_expr(&mut self, e: &Expr) -> Type {
         self.this_read(e.span);
@@ -326,6 +335,9 @@ impl Checker<'_, '_, '_> {
         init: &[(crate::ast::Name, Expr)],
     ) -> Type {
         let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
+        if let Type::Param(p) = &t {
+            self.param_made(p, args.map_or(0, <[_]>::len), e.span);
+        }
         if let Some(args) = args {
             self.constructed(e, &t, args);
         }

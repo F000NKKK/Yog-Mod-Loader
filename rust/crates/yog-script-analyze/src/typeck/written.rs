@@ -31,10 +31,12 @@ impl Checker<'_, '_, '_> {
             TypeKind::Both(all) => all.first().map_or(Type::Unknown, |t| self.type_of(t)),
             TypeKind::Path { path, args } => {
                 let args: Vec<Type> = args.iter().map(|a| self.type_of(a)).collect();
-                match path.as_slice() {
+                let typed = match path.as_slice() {
                     [one] => self.named(&one.text, args, t.span),
                     _ => self.qualified(path, t.span),
-                }
+                };
+                self.type_meets(&typed, t.span);
+                typed
             }
         }
     }

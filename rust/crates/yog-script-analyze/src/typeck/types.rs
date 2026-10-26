@@ -45,6 +45,9 @@ pub struct Types {
     /// The names that are a local's or a parameter's (not a member's), by
     /// the name's expression.
     locals: std::collections::HashSet<usize>,
+    /// The bound a type parameter's value is reached through, by the
+    /// value (`t.Score()` of `where T : IScore`: `IScore`).
+    bounded: HashMap<usize, Type>,
     /// What each lambda captures, by the lambda (`threads/captures.rs`).
     captures: HashMap<usize, Vec<super::threads::Capture>>,
 }
@@ -188,6 +191,15 @@ impl Types {
         if !all.iter().any(|o| o.name == c.name) {
             all.push(c);
         }
+    }
+
+    /// The bound value `e` (of a type parameter) is reached through.
+    pub fn bounded(&self, e: &Expr) -> Option<&Type> {
+        self.bounded.get(&key(e))
+    }
+
+    pub(super) fn set_bounded(&mut self, e: &Expr, t: Type) {
+        self.bounded.insert(key(e), t);
     }
 
     pub(super) fn key_of(e: &Expr) -> usize {

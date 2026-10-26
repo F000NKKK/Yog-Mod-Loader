@@ -182,7 +182,10 @@ impl Gen<'_> {
                 }
             },
             ExprKind::Macro { name, args } => self.macro_call(e, &name.text, args),
-            ExprKind::Default(_) => self.types.of(e).map_or("null", |t| zero(t)).to_string(),
+            ExprKind::Default(_) => match self.types.of(e) {
+                Some(t) if let Some(z) = self.param_zero(t) => z,
+                t => t.map_or(NULL, |t| zero(t)).to_string(),
+            },
             _ => {
                 self.not_yet("this expression", e.span);
                 String::new()

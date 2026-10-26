@@ -4,7 +4,7 @@ namespace System;
 /// changes one gives a new one.
 [Intrinsic]
 [Host]
-public sealed class String {
+public sealed class String : IComparable<string>, IEquatable<string> {
     /// No text.
     public static readonly string Empty;
 

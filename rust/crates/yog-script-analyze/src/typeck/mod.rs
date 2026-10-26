@@ -14,6 +14,7 @@ mod callees;
 mod calls;
 mod collections;
 pub mod commands;
+mod constraints;
 mod content;
 mod context;
 mod copy;
@@ -114,6 +115,10 @@ pub(crate) struct Checker<'r, 's, 'i> {
     lambdas: Vec<(usize, usize)>,
     /// The `unsafe` blocks the code is in: the threads checks skipped.
     unsafe_code: usize,
+    /// The type parameters' `where` constraints in scope, innermost last.
+    constraints: Vec<constraints::Constraints>,
+    /// Constraints are being checked (a bound's own type isn't, again).
+    meeting: bool,
 }
 
 /// What a source may reach: the game's classes (a `.yns`), sending to the
@@ -181,6 +186,8 @@ pub(crate) fn check<'d>(
         operators: operators::Operators::new(),
         lambdas: Vec::new(),
         unsafe_code: 0,
+        constraints: Vec::new(),
+        meeting: false,
     };
     c.type_bases();
     c.type_delegates();

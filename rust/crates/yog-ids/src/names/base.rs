@@ -377,6 +377,9 @@ names! {
         THREADS = "YS0040",
         /// `unsafe { … }`: the threads checks skipped inside (a warning).
         UNSAFE = "YS0041",
+        /// A type given for a type parameter that doesn't meet its `where`
+        /// constraints, or `new T()` without `new()` (C#'s CS0311, CS0304).
+        CONSTRAINT = "YS0042",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

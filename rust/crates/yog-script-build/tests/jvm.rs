@@ -518,3 +518,32 @@ fn statics_per_closed_type() {
     };
     assert_eq!(out, "2 1 1 7 String 2 2");
 }
+
+/// `where` constraints: a type parameter's members are its bounds',
+/// arguments that don't meet them refused.
+#[test]
+fn constraints_give_members() {
+    let src = "public interface IScore { i32 Score(); }\n\
+               public class Card : IScore { public i32 N; public Card(i32 n) { N = n; } public i32 Score() => N; }\n\
+               public class Pile<TItem> where TItem : IScore {\n\
+                   public List<TItem> Items = new List<TItem>();\n\
+                   public i32 Total() { let mut t = 0; foreach (let c in Items) { t += c.Score(); } return t; }\n\
+               }\n\
+               public static class W {\n\
+                   public static TItem Best<TItem>(TItem a, TItem b) where TItem : IScore => a.Score() >= b.Score() ? a : b;\n\
+                   public static TItem Made<TItem>() where TItem : new() => new TItem();\n\
+                   public static TItem Max<TItem>(TItem a, TItem b) where TItem : IComparable<TItem> => a.CompareTo(b) >= 0 ? a : b;\n\
+                   public static TItem Zero<TItem>() => default(TItem);\n\
+                   public static string Run() {\n\
+                       let mut p = new Pile<Card>();\n\
+                       p.Items.Add(new Card(2));\n\
+                       p.Items.Add(new Card(5));\n\
+                       return p.Total() + \" \" + Best(new Card(3), new Card(4)).N + \" \" + Made<List<i32>>().Count\n\
+                           + \" \" + Max(3, 7) + \" \" + Max(\"b\", \"a\") + \" \" + (Zero<i32>() + 1) + \" \" + Made<i32>();\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("w.ys", src)], "t.WScript.W.Run()") else {
+        return;
+    };
+    assert_eq!(out, "7 4 0 7 b 1 0");
+}

@@ -251,6 +251,16 @@ pub const STRING_INTERNAL: &str = "java/lang/String";
 
 /// Reflection as compiled code reaches it: a type's description is in its
 /// class's `$TYPE` (`Type.Declare(…)`), a type as a value is `Type.Of(X.class)`.
+/// What generic code does with a type parameter's value Java's generics
+/// can't (`dev.yog.script.Generics`): reach it through its bound, make one
+/// (`new T()`), give its type's default (`default(T)`).
+pub mod generics {
+    pub const GENERICS: &str = concat!(runtime!(), sep!(), "Generics");
+    pub const VIEW: &str = "view";
+    pub const MADE: &str = "made";
+    pub const ZERO: &str = "zero";
+}
+
 pub mod reflection {
     use super::{OF, OF_MEMBER, system, type_name};
 

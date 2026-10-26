@@ -89,6 +89,10 @@ impl Checker<'_, '_, '_> {
                 None => self.game_value(class, name, at),
             },
             Type::Namespace(ns) => self.in_namespace(&super::names::split(ns), name, at),
+            Type::Param(p) => match self.param_member(p, name) {
+                Some((_, t)) => t,
+                None => self.object_member(on.non_null(), name, at),
+            },
             Type::Yog(type_name) => match self.extension_value(type_name, name) {
                 Some(t) => t,
                 None => self.yog_value(type_name, name, at),
@@ -193,7 +197,7 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    fn own_has_method(&self, t: &Type, name: &str) -> bool {
+    pub(super) fn own_has_method(&self, t: &Type, name: &str) -> bool {
         self.own_methods(t, name).is_some()
     }
 

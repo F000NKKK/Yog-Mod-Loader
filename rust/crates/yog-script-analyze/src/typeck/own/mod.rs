@@ -107,6 +107,8 @@ pub(crate) struct OwnType {
     /// (`[Crosses("work", Crossing.Moved)]`), by name and overload as
     /// `methods`: each parameter's name and crossing.
     pub crossings: HashMap<String, Vec<Vec<(String, String)>>>,
+    /// Its type parameters' `where` constraints.
+    pub wheres: Vec<ast::Where>,
     /// Its body's constructors' crossings, as `ctors`.
     pub ctor_crossings: Vec<Vec<(String, String)>>,
 }

@@ -17,6 +17,13 @@ impl Checker<'_, '_, '_> {
                 Some(m) => Callee::Own(m),
                 None => self.yog_methods(group, &name.text, name.span),
             },
+            Type::Param(p) => match self.param_methods(p, &name.text) {
+                Some((bound, methods)) => {
+                    self.types.set_bounded(expr, bound);
+                    Callee::Own(methods)
+                }
+                None => self.object_methods(on.non_null(), name),
+            },
             Type::Game(class) => match self.extension_methods(class, &name.text) {
                 Some(m) => Callee::Own(m),
                 None if super::members::is_side_call(&name.text) => Callee::Unknown,
