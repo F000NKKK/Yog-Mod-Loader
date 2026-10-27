@@ -153,6 +153,11 @@ impl Gen<'_> {
 /// Java type, what's written of the field, what reads it back.
 struct Kept {
     java: String,
-    save: Box<dyn Fn(&str) -> String>,
-    load: Box<dyn Fn(&str, &str) -> String>,
+    save: Box<SaveOf>,
+    load: Box<LoadInto>,
 }
+
+/// What's written of a field (`f` → the value packed).
+type SaveOf = dyn Fn(&str) -> String;
+/// What reads a field back (`f`, the value read → the statement).
+type LoadInto = dyn Fn(&str, &str) -> String;
