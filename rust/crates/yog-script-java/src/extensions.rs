@@ -7,7 +7,8 @@
 use std::collections::HashSet;
 
 use yog_script_analyze::ast::{Decl, DeclKind, Type as Written, TypeHeader, TypeKind};
-use yog_script_ids::java::{CLASS, FINAL, METHOD_REF, NEW, PRIVATE, PUBLIC, RETURN, STATIC, THIS};
+use yog_script_ids::java::{CLASS, FINAL, IMPLEMENTS, METHOD_REF, NEW, PRIVATE, PUBLIC, RETURN, STATIC, THIS};
+use yog_script_ids::jvm::state::{CLASS as STATE, PLAYER, SAVED, WORLD};
 use yog_script_ids::jvm::extend::{ALL, CLASS_PREFIX, FIND_OR_MAKE, INSTANCES, OF, OWNER};
 use yog_script_ids::jvm::{MAP, STRING};
 
@@ -102,7 +103,13 @@ impl Gen<'_> {
         } else {
             OWNER.to_string()
         };
-        self.code.open(format!("{PUBLIC} {STATIC} {FINAL} {CLASS} {class}"));
+        let saved = !crate::saved::saved_members(body).is_empty();
+        let implements = if saved {
+            format!(" {IMPLEMENTS} {STATE}.{SAVED}")
+        } else {
+            String::new()
+        };
+        self.code.open(format!("{PUBLIC} {STATIC} {FINAL} {CLASS} {class}{implements}"));
         self.code.line(format!(
             "{PRIVATE} {STATIC} {FINAL} {MAP}<{STRING}, {class}> {ALL} = {NEW} {INSTANCES}<>();"
         ));
@@ -120,11 +127,36 @@ impl Gen<'_> {
         self.first_values(body);
         self.code.close("");
         self.code.open(format!("{PUBLIC} {STATIC} {class} {OF}({STRING} {OWNER})"));
-        self.code.line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {class}{METHOD_REF}{NEW});"));
+        let made = if saved {
+            self.live_made(&owner, &class, ty)
+        } else {
+            format!("{class}{METHOD_REF}{NEW}")
+        };
+        self.code.line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {made});"));
         self.code.close("");
+        if saved {
+            let forget = format!("{ALL}.remove({THIS}.{OWNER});");
+            self.saved_state(&owner, body, &forget);
+        }
         self.members(body, Place::Class);
         (self.owner, self.extending) = outer;
         self.code.close("");
+    }
+
+    /// What makes an owner's instance of `class` (an `extend` of `owner`
+    /// keeping `saved` members): made, then read in from its scope's store.
+    fn live_made(&mut self, owner: &str, class: &str, ty: &Written) -> String {
+        let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
+        let key = self.temp();
+        let made = format!("{NEW} {class}({key})");
+        if owner == yog_script_analyze::yog::world() {
+            format!("{key} -> {STATE}.{WORLD}({made}, {module})")
+        } else if owner == yog_script_analyze::yog::player() {
+            format!("{key} -> {STATE}.{PLAYER}({made}, {module}, {key})")
+        } else {
+            self.not_yet("`saved` members of this object", ty.span);
+            format!("{class}{METHOD_REF}{NEW}")
+        }
     }
 
     /// Member `name` of `target` (a handle of `owner`) when an `extend`

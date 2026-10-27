@@ -496,3 +496,29 @@ pub mod extend {
     pub const INSTANCES: &str = concat!(java_util!(), sep!(), "concurrent", sep!(), "ConcurrentHashMap");
     pub const FIND_OR_MAKE: &str = "computeIfAbsent";
 }
+
+/// Declared state's runtime (`dev.yog.script.yog.State`, storage.md): what
+/// an object with `saved` members implements and is made live by, by scope.
+pub mod state {
+    pub const CLASS: &str = concat!(runtime!(), sep!(), "yog", sep!(), "State");
+    pub const SAVED: &str = "Saved";
+    pub const LOAD: &str = "$load";
+    pub const SAVE: &str = "$save";
+    pub const FORGET: &str = "$forget";
+    pub const GAME: &str = "game";
+    pub const WORLD: &str = "world";
+    pub const PLAYER: &str = "player";
+    /// A saved member's record's one component, and the record's name's start.
+    pub const VALUE: &str = "value";
+    pub const RECORD_PREFIX: &str = "$";
+    /// What reads a record's bytes, what writes them (`$load`'s, `$save`'s).
+    pub const READ: &str = "read";
+    pub const WRITE: &str = "write";
+    pub const READ_TYPE: &str = concat!(java_util!(), sep!(), "function", sep!(), "Function<String, byte[]>");
+    pub const WRITE_TYPE: &str = concat!(java_util!(), sep!(), "function", sep!(), "BiConsumer<String, byte[]>");
+    /// A value's bytes (Yog Data), and one read back: what messages use too.
+    pub const BYTES: &str = concat!(bus_api!(), sep!(), "bytes");
+    pub const FROM_BYTES: &str = concat!(bus_api!(), sep!(), "fromBytes");
+    pub const APPLY: &str = "apply";
+    pub const ACCEPT: &str = "accept";
+}

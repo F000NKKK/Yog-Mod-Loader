@@ -393,6 +393,12 @@ names! {
         GOTO = "YS0046",
         /// A `new` leaving a `required` member unset (C#'s CS9035).
         REQUIRED = "YS0047",
+        /// A `saved` or `synced` member of a type Yog Data doesn't keep
+        /// (storage.md S3).
+        STATE_TYPE = "YS0048",
+        /// A `saved` or `synced` member of a type with no owner scope (a
+        /// plain class): state needs an owner.
+        STATE_OWNER = "YS0049",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

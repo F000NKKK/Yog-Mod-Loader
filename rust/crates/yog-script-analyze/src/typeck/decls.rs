@@ -32,6 +32,7 @@ impl Checker<'_, '_, '_> {
         self.extern_has_service(d);
         self.partial_generated(d);
         let side = side_of(d).unwrap_or(self.side);
+        self.state_member(d);
         match &d.kind {
             DeclKind::Field(f) => {
                 let t = self.type_of(&f.ty);
@@ -66,11 +67,11 @@ impl Checker<'_, '_, '_> {
             | DeclKind::Screen { .. } => self.type_body(d, side),
             DeclKind::Extend { ty, body, .. } => {
                 let t = self.type_of(ty);
-                self.within(Some(t), side, None, |c| c.decls(body));
+                self.owning(true, |c| c.within(Some(t), side, None, |c| c.decls(body)));
             }
             DeclKind::Mod { name, body } => {
                 let this = Some(Type::own(name.text.clone()));
-                self.within(this, side, None, |c| c.decls(body));
+                self.owning(true, |c| c.within(this, side, None, |c| c.decls(body)));
             }
             DeclKind::Event { ty, .. } => {
                 self.type_of(ty);
@@ -105,6 +106,20 @@ impl Checker<'_, '_, '_> {
 
     /// A type's, a content's, a component's or a screen's members: `this` is it.
     fn type_body(&mut self, d: &Decl, side: Side) {
+        // Content and components own state; a plain type doesn't.
+        let owner = matches!(d.kind, DeclKind::Content { .. } | DeclKind::Component { .. });
+        self.owning(owner, |c| c.type_body_of(d, side));
+    }
+
+    /// `f` with the type being checked owning state or not (`saved.rs`).
+    fn owning<R>(&mut self, owner: bool, f: impl FnOnce(&mut Self) -> R) -> R {
+        let outer = std::mem::replace(&mut self.state_owner, owner);
+        let out = f(self);
+        self.state_owner = outer;
+        out
+    }
+
+    fn type_body_of(&mut self, d: &Decl, side: Side) {
         match &d.kind {
             DeclKind::Type {
                 name, body, header, ..
@@ -233,7 +248,8 @@ impl Checker<'_, '_, '_> {
     fn patch(&mut self, items: &[PatchItem]) {
         for item in items {
             match item {
-                PatchItem::Add(d) => self.decl(d),
+                // A member added to the game's object: it owns its state.
+                PatchItem::Add(d) => self.owning(true, |c| c.decl(d)),
                 PatchItem::Before { method, body, .. }
                 | PatchItem::After { method, body, .. }
                 | PatchItem::Replace { method, body } => {

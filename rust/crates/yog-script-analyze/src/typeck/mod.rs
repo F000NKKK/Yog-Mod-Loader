@@ -47,6 +47,7 @@ mod passing;
 mod pick;
 mod shapes;
 mod required;
+mod saved;
 mod stmts;
 mod templates;
 pub(crate) mod surface;
@@ -99,6 +100,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     yields: Option<Type>,
     /// What the `switch` statements around the code match, innermost last.
     switched: Vec<Type>,
+    /// The type being checked owns state: its members may be `saved` (`saved.rs`).
+    state_owner: bool,
     /// While a lambda's result is inferred: what its `return`s give.
     inferred: Option<Vec<Type>>,
     /// The file's `using` directives.
@@ -192,6 +195,7 @@ pub(crate) fn check<'d>(
         returns: None,
         yields: None,
         switched: Vec::new(),
+        state_owner: false,
         inferred: None,
         directives: names::Directives::collect(&file.decls),
         ns: Vec::new(),
