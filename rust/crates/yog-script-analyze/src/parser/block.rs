@@ -55,6 +55,19 @@ impl Parser<'_, '_, '_> {
             if *self.tok() == Tok::Eof {
                 return Err(self.expected("`}`"));
             }
+            // `await using let x = e;`: to the block's end.
+            if self.await_using_ahead() && !self.nth_is(2, Punct::LParen) {
+                match self.await_using_rest(value) {
+                    Ok(rest) => {
+                        stmts.extend(rest);
+                        return Ok(stmts);
+                    }
+                    Err(_) => {
+                        self.recover();
+                        continue;
+                    }
+                }
+            }
             match self.stmt_in(value) {
                 Ok(s) => stmts.push(s),
                 Err(_) => self.recover(),
@@ -78,6 +91,9 @@ impl Parser<'_, '_, '_> {
         }
         if self.at(Punct::LBrace) {
             return self.block().map(Stmt::Block);
+        }
+        if self.await_using_ahead() {
+            return self.await_using_stmt();
         }
         if self.at_word(&crate::words::r#await::WORD)
             && self.nth_word(1, &crate::words::foreach::WORD)

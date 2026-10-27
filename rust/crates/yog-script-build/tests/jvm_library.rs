@@ -165,3 +165,44 @@ fn formatting() {
         "[1234.57] [   42] [42   ] [002A] [FFFFFFFF] [1,234.6] [25.6 %] [1.235E+003] [00042] [1234.6] [1,235] | 42 +  2.3 = {True} | ff 12,345,678,901 0.500 1.5E-07"
     );
 }
+
+/// `await using`: the value's `DisposeAsync` awaited where what follows
+/// ends — its block's end, an early `return`, a body's end; `null` skipped.
+#[test]
+fn await_using() {
+    let src = "using System.Threading;\n\
+               using System.Threading.Tasks;\n\
+               public readonly sealed class Res(string name, Lock<List<string>> log) : IAsyncDisposable {\n\
+                   public async Task DisposeAsync() {\n\
+                       await Task.Yield();\n\
+                       lock (log, ref let l) { l.Add(name); }\n\
+                   }\n\
+               }\n\
+               public static class U {\n\
+                   static async Task<i32> Use(Lock<List<string>> log, bool early) {\n\
+                       await using let a = new Res(\"a\", log);\n\
+                       await using (let b = new Res(\"b\", log)) {\n\
+                           lock (log, ref let l) { l.Add(\"body\"); }\n\
+                       }\n\
+                       Res? none = null;\n\
+                       await using let c = none;\n\
+                       if (early) {\n\
+                           return 1;\n\
+                       }\n\
+                       lock (log, ref let l) { l.Add(\"end\"); }\n\
+                       return 2;\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let log = new Lock<List<string>>(new List<string>());\n\
+                       let x = Use(log, true).Result;\n\
+                       let y = Use(log, false).Result;\n\
+                       let mut text = \"\";\n\
+                       lock (log, ref let l) { text = string.Join(\",\", l); }\n\
+                       return x + \" \" + y + \" \" + text;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("u.ys", src)], "t.UScript.U.Run()") else {
+        return;
+    };
+    assert_eq!(out, "1 2 body,b,a,body,b,end,a");
+}

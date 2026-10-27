@@ -2,6 +2,7 @@
 //! turn-taking — each form is parsed by its word (`words/`) or by a generic
 //! form here (types, members, blocks, expressions by precedence).
 
+mod await_using;
 mod block;
 mod decl;
 pub(crate) mod expr;

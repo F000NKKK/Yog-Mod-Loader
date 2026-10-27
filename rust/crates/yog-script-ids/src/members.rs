@@ -130,3 +130,6 @@ pub const CONFIGURE_AWAIT: &str = "ConfigureAwait";
 /// A value type's `T?`'s members (`System.Nullable<T>`).
 pub const HAS_VALUE: &str = "HasValue";
 pub const GET_VALUE_OR_DEFAULT: &str = "GetValueOrDefault";
+/// What `await using x` keeps a `return`'s value in while `x` is disposed:
+/// `$returned` and `x`'s name. No source can name it.
+pub const RETURNED: &str = "$returned";
