@@ -99,7 +99,7 @@ yog-api = { version = "0.105.1", path = "crates/yog-api" }
 yog-body = { version = "0.8.0", path = "crates/yog-body" }
 yog-book = { version = "0.73.2", path = "crates/yog-book" }
 yog-analysis = { version = "0.1.1", path = "crates/yog-analysis" }
-yog-codegen = { version = "0.1.0", path = "crates/yog-codegen" }
+yog-codegen = { version = "0.1.1", path = "crates/yog-codegen" }
 yog-codegen-java = { version = "0.1.0", path = "crates/yog-codegen-java" }
 yog-codegen-rust = { version = "0.1.0", path = "crates/yog-codegen-rust" }
 yog-codegen-typescript = { version = "0.1.0", path = "crates/yog-codegen-typescript" }
