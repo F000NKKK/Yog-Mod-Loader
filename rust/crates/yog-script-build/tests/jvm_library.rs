@@ -89,8 +89,7 @@ fn logging() {
                        let sink = new Sink();\n\
                        let factory = LoggerFactory.Create(b => {\n\
                            b.AddProvider(sink);\n\
-                           b.SetMinimumLevel(LogLevel.Debug);\n\
-                           b.AddFilter(\"Noisy\", LogLevel.Error);\n\
+                           b.SetMinimumLevel(LogLevel.Debug).AddFilter(\"Noisy\", LogLevel.Error);\n\
                        });\n\
                        let log = factory.CreateLogger(\"App\");\n\
                        log.LogTrace(\"hidden\");\n\
@@ -130,8 +129,7 @@ fn game_log_provider() {
                public static class G {\n\
                    public static string Run() {\n\
                        let factory = LoggerFactory.Create(b => {\n\
-                           b.AddGameLog();\n\
-                           b.AddFilter((provider, category, level) => provider != null);\n\
+                           b.AddGameLog().AddFilter((provider, category, level) => provider != null);\n\
                        });\n\
                        let log = factory.CreateLogger(\"Pipes\");\n\
                        return \"made\";\n\

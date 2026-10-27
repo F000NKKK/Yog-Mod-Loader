@@ -342,6 +342,6 @@ an interpreter of the nodes.
    provider (`QueuedLoggerProvider`: entries written in order by a task
    of its own, `FlushAsync`). Loggers, factories, providers and builders
    are `readonly interface`s: shared values, their implementations
-   `readonly` (thread-safe). The builder's extensions lend it, so they go
-   one per statement, not chained. Yog's provider is `Yog.GameLogProvider`
+   `readonly` (thread-safe); the builder's extensions chain as .NET's
+   (`b.SetMinimumLevel(…).AddFilter(…)`), each a copy of it. Yog's provider is `Yog.GameLogProvider`
    (`builder.AddGameLog()`): the game's log, a logger per category.

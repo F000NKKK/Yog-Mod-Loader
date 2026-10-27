@@ -48,45 +48,47 @@ public readonly sealed class LoggingBuilder : ILoggingBuilder {
 }
 
 /// What a builder is configured with (.NET's `LoggingBuilderExtensions`,
-/// `FilterLoggingBuilderExtensions`): each lends the builder, so calls go
-/// one per statement rather than chained.
+/// `FilterLoggingBuilderExtensions`): each gives the builder back, so they
+/// chain (`b.SetMinimumLevel(…).AddFilter(…)`); it's shared, a copy of one.
 public static class LoggingBuilderExtensions {
     /// Entries below `level` written by no provider, unless a rule says.
-    public static void SetMinimumLevel(this in ILoggingBuilder builder, LogLevel level) {
+    public static ILoggingBuilder SetMinimumLevel(this ILoggingBuilder builder, LogLevel level) {
         lock (builder.Filters, ref let o) {
             o.MinLevel = level;
         }
+        return builder;
     }
 
     /// Entries of categories starting with `category` written from `level` up.
-    public static void AddFilter(this in ILoggingBuilder builder, string? category, LogLevel level) {
-        builder.Rule(null, category, level, null);
+    public static ILoggingBuilder AddFilter(this ILoggingBuilder builder, string? category, LogLevel level) {
+        return builder.Rule(null, category, level, null);
     }
 
     /// Entries `filter` lets through, by provider, category and level.
-    public static void AddFilter(this in ILoggingBuilder builder, Func<string?, string?, LogLevel, bool> filter) {
-        builder.Rule(null, null, null, filter);
+    public static ILoggingBuilder AddFilter(this ILoggingBuilder builder, Func<string?, string?, LogLevel, bool> filter) {
+        return builder.Rule(null, null, null, filter);
     }
 
     /// Entries `filter` lets through, by category and level.
-    public static void AddFilter(this in ILoggingBuilder builder, Func<string?, LogLevel, bool> categoryLevelFilter) {
-        builder.Rule(null, null, null, (provider, category, level) => categoryLevelFilter(category, level));
+    public static ILoggingBuilder AddFilter(this ILoggingBuilder builder, Func<string?, LogLevel, bool> categoryLevelFilter) {
+        return builder.Rule(null, null, null, (provider, category, level) => categoryLevelFilter(category, level));
     }
 
     /// Entries `filter` lets through, by level.
-    public static void AddFilter(this in ILoggingBuilder builder, Func<LogLevel, bool> levelFilter) {
-        builder.Rule(null, null, null, (provider, category, level) => levelFilter(level));
+    public static ILoggingBuilder AddFilter(this ILoggingBuilder builder, Func<LogLevel, bool> levelFilter) {
+        return builder.Rule(null, null, null, (provider, category, level) => levelFilter(level));
     }
 
     /// Provider `TProvider`'s entries of categories starting with `category` from `level` up.
-    public static void AddFilter<TProvider>(this in ILoggingBuilder builder, string? category, LogLevel level) where TProvider : ILoggerProvider {
-        builder.Rule(typeof(TProvider).FullName, category, level, null);
+    public static ILoggingBuilder AddFilter<TProvider>(this ILoggingBuilder builder, string? category, LogLevel level) where TProvider : ILoggerProvider {
+        return builder.Rule(typeof(TProvider).FullName, category, level, null);
     }
 
     /// The rule of these added.
-    private static void Rule(this in ILoggingBuilder builder, string? provider, string? category, LogLevel? level, Func<string?, string?, LogLevel, bool>? filter) {
+    private static ILoggingBuilder Rule(this ILoggingBuilder builder, string? provider, string? category, LogLevel? level, Func<string?, string?, LogLevel, bool>? filter) {
         lock (builder.Filters, ref let o) {
             o.Rules.Add(new LoggerFilterRule(provider, category, level, filter));
         }
+        return builder;
     }
 }

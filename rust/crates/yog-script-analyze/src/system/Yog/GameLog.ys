@@ -55,7 +55,8 @@ public readonly sealed class GameLogProvider : ILoggerProvider, ISupportExternal
 /// The game's log added to a logging builder.
 public static class GameLogExtensions {
     /// Entries written to the game's log too.
-    public static void AddGameLog(this in ILoggingBuilder builder) {
+    public static ILoggingBuilder AddGameLog(this ILoggingBuilder builder) {
         builder.AddProvider(new GameLogProvider());
+        return builder;
     }
 }

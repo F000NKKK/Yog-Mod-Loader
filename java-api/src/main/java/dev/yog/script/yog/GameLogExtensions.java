@@ -5,12 +5,13 @@ public class GameLogExtensions {
     public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.GameLogExtensions.class, "Yog.GameLogExtensions", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.yog.GameLogExtensions::$describe);
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
-        d.Method("AddGameLog", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> { dev.yog.script.yog.GameLogExtensions.AddGameLog((dev.yog.script.logging.ILoggingBuilder) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("builder", dev.yog.script.Type.Of(dev.yog.script.logging.ILoggingBuilder.class), false);
+        d.Method("AddGameLog", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.yog.GameLogExtensions.AddGameLog((dev.yog.script.logging.ILoggingBuilder) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.logging.ILoggingBuilder.class)).Takes("builder", dev.yog.script.Type.Of(dev.yog.script.logging.ILoggingBuilder.class), false);
     }
     public GameLogExtensions() {
         super();
     }
-    public static void AddGameLog(dev.yog.script.logging.ILoggingBuilder builder) {
+    public static dev.yog.script.logging.ILoggingBuilder AddGameLog(dev.yog.script.logging.ILoggingBuilder builder) {
         builder.AddProvider(new dev.yog.script.yog.GameLogProvider());
+        return builder;
     }
 }
