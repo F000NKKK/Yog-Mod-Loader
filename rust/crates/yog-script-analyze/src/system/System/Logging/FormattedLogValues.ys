@@ -1,6 +1,7 @@
 namespace System.Logging;
 
 using System.Collections.Generic;
+using System.Threading;
 
 /// A log entry's state made of a message template and its values (.NET's
 /// `FormattedLogValues`): each value by its hole's name, then the
@@ -10,10 +11,39 @@ public readonly sealed class FormattedLogValues : IReadOnlyList<KeyValuePair<str
     private readonly object?[] _values;
     private readonly string _original;
 
+    /// How many templates are kept read (.NET's): past it, one is read at each entry.
+    private const i32 MaxCachedFormatters = 1024;
+    /// The templates read so far, by their text: each read once, not at each entry.
+    private static readonly Lock<Dictionary<string, LogValuesFormatter>> _formatters = new Lock<Dictionary<string, LogValuesFormatter>>(new Dictionary<string, LogValuesFormatter>());
+
     public FormattedLogValues(string? format, object?[] values) {
         _original = format ?? LogValuesFormatter.NullValue;
-        _formatter = values.Length > 0 && format != null ? new LogValuesFormatter(format) : null;
+        _formatter = values.Length > 0 && format != null ? Formatter(format) : null;
         _values = move values;
+    }
+
+    /// A state of a template read already (`LoggerMessage.Define`'s).
+    public FormattedLogValues(LogValuesFormatter formatter, object?[] values) {
+        _original = formatter.Template;
+        _formatter = values.Length > 0 ? formatter : null;
+        _values = move values;
+    }
+
+    /// Template `format` read: the one read before, else read now (and
+    /// kept, while there's room).
+    private static LogValuesFormatter Formatter(string format) {
+        let mut found: LogValuesFormatter? = null;
+        lock (_formatters, ref let cache) {
+            found = cache.TryGetValue(format);
+            if (found == null) {
+                let made = new LogValuesFormatter(format);
+                if (cache.Count < MaxCachedFormatters) {
+                    cache[format] = made;
+                }
+                found = made;
+            }
+        }
+        return found ?? new LogValuesFormatter(format);
     }
 
     public i32 Count => _formatter == null ? 1 : _formatter.ValueNames.Count + 1;

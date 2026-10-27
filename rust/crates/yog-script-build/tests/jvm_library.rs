@@ -3,6 +3,8 @@
 
 mod support;
 
+use yog_ids::script_problem::LOG_BY_METHOD;
+
 /// `Task.WhenAll` of tasks with results: their results, in order, as an
 /// array of their type; `WhenAny` the first done.
 #[test]
@@ -115,12 +117,75 @@ fn logging() {
                        return text + \" || \" + NullLogger.Instance.IsEnabled(LogLevel.Critical);\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("l.ys", src)], "t.LScript.L.Run()") else {
+    // `LogInformation` & co. warned of: `[LoggerMessage]` methods are faster.
+    let Some(out) = support::run_warned(&[("l.ys", src)], "t.LScript.L.Run()", &[LOG_BY_METHOD]) else {
         return;
     };
     assert_eq!(
         out,
         "Information App: Moved 3 items to chest | Information App: Moved 4 items to barrel,    2.3 kg | Warning App[Request 7]: inside | Error App: Failed 42 || one 1,two || False"
+    );
+}
+
+/// `[LoggerMessage]` methods: their bodies generated — the level checked
+/// first, a typed state, the message formatted by compiled code; a
+/// provider reads the values by name. Static (the logger a parameter) and
+/// instance (a field's) forms, a `LogLevel` parameter, an error.
+#[test]
+fn logger_message_methods() {
+    let src = "using System.Logging;\n\
+               using System.Collections.Generic;\n\
+               using System.Threading;\n\
+               public readonly sealed class Sink : ILoggerProvider {\n\
+                   public readonly Lock<List<string>> Lines = new Lock<List<string>>(new List<string>());\n\
+                   public readonly ILogger CreateLogger(string categoryName) => new SinkLogger(this);\n\
+                   public void Dispose() { }\n\
+               }\n\
+               public readonly sealed class SinkLogger(Sink sink) : ILogger {\n\
+                   public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {\n\
+                       let mut names = \"\";\n\
+                       if (state is IReadOnlyList<KeyValuePair<string, object?>> values) {\n\
+                           foreach (let pair in values) { names = names + pair.Key + \"=\" + pair.Value + \";\"; }\n\
+                       }\n\
+                       let line = logLevel + \" \" + eventId.Id + \":\" + eventId.Name + \" \" + formatter(state, error) + \" [\" + names + \"]\" + (error == null ? \"\" : \" !\");\n\
+                       lock (sink.Lines, ref let lines) { lines.Add(line); }\n\
+                   }\n\
+                   public readonly bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;\n\
+                   public readonly IDisposable? BeginScope<TState>(TState state) => null;\n\
+               }\n\
+               public static partial class Log {\n\
+                   [LoggerMessage(3, LogLevel.Information, \"Moved {Count} items to {Target}, {Weight,6:F1} kg\")]\n\
+                   public static partial void Moved(ILogger logger, i32 count, string target, f64 weight);\n\
+                   [LoggerMessage(LogLevel.Debug, \"hidden {X}\")]\n\
+                   public static partial void Hidden(ILogger logger, i32 x);\n\
+                   [LoggerMessage(message: \"At {Level} \\{braces\\}\")]\n\
+                   public static partial void Leveled(ILogger logger, LogLevel lvl, string level, Error? error);\n\
+               }\n\
+               public readonly sealed class Mover(ILogger logger) {\n\
+                   [LoggerMessage(LogLevel.Warning, \"Stuck at {Pos}\")]\n\
+                   public partial void Stuck(i32 pos);\n\
+               }\n\
+               public static class M {\n\
+                   public static string Run() {\n\
+                       let sink = new Sink();\n\
+                       let log = sink.CreateLogger(\"App\");\n\
+                       Log.Moved(log, 3, \"chest\", 2.25);\n\
+                       Log.Hidden(log, 1);\n\
+                       Log.Leveled(log, LogLevel.Error, \"top\", new Error(\"boom\"));\n\
+                       new Mover(log).Stuck(7);\n\
+                       let mut text = \"\";\n\
+                       lock (sink.Lines, ref let lines) { text = string.Join(\" | \", lines); }\n\
+                       return text;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("m.ys", src)], "t.MScript.M.Run()") else {
+        return;
+    };
+    assert_eq!(
+        out,
+        "Information 3:Moved Moved 3 items to chest,    2.3 kg [Count=3;Target=chest;Weight=2.25;{OriginalFormat}=Moved {Count} items to {Target}, {Weight,6:F1} kg;] | \
+         Error 0:Leveled At top {braces} [Level=top;{OriginalFormat}=At {Level} {{braces}};] ! | \
+         Warning 0:Stuck Stuck at 7 [Pos=7;{OriginalFormat}=Stuck at {Pos};]"
     );
 }
 

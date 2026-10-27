@@ -30,6 +30,7 @@ impl Checker<'_, '_, '_> {
     pub(super) fn decl(&mut self, d: &Decl) {
         self.attributes(&d.attributes);
         self.extern_has_service(d);
+        self.partial_generated(d);
         let side = side_of(d).unwrap_or(self.side);
         match &d.kind {
             DeclKind::Field(f) => {

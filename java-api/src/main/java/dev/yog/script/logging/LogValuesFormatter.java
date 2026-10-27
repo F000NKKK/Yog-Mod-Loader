@@ -132,7 +132,7 @@ public final class LogValuesFormatter {
         if ((value instanceof dev.yog.script.collections.generic.IEnumerable items)) {
             var written = new dev.yog.script.text.StringBuilder();
             var first = true;
-            for (var item : items) {
+            for (var item : ((dev.yog.script.collections.generic.IEnumerable<Object>) items)) {
                 if ((!first)) {
                     written.Append(", ");
                 }

@@ -8,7 +8,7 @@ use support::java;
 
 #[test]
 fn a_program_compiles() {
-    let out = java(include_str!("sample.ys")).unwrap_or_else(|p| panic!("{p:#?}"));
+    let out = java(include_str!("Sample.ys")).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "package yogscript.test;",
         "public final class SampleScript {",
@@ -46,9 +46,9 @@ fn what_isnt_written_yet_is_said() {
 
 #[test]
 fn yogs_surface_is_the_bus() {
-    let src = include_str!("../../yog-script-analyze/tests/fixtures/glassy.ys");
-    let checked = yog_script_analyze::check("glassy.ys", src);
-    let out = compile("glassy.ys", src, &checked, "yogscript.glassy")
+    let src = include_str!("../../yog-script-analyze/tests/fixtures/Glassy.ys");
+    let checked = yog_script_analyze::check("Glassy.ys", src);
+    let out = compile("Glassy.ys", src, &checked, "yogscript.glassy")
         .map(|c| c.source)
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
@@ -68,8 +68,8 @@ fn a_method_handles_an_event() {
     let src = "mod Glassy {\n    Version = \"1.0.0\";\n    Targets = mc 1.20.1..26.2;\n\
                Glassy() {\n        Block.Break += OnBreak;\n    }\n\
                void OnBreak(Block.BreakArgs e) { }\n}\n";
-    let checked = yog_script_analyze::check("glassy.ys", src);
-    let out = compile("glassy.ys", src, &checked, "yogscript.glassy")
+    let checked = yog_script_analyze::check("Glassy.ys", src);
+    let out = compile("Glassy.ys", src, &checked, "yogscript.glassy")
         .map(|c| c.source)
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [

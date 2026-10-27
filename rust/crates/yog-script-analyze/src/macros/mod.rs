@@ -7,6 +7,7 @@
 pub mod builtin;
 mod calls;
 mod fragment;
+mod generated;
 mod includes;
 mod matcher;
 mod procs;
@@ -46,6 +47,7 @@ pub(crate) fn expand(
     if !macros.is_empty() {
         tokens = expand_calls(tokens, &macros, report);
     }
+    tokens = generated::expand(tokens, text, report);
     if let Some(procs) = procs {
         tokens = calls::expand(tokens, text, procs, report);
     }

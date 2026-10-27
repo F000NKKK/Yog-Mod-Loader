@@ -242,8 +242,11 @@ fn written_bound(index: &Index, t: &Type, bound: &Bound) -> (TypeRef, Bound) {
 fn render(t: &Type, bound: &Bound) -> String {
     match &t.kind {
         TypeKind::Path { path, args } => {
-            let name: Vec<&str> = path.iter().map(|n| n.text.as_str()).collect();
-            let name = name.join(".");
+            // `System.Collections.Generic.IEnumerator`: the library's, by its name.
+            let name = match path.as_slice() {
+                [first, .., last] if first.text == yog_script_ids::system::ROOT => last.text.clone(),
+                _ => path.iter().map(|n| n.text.as_str()).collect::<Vec<_>>().join("."),
+            };
             if args.is_empty() {
                 return bound.get(&name).cloned().unwrap_or(name);
             }

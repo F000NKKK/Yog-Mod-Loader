@@ -214,6 +214,9 @@ pub(crate) struct Gen<'c> {
     machine: Option<machine::Machine>,
     /// The method's names that are its machine's fields, innermost last.
     renamed: Vec<(String, String)>,
+    /// The method's names a pattern binds to a generic type (`x is
+    /// List<T> xs`): Java binds them raw, so each is read cast back.
+    raw_bound: std::collections::HashSet<String>,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -271,6 +274,7 @@ impl<'c> Gen<'c> {
             owner_generics: Vec::new(),
             machine: None,
             renamed: Vec::new(),
+            raw_bound: std::collections::HashSet::new(),
             this_name: None,
             breaks: Vec::new(),
             statik: true,

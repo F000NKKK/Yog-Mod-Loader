@@ -31,7 +31,7 @@ public final class EventId implements dev.yog.script.IEquatable<dev.yog.script.l
         return (Id == other.Id);
     }
     public boolean EventId$Equals(Object obj) {
-        return ((obj instanceof dev.yog.script.logging.EventId other) && Equals(other));
+        return ((obj instanceof dev.yog.script.logging.EventId other) && Equals(other.copy()));
     }
     public int GetHashCode() {
         return Id;

@@ -39,6 +39,18 @@ fn named(text: &str, ty: &Type, at: &Name) -> Param {
     }
 }
 
+/// Whether property `d` is a stored value (an auto-property, `T X { get;
+/// set; }`): its accessors without bodies, and it not `abstract` (an
+/// abstract one's accessors are its overrides').
+pub fn stores_value(d: &super::Decl) -> bool {
+    match &d.kind {
+        super::DeclKind::Property { accessors, .. } => {
+            accessors.iter().all(|a| a.body.is_none()) && !d.has(super::Modifier::Abstract)
+        }
+        _ => false,
+    }
+}
+
 /// Whether a property of `accessors` keeps a value of its own (C#'s
 /// `field`): one with a body reaches `field`, or one has no body beside one
 /// that has. A property of none with bodies is all its own value.

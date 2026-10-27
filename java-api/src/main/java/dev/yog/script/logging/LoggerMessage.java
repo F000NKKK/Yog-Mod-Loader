@@ -26,7 +26,7 @@ public class LoggerMessage {
         Expect(formatter, 0);
         return (logger, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[0]), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[0]), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -35,7 +35,7 @@ public class LoggerMessage {
         Expect(formatter, 1);
         return (logger, arg1, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -44,7 +44,7 @@ public class LoggerMessage {
         Expect(formatter, 2);
         return (logger, arg1, arg2, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -53,7 +53,7 @@ public class LoggerMessage {
         Expect(formatter, 3);
         return (logger, arg1, arg2, arg3, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2, arg3 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2, arg3 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -62,7 +62,7 @@ public class LoggerMessage {
         Expect(formatter, 4);
         return (logger, arg1, arg2, arg3, arg4, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2, arg3, arg4 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2, arg3, arg4 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -71,7 +71,7 @@ public class LoggerMessage {
         Expect(formatter, 5);
         return (logger, arg1, arg2, arg3, arg4, arg5, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2, arg3, arg4, arg5 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2, arg3, arg4, arg5 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
@@ -80,37 +80,41 @@ public class LoggerMessage {
         Expect(formatter, 6);
         return (logger, arg1, arg2, arg3, arg4, arg5, arg6, error) -> {
     if (logger.IsEnabled(logLevel)) {
-        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2, arg3, arg4, arg5, arg6 }), error, dev.yog.script.logging.FormattedLogValues::Message);
+        logger.Log(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), logLevel, eventId.copy(), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2, arg3, arg4, arg5, arg6 }), error, dev.yog.script.logging.FormattedLogValues::Message);
     }
 };
     }
     public static dev.yog.script.Func2<dev.yog.script.logging.ILogger, dev.yog.script.IDisposable> DefineScope(String formatString) {
-        Expect(new dev.yog.script.logging.LogValuesFormatter(formatString), 0);
+        final var formatter = new dev.yog.script.logging.LogValuesFormatter(formatString);
+        Expect(formatter, 0);
         return (logger) -> {
-    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[0]));
+    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[0]));
 };
     }
     public static <T1> dev.yog.script.Func3<dev.yog.script.logging.ILogger, T1, dev.yog.script.IDisposable> DefineScope$1(dev.yog.script.Type $typeT1, String formatString) {
-        Expect(new dev.yog.script.logging.LogValuesFormatter(formatString), 1);
+        final var formatter = new dev.yog.script.logging.LogValuesFormatter(formatString);
+        Expect(formatter, 1);
         return (logger, arg1) -> {
-    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1 }));
+    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1 }));
 };
     }
     public static <T1, T2> dev.yog.script.Func4<dev.yog.script.logging.ILogger, T1, T2, dev.yog.script.IDisposable> DefineScope$2(dev.yog.script.Type $typeT1, dev.yog.script.Type $typeT2, String formatString) {
-        Expect(new dev.yog.script.logging.LogValuesFormatter(formatString), 2);
+        final var formatter = new dev.yog.script.logging.LogValuesFormatter(formatString);
+        Expect(formatter, 2);
         return (logger, arg1, arg2) -> {
-    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2 }));
+    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2 }));
 };
     }
     public static <T1, T2, T3> dev.yog.script.Func5<dev.yog.script.logging.ILogger, T1, T2, T3, dev.yog.script.IDisposable> DefineScope$3(dev.yog.script.Type $typeT1, dev.yog.script.Type $typeT2, dev.yog.script.Type $typeT3, String formatString) {
-        Expect(new dev.yog.script.logging.LogValuesFormatter(formatString), 3);
+        final var formatter = new dev.yog.script.logging.LogValuesFormatter(formatString);
+        Expect(formatter, 3);
         return (logger, arg1, arg2, arg3) -> {
-    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatString, new Object[] { arg1, arg2, arg3 }));
+    return logger.BeginScope(dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), new dev.yog.script.logging.FormattedLogValues(formatter, new Object[] { arg1, arg2, arg3 }));
 };
     }
     private static void Expect(dev.yog.script.logging.LogValuesFormatter formatter, int count) {
         if ((formatter.ValueNames.Count() != count)) {
-            dev.yog.script.Ys.panic(String.valueOf("the message template has another number of holes than the values given"), "LoggerMessage.ys:133");
+            dev.yog.script.Ys.panic(String.valueOf("the message template has another number of holes than the values given"), "LoggerMessage.ys:135");
         }
     }
 }

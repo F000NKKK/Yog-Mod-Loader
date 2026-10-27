@@ -5,7 +5,7 @@ use crate::ast::{BinOp, Name, Pattern};
 use crate::source::token::{Punct, Tok};
 use crate::words::{and, r#let, not, or};
 
-const WILDCARD: &str = "_";
+pub(crate) const WILDCARD: &str = "_";
 
 const RELATIONAL: &[(Punct, BinOp)] = &[
     (Punct::Lt, BinOp::Lt),

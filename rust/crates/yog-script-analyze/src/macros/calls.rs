@@ -174,7 +174,7 @@ fn attribute_macro(
 
 /// Where the declaration starting at `from` ends: after its body (`{ … }`)
 /// or its `;`.
-fn decl_end(tokens: &[Token], from: usize) -> usize {
+pub(super) fn decl_end(tokens: &[Token], from: usize) -> usize {
     let mut i = from;
     while i < tokens.len() {
         let (t, next) = tree_at(tokens, i);
@@ -207,7 +207,7 @@ fn slice_between(text: &str, from: u32, to: u32) -> &str {
 }
 
 /// A macro's code read into tokens, each placed at the call.
-fn read(code: &str, at: Span, report: &mut Report<'_>) -> Vec<Token> {
+pub(super) fn read(code: &str, at: Span, report: &mut Report<'_>) -> Vec<Token> {
     let mut scratch = report.scratch();
     let mut tokens = crate::lexer::lex(code, &mut scratch);
     tokens.pop();

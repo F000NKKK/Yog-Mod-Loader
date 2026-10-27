@@ -380,6 +380,14 @@ names! {
         /// A type given for a type parameter that doesn't meet its `where`
         /// constraints, or `new T()` without `new()` (C#'s CS0311, CS0304).
         CONSTRAINT = "YS0042",
+        /// A `[LoggerMessage]` method written so nothing can be generated:
+        /// not `partial`, no logger, no level, a hole no parameter fills.
+        LOGGER_MESSAGE = "YS0043",
+        /// A log written through `LogInformation` & co. (a warning, .NET's
+        /// CA1848): a `[LoggerMessage]` method writes it faster.
+        LOG_BY_METHOD = "YS0044",
+        /// A name nothing declares where it's read (C#'s CS0103).
+        UNKNOWN_NAME = "YS0045",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

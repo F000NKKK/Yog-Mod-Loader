@@ -270,7 +270,12 @@ impl Gen<'_> {
         // erased), and binds what it can't prove of them only so.
         let t = crate::reified::erased(&self.written(ty, true));
         Some(match bind {
-            Some(b) => format!("{v} {INSTANCEOF} {t} {}", Self::ident(b)),
+            Some(b) => {
+                if matches!(&ty.kind, TypeKind::Path { args, .. } if !args.is_empty()) {
+                    self.raw_bound.insert(b.to_string());
+                }
+                format!("{v} {INSTANCEOF} {t} {}", Self::ident(b))
+            }
             None => format!("{v} {INSTANCEOF} {t}"),
         })
     }

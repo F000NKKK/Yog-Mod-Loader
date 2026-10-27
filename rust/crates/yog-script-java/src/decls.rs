@@ -85,7 +85,11 @@ impl Gen<'_> {
                 ..
             } => {
                 let (t, n) = (self.written(ty, false), Self::ident(&name.text));
-                self.property_accessors(place, (&t, &n), accessors);
+                if d.has(Modifier::Abstract) {
+                    self.abstract_accessors((&t, &n), accessors);
+                } else {
+                    self.property_accessors(place, (&t, &n), accessors);
+                }
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
             DeclKind::Event { ty, name } => {
@@ -198,6 +202,7 @@ impl Gen<'_> {
         let mut cells = self.cells.clone();
         cells.extend(crate::refs::cells(&m.params));
         let outer = std::mem::replace(&mut self.cells, cells);
+        let raw_bound = std::mem::take(&mut self.raw_bound);
         let generics = Self::method_type_params(m);
         let yields = yog_script_analyze::body_yields(m.body.as_ref());
         if yields {
@@ -209,11 +214,29 @@ impl Gen<'_> {
             self.with_type_params(generics, |g| g.body(&head, m.body.as_ref(), void));
         }
         self.cells = outer;
+        self.raw_bound = raw_bound;
     }
 
     /// A property's accessors with bodies as Java's methods: its getter
     /// `Name()`, its setter `set_Name(value)` (the CLR's); an interface's
     /// getter without one.
+    /// An abstract property's accessors: Java's abstract methods, its
+    /// overrides' (all public, as every property's accessor is).
+    fn abstract_accessors(&mut self, (t, n): (&str, &str), accessors: &[Accessor]) {
+        let lead = modifier(PUBLIC) + &modifier(ABSTRACT);
+        for a in accessors {
+            if a.name.text == get::WORD.text {
+                self.code.line(format!("{lead}{t} {n}();"));
+            } else if a.name.text == set::WORD.text {
+                self.code.line(format!(
+                    "{lead}{VOID} {}{ACCESSOR_SEP}{n}({t} {});",
+                    set::WORD.text,
+                    value::WORD.text
+                ));
+            }
+        }
+    }
+
     fn property_accessors(&mut self, place: Place, (t, n): (&str, &str), accessors: &[Accessor]) {
         let interface = place == Place::Interface;
         let lead = if interface {

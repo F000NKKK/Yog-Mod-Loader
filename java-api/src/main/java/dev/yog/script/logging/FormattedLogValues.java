@@ -9,20 +9,52 @@ public final class FormattedLogValues implements dev.yog.script.collections.gene
         d.Field("_formatter", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class), o -> ((dev.yog.script.logging.FormattedLogValues) o)._formatter, null);
         d.Field("_values", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1), o -> ((dev.yog.script.logging.FormattedLogValues) o)._values, null);
         d.Field("_original", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.logging.FormattedLogValues) o)._original, null);
+        d.Field("MaxCachedFormatters", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> dev.yog.script.logging.FormattedLogValues.MaxCachedFormatters, null);
+        d.Field("_formatters", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.threading.Lock.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.Dictionary.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class), dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class) }) }), o -> dev.yog.script.logging.FormattedLogValues._formatters, null);
         d.Constructor(0, a -> new dev.yog.script.logging.FormattedLogValues((String) a[0], (Object[]) a[1])).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("values", dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1), false);
+        d.Constructor(0, a -> new dev.yog.script.logging.FormattedLogValues((dev.yog.script.logging.LogValuesFormatter) a[0], (Object[]) a[1])).Takes("formatter", dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class), false).Takes("values", dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1), false);
+        d.Method("Formatter", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> dev.yog.script.logging.FormattedLogValues.Formatter((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class)).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.logging.FormattedLogValues) o).Count(), null);
         d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.logging.FormattedLogValues) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class), dev.yog.script.Type.Of(dev.yog.script.host.Object.class) }) }));
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.logging.FormattedLogValues) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
         d.Method("Message", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.logging.FormattedLogValues.Message((dev.yog.script.logging.FormattedLogValues) a[0], (dev.yog.script.Error) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("state", dev.yog.script.Type.Of(dev.yog.script.logging.FormattedLogValues.class), false).Takes("error", dev.yog.script.Type.Of(dev.yog.script.Error.class), false);
     }
+    public static final int MaxCachedFormatters = 1024;
+    public static final dev.yog.script.threading.Lock<dev.yog.script.collections.generic.Dictionary<String, dev.yog.script.logging.LogValuesFormatter>> _formatters = dev.yog.script.Type.made(new dev.yog.script.threading.Lock<dev.yog.script.collections.generic.Dictionary<String, dev.yog.script.logging.LogValuesFormatter>>(dev.yog.script.Type.made(new dev.yog.script.collections.generic.Dictionary<String, dev.yog.script.logging.LogValuesFormatter>(), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class), dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class) })), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.Dictionary.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class), dev.yog.script.Type.Of(dev.yog.script.logging.LogValuesFormatter.class) }) });
     public dev.yog.script.logging.LogValuesFormatter _formatter;
     public Object[] _values;
     public String _original;
     public FormattedLogValues(String format, Object[] values) {
         super();
         _original = java.util.Objects.requireNonNullElse(format, dev.yog.script.logging.LogValuesFormatter.NullValue);
-        _formatter = (((dev.yog.script.host.Array.Length(values, 1) > 0) && !java.util.Objects.equals(format, null)) ? new dev.yog.script.logging.LogValuesFormatter(format) : null);
+        _formatter = (((dev.yog.script.host.Array.Length(values, 1) > 0) && !java.util.Objects.equals(format, null)) ? Formatter(format) : null);
         _values = values;
+    }
+    public FormattedLogValues(dev.yog.script.logging.LogValuesFormatter formatter, Object[] values) {
+        super();
+        _original = formatter.Template;
+        _formatter = ((dev.yog.script.host.Array.Length(values, 1) > 0) ? formatter : null);
+        _values = values;
+    }
+    private static dev.yog.script.logging.LogValuesFormatter Formatter(String format) {
+        dev.yog.script.logging.LogValuesFormatter found = null;
+        var $t1 = _formatters.Enter();
+        dev.yog.script.collections.generic.Dictionary<String, dev.yog.script.logging.LogValuesFormatter> cache = $t1.Value();
+        try {
+            found = cache.TryGetValue(format);
+            if (java.util.Objects.equals(found, null)) {
+                final var made = new dev.yog.script.logging.LogValuesFormatter(format);
+                if ((cache.Count() < MaxCachedFormatters)) {
+                    cache.set_Item(format, made);
+                }
+                found = made;
+            }
+        }
+        finally {
+            $t1.set_Value(cache);
+            $t1.Dispose();
+        }
+        return java.util.Objects.requireNonNullElse(found, new dev.yog.script.logging.LogValuesFormatter(format));
     }
     public int Count() {
         return (java.util.Objects.equals(_formatter, null) ? 1 : (_formatter.ValueNames.Count() + 1));
@@ -36,7 +68,7 @@ public final class FormattedLogValues implements dev.yog.script.collections.gene
         return new dev.yog.script.collections.generic.KeyValuePair<String, Object>(name, value);
     }
     public dev.yog.script.collections.generic.IEnumerator<dev.yog.script.collections.generic.KeyValuePair<String, Object>> GetEnumerator() {
-        final class $Async$t1 extends dev.yog.script.collections.generic.Iteration<dev.yog.script.collections.generic.KeyValuePair<String, Object>> {
+        final class $Async$t2 extends dev.yog.script.collections.generic.Iteration<dev.yog.script.collections.generic.KeyValuePair<String, Object>> {
             int i$v1;
             @Override protected void $step() {
     $loop: while (true) {
@@ -60,8 +92,8 @@ public final class FormattedLogValues implements dev.yog.script.collections.gene
     }
 }
         }
-        final var $m$t1 = new $Async$t1();
-        return $m$t1;
+        final var $m$t2 = new $Async$t2();
+        return $m$t2;
     }
     public String ToString() {
         return (java.util.Objects.equals(_formatter, null) ? _original : _formatter.Format(_values));

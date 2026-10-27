@@ -5,13 +5,14 @@ use yog_script_analyze::check;
 use yog_script_analyze::resolve::DefKind;
 
 /// The type checker's problems.
-const TYPES: [&str; 6] = [
+const TYPES: [&str; 7] = [
     script_problem::TYPE_MISMATCH,
     script_problem::UNKNOWN_TYPE,
     script_problem::NULLABLE,
     script_problem::UNKNOWN_MEMBER,
     script_problem::WRONG_SIDE,
     script_problem::WRONG_ARGS,
+    script_problem::UNKNOWN_NAME,
 ];
 
 fn codes(name: &str, src: &str) -> Vec<String> {
@@ -47,7 +48,7 @@ fn the_examples_resolve_cleanly() {
             .collect();
         assert!(problems.is_empty(), "{lang}: {problems:#?}");
     }
-    let glassy = check("glassy.ys", include_str!("fixtures/glassy.ys"));
+    let glassy = check("Glassy.ys", include_str!("fixtures/Glassy.ys"));
     assert!(glassy.problems.is_empty(), "{:#?}", glassy.problems);
 }
 
@@ -144,9 +145,9 @@ fn skip_belongs_in_a_before() {
 
 #[test]
 fn await_belongs_in_async() {
-    let src = "void Arm() {\n    await Task.Delay(5s);\n}\n";
+    let src = "using System.Threading.Tasks;\nvoid Arm() {\n    await Task.Delay(5s);\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::AWAIT_OUTSIDE_ASYNC]);
-    assert!(codes("a.ys", "async void Arm() {\n    await Task.Delay(5s);\n}\n").is_empty());
+    assert!(codes("a.ys", "using System.Threading.Tasks;\nasync void Arm() {\n    await Task.Delay(5s);\n}\n").is_empty());
 }
 
 /// Names in C#'s case, warned otherwise.

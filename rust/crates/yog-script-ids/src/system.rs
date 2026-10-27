@@ -167,3 +167,21 @@ pub mod threads {
 /// `[StructuredMessageTemplate(nameof(message))]`: a method's parameter a
 /// message template (`System.Diagnostics.CodeAnalysis`).
 pub const STRUCTURED_MESSAGE_TEMPLATE: &str = "StructuredMessageTemplate";
+
+/// What `[LoggerMessage]` generates a `partial` method's body by (.NET's
+/// `LoggerMessageAttribute` source generator): the attribute, its
+/// arguments' names, and the parameters' types it looks for.
+pub const LOGGER_MESSAGE: &str = "LoggerMessage";
+/// The class of `LogInformation` & co.: a call of its a log a
+/// `[LoggerMessage]` method writes faster (a warning, .NET's CA1848).
+pub const LOGGER_EXTENSIONS: &str = "LoggerExtensions";
+pub const LOGGER_MESSAGE_EVENT_ID: &str = "eventId";
+pub const LOGGER_MESSAGE_LEVEL: &str = "level";
+pub const LOGGER_MESSAGE_TEXT: &str = "message";
+pub const LOGGER: &str = "ILogger";
+pub const LOG_LEVEL: &str = "LogLevel";
+pub const ERROR: &str = "Error";
+/// What a generated method's state class is named after it: `MovedLogValues`.
+pub const LOG_VALUES_SUFFIX: &str = "LogValues";
+/// What a generated method's event id field is named after it: `_movedEventId`.
+pub const EVENT_ID_SUFFIX: &str = "EventId";

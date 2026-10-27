@@ -10,6 +10,8 @@ use super::members::Callee;
 use super::own::TypeKey;
 use super::types::MethodUse;
 use crate::ast::{Arg, Expr, ExprKind, StrSeg};
+use yog_ids::script_problem;
+use yog_script_ids::system::{LOGGER_EXTENSIONS, LOGGER_MESSAGE};
 use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE};
 
 /// A string written for a message template: its text as written (holes
@@ -66,6 +68,18 @@ impl Checker<'_, '_, '_> {
     /// others checked as the strings they are.
     pub(super) fn templates_chosen(&mut self, used: Option<&MethodUse>, written: &[Arg], slots: &[usize]) {
         let chosen = used.and_then(|u| self.chosen_template(u, written.len()));
+        if let Some(u) = used
+            && u.owner.as_deref() == Some(LOGGER_EXTENSIONS)
+            // Its own methods write through each other.
+            && !matches!(&self.this, Some(super::model::Type::Own(n, _)) if n == LOGGER_EXTENSIONS)
+            && let Some(at) = written.first()
+        {
+            self.report.warning(
+                script_problem::LOG_BY_METHOD,
+                at.value.span,
+                format!("`{}` reads its template and boxes its values at each entry: a `[{LOGGER_MESSAGE}]` method checks the level first and formats by compiled code", u.name),
+            );
+        }
         for &i in slots {
             let arg = &written[i].value;
             match chosen {

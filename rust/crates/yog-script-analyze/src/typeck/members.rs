@@ -91,7 +91,12 @@ impl Checker<'_, '_, '_> {
                 Some(t) => t,
                 None => self.game_value(class, name, at),
             },
-            Type::Namespace(ns) => self.in_namespace(&super::names::split(ns), name, at),
+            // A type reached through its namespace (`System.Logging.LogLevel`):
+            // its statics, as its name alone reaches them.
+            Type::Namespace(ns) => match self.in_namespace(&super::names::split(ns), name, at) {
+                Type::Own(t, args) => Type::Static(t, args),
+                other => other,
+            },
             Type::Param(p) => match self.param_member(p, name) {
                 Some((_, t)) => t,
                 None => self.object_member(on.non_null(), name, at),

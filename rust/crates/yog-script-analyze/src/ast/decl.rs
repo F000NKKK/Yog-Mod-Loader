@@ -29,6 +29,8 @@ pub enum Modifier {
     Ref,
     /// Its body is elsewhere: a `[Service]` method's, on the bus.
     Extern,
+    /// Its body is generated: a `[LoggerMessage]` method's.
+    Partial,
     /// `new`: hides a member of its name it inherits (`new bool Add(T item)`).
     New,
 }

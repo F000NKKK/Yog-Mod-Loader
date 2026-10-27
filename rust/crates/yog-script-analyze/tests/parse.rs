@@ -41,7 +41,7 @@ pub fn examples() -> Vec<(String, String)> {
 
 #[test]
 fn a_small_mod_reads() {
-    let parsed = parse("glassy.ys", include_str!("fixtures/glassy.ys"));
+    let parsed = parse("Glassy.ys", include_str!("fixtures/Glassy.ys"));
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
     assert_eq!(parsed.file.decls.len(), 1);
 }
@@ -247,9 +247,9 @@ fn members_are_told_by_what_follows_their_name() {
 
 #[test]
 fn the_type_system_reads() {
-    let parsed = parse("types.ys", include_str!("fixtures/types.ys"));
+    let parsed = parse("Types.ys", include_str!("fixtures/Types.ys"));
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
-    let checked = yog_script_analyze::check("types.ys", include_str!("fixtures/types.ys"));
+    let checked = yog_script_analyze::check("Types.ys", include_str!("fixtures/Types.ys"));
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
 }
 

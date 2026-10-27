@@ -1,0 +1,41 @@
+namespace System.Logging;
+
+using System.Collections.Generic;
+
+/// A `[LoggerMessage]` method's state (what .NET's generator writes as a
+/// struct): its values typed in the class generated of it, boxed only
+/// when a provider reads them by name; its message written by compiled
+/// code (`ToString`), never a template read at each entry.
+public readonly abstract class LogValues : IReadOnlyList<KeyValuePair<string, object?>> {
+    /// How many values it holds (its template's holes, each once).
+    protected abstract i32 ValueCount { get; }
+
+    /// Its template, as written.
+    protected abstract string Template { get; }
+
+    /// The name of its value `index` (its hole's, as the template writes it).
+    protected abstract string NameAt(i32 index);
+
+    /// Its value `index`.
+    protected abstract object? ValueAt(i32 index);
+
+    public i32 Count => ValueCount + 1;
+
+    public KeyValuePair<string, object?> this[i32 index] {
+        get {
+            if (index == ValueCount) {
+                return new KeyValuePair<string, object?>(LogValuesFormatter.OriginalFormat, Template);
+            }
+            return new KeyValuePair<string, object?>(NameAt(index), ValueAt(index));
+        }
+    }
+
+    public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+        for (let mut i = 0; i < Count; i += 1) {
+            yield return this[i];
+        }
+    }
+
+    /// What makes an entry's message of its state: the state written.
+    public static string Message(LogValues state, Error? error) => state.ToString();
+}

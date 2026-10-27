@@ -355,12 +355,9 @@ impl Gen<'_> {
             let (name, value) = match &d.kind {
                 DeclKind::Field(_) if d.has(Modifier::Const) || d.has(Modifier::Static) => continue,
                 DeclKind::Field(f) => (&f.name.text, f.value.as_ref()),
-                DeclKind::Property {
-                    name,
-                    value,
-                    accessors,
-                    ..
-                } if accessors.iter().all(|a| a.body.is_none()) => (&name.text, value.as_ref()),
+                DeclKind::Property { name, value, .. } if yog_script_analyze::ast::stores_value(d) => {
+                    (&name.text, value.as_ref())
+                }
                 // One keeping its own value: that set first.
                 DeclKind::Property {
                     name,
@@ -464,12 +461,9 @@ fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
             DeclKind::Field(f) if !d.has(Modifier::Const) && !d.has(Modifier::Static) => {
                 Some((&f.ty, f.name.text.as_str()))
             }
-            DeclKind::Property {
-                ty,
-                name,
-                accessors,
-                ..
-            } if accessors.iter().all(|a| a.body.is_none()) => Some((ty, name.text.as_str())),
+            DeclKind::Property { ty, name, .. } if yog_script_analyze::ast::stores_value(d) => {
+                Some((ty, name.text.as_str()))
+            }
             _ => None,
         })
         .collect()

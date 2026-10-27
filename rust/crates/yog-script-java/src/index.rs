@@ -706,15 +706,17 @@ fn properties(body: &[Decl]) -> HashSet<String> {
         .collect()
 }
 
-/// A body's computed properties (`T X => …;`, `T X { get => …; }`).
+/// A body's computed properties (`T X => …;`, `T X { get => …; }`, an
+/// abstract one's overrides').
 fn computed(body: &[Decl]) -> HashSet<String> {
     body.iter()
         .filter_map(|d| match &d.kind {
             DeclKind::Property {
                 name, accessors, ..
-            } if accessors
-                .iter()
-                .any(|a| matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))) =>
+            } if d.has(yog_script_analyze::ast::Modifier::Abstract)
+                || accessors
+                    .iter()
+                    .any(|a| matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))) =>
             {
                 Some(name.text.clone())
             }

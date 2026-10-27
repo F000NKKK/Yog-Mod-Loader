@@ -8,7 +8,7 @@ use super::Checker;
 use super::model::Type;
 use crate::ast::{self, Attribute, TypeKind};
 use crate::source::token::Span;
-use yog_script_ids::system::SERVICE;
+use yog_script_ids::system::{LOGGER_MESSAGE, SERVICE};
 
 /// The class every attribute class inherits.
 use yog_script_ids::system::ATTRIBUTE;
@@ -79,6 +79,20 @@ impl Checker<'_, '_, '_> {
                 script_problem::ATTRIBUTE,
                 m.name.span,
                 format!("an `extern` method is a call on the bus, and a `[{SERVICE}]` one is `extern`: `[{SERVICE}(\"mod:address\")] static extern …`"),
+            );
+        }
+    }
+
+    /// A `partial` method is one a generator wrote (its attribute taken):
+    /// one left is one nothing generates.
+    pub(super) fn partial_generated(&mut self, d: &crate::ast::Decl) {
+        if let crate::ast::DeclKind::Method(m) = &d.kind
+            && d.has(crate::ast::Modifier::Partial)
+        {
+            self.report.error(
+                script_problem::LOGGER_MESSAGE,
+                m.name.span,
+                format!("a `partial` method's body is generated: `[{LOGGER_MESSAGE}(…)]` on it"),
             );
         }
     }

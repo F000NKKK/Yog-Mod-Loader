@@ -69,15 +69,12 @@ impl Gen<'_> {
                 self.code.str(key)
             ),
             ExprKind::Content { id, .. } => self.code.str(id),
-            ExprKind::Str(segs) => match self.types.template(e) {
-                // A message template: its holes are names, not code.
-                Some(t) => self.code.str(&t.text),
-                None => self.interpolated(segs),
-            },
+            ExprKind::Str(segs) => self.string(e, segs),
             ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
             ExprKind::Ident(name) if self.cells.contains(name) => {
                 format!("{}.{REF_VALUE}", Self::ident(name))
             }
+            ExprKind::Ident(name) if let Some(read) = self.raw_read(e, name) => read,
             // A generic type's static field: its arguments' set's.
             ExprKind::Ident(name)
                 if !self.types.is_local(e)
@@ -210,6 +207,24 @@ impl Gen<'_> {
     }
 
     /// `"a {x} b"`: Java's `+` from a string.
+    /// Local `name` (read by `e`) bound raw by a pattern: read as its type.
+    fn raw_read(&self, e: &Expr, name: &str) -> Option<String> {
+        if !self.raw_bound.contains(name) {
+            return None;
+        }
+        let t = self.types.of(e)?;
+        Some(format!("(({}) {})", self.java(t, true), Self::ident(name)))
+    }
+
+    /// String `e` (of `segs`): a message template as written (its holes
+    /// names, not code), else interpolated.
+    fn string(&mut self, e: &Expr, segs: &[StrSeg]) -> String {
+        match self.types.template(e) {
+            Some(t) => self.code.str(&t.text),
+            None => self.interpolated(segs),
+        }
+    }
+
     fn interpolated(&mut self, segs: &[StrSeg]) -> String {
         if let [StrSeg::Text(t)] = segs {
             return self.code.str(t);

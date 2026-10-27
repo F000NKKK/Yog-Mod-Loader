@@ -2,8 +2,6 @@ namespace System.Logging;
 
 using System.Diagnostics.CodeAnalysis;
 
-using System.Diagnostics.CodeAnalysis;
-
 /// Log entries made fast (.NET's `LoggerMessage`): a template read once,
 /// a delegate writing entries of it — no array of values made when its
 /// level is off.
@@ -16,7 +14,7 @@ public static class LoggerMessage {
         Expect(formatter, 0);
         return (logger, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[0]), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[0]), error, FormattedLogValues.Message);
             }
         };
     }
@@ -29,7 +27,7 @@ public static class LoggerMessage {
         Expect(formatter, 1);
         return (logger, arg1, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -42,7 +40,7 @@ public static class LoggerMessage {
         Expect(formatter, 2);
         return (logger, arg1, arg2, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1, arg2 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1, arg2 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -55,7 +53,7 @@ public static class LoggerMessage {
         Expect(formatter, 3);
         return (logger, arg1, arg2, arg3, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1, arg2, arg3 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1, arg2, arg3 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -68,7 +66,7 @@ public static class LoggerMessage {
         Expect(formatter, 4);
         return (logger, arg1, arg2, arg3, arg4, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1, arg2, arg3, arg4 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1, arg2, arg3, arg4 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -81,7 +79,7 @@ public static class LoggerMessage {
         Expect(formatter, 5);
         return (logger, arg1, arg2, arg3, arg4, arg5, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1, arg2, arg3, arg4, arg5 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1, arg2, arg3, arg4, arg5 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -94,7 +92,7 @@ public static class LoggerMessage {
         Expect(formatter, 6);
         return (logger, arg1, arg2, arg3, arg4, arg5, arg6, error) => {
             if (logger.IsEnabled(logLevel)) {
-                logger.Log(logLevel, eventId, new FormattedLogValues(formatString, new object?[] { arg1, arg2, arg3, arg4, arg5, arg6 }), error, FormattedLogValues.Message);
+                logger.Log(logLevel, eventId, new FormattedLogValues(formatter, new object?[] { arg1, arg2, arg3, arg4, arg5, arg6 }), error, FormattedLogValues.Message);
             }
         };
     }
@@ -102,29 +100,33 @@ public static class LoggerMessage {
     /// A scope of 0 values begun by a delegate made once.
     [StructuredMessageTemplate(nameof(formatString))]
     public static Func<ILogger, IDisposable?> DefineScope(string formatString) {
-        Expect(new LogValuesFormatter(formatString), 0);
-        return (logger) => logger.BeginScope(new FormattedLogValues(formatString, new object?[0]));
+        let formatter = new LogValuesFormatter(formatString);
+        Expect(formatter, 0);
+        return (logger) => logger.BeginScope(new FormattedLogValues(formatter, new object?[0]));
     }
 
     /// A scope of 1 value begun by a delegate made once.
     [StructuredMessageTemplate(nameof(formatString))]
     public static Func<ILogger, T1, IDisposable?> DefineScope<T1>(string formatString) {
-        Expect(new LogValuesFormatter(formatString), 1);
-        return (logger, arg1) => logger.BeginScope(new FormattedLogValues(formatString, new object?[] { arg1 }));
+        let formatter = new LogValuesFormatter(formatString);
+        Expect(formatter, 1);
+        return (logger, arg1) => logger.BeginScope(new FormattedLogValues(formatter, new object?[] { arg1 }));
     }
 
     /// A scope of 2 values begun by a delegate made once.
     [StructuredMessageTemplate(nameof(formatString))]
     public static Func<ILogger, T1, T2, IDisposable?> DefineScope<T1, T2>(string formatString) {
-        Expect(new LogValuesFormatter(formatString), 2);
-        return (logger, arg1, arg2) => logger.BeginScope(new FormattedLogValues(formatString, new object?[] { arg1, arg2 }));
+        let formatter = new LogValuesFormatter(formatString);
+        Expect(formatter, 2);
+        return (logger, arg1, arg2) => logger.BeginScope(new FormattedLogValues(formatter, new object?[] { arg1, arg2 }));
     }
 
     /// A scope of 3 values begun by a delegate made once.
     [StructuredMessageTemplate(nameof(formatString))]
     public static Func<ILogger, T1, T2, T3, IDisposable?> DefineScope<T1, T2, T3>(string formatString) {
-        Expect(new LogValuesFormatter(formatString), 3);
-        return (logger, arg1, arg2, arg3) => logger.BeginScope(new FormattedLogValues(formatString, new object?[] { arg1, arg2, arg3 }));
+        let formatter = new LogValuesFormatter(formatString);
+        Expect(formatter, 3);
+        return (logger, arg1, arg2, arg3) => logger.BeginScope(new FormattedLogValues(formatter, new object?[] { arg1, arg2, arg3 }));
     }
 
     /// A panic when `formatter`'s template hasn't `count` holes.

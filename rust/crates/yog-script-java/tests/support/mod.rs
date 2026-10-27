@@ -2,11 +2,11 @@
 
 use yog_script_java::compile;
 
-/// Source `src` (`sample.ys`, checked clean) as Java, or what's not compiled.
+/// Source `src` (`Sample.ys`, checked clean) as Java, or what's not compiled.
 pub fn java(src: &str) -> Result<String, Vec<String>> {
-    let checked = yog_script_analyze::check("sample.ys", src);
+    let checked = yog_script_analyze::check("Sample.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    compile("sample.ys", src, &checked, "yogscript.test")
+    compile("Sample.ys", src, &checked, "yogscript.test")
         .map(|c| c.source)
         .map_err(|p| {
             p.into_iter()

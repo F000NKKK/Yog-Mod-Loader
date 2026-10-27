@@ -297,7 +297,7 @@ impl Checker<'_, '_, '_> {
 
     /// The names `is` patterns in a condition bind, typed, for the branch
     /// it guards (`if (target is Player p && …)`).
-    fn patterns_in(&mut self, e: &Expr) {
+    pub(super) fn patterns_in(&mut self, e: &Expr) {
         match &e.kind {
             // Typed by what's matched, looked at quietly: it's checked after.
             ExprKind::Is { expr, pattern } => {

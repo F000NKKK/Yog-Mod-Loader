@@ -96,10 +96,10 @@ fn builtin_macros_are_helpers() {
                void G() {\n    todo!();\n}\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
-        "dev.yog.script.Ys.check((rate > 0), \"assertion failed\", \"sample.ys:2\");",
-        "dev.yog.script.Ys.checkEq(rate, 2, \"sample.ys:3\");",
-        "dev.yog.script.Ys.dbg((rate * 2), \"rate * 2\", \"sample.ys:4\")",
-        "dev.yog.script.Ys.panic(\"not done yet\", \"sample.ys:7\");",
+        "dev.yog.script.Ys.check((rate > 0), \"assertion failed\", \"Sample.ys:2\");",
+        "dev.yog.script.Ys.checkEq(rate, 2, \"Sample.ys:3\");",
+        "dev.yog.script.Ys.dbg((rate * 2), \"rate * 2\", \"Sample.ys:4\")",
+        "dev.yog.script.Ys.panic(\"not done yet\", \"Sample.ys:7\");",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
@@ -167,9 +167,9 @@ fn events_are_handlers() {
                [Provide(\"charge:double\")]\nstatic i64 Double(i64 x) => x * 2;\n\
                class Button {\n    public event Action<string> Clicked;\n    public void Click() => Clicked(\"me\");\n    public void Saw(string s) { }\n}\n\
                void F(Overloaded o) {\n    let mut b = new Button();\n    b.Clicked += b.Saw;\n    b.Clicked -= b.Saw;\n    Overloads += e => { };\n    Overloads.Invoke(o);\n}\n";
-    let checked = yog_script_analyze::check("sample.ys", src);
+    let checked = yog_script_analyze::check("Sample.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let class = yog_script_java::compile("sample.ys", src, &checked, "p")
+    let class = yog_script_java::compile("Sample.ys", src, &checked, "p")
         .unwrap_or_else(|p| panic!("{p:#?}"));
     let out = class.source;
     for want in [
@@ -214,9 +214,9 @@ fn a_changed_capture_is_a_cell() {
 #[test]
 fn commands_are_ways_of_running() {
     let src = "command \"charge\" {\n    server string Fill(Sender source, i32 amount = 1) requires !source.IsConsole => \"filled \" + amount;\n}\n";
-    let checked = yog_script_analyze::check("sample.ys", src);
+    let checked = yog_script_analyze::check("Sample.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let class = yog_script_java::compile("sample.ys", src, &checked, "p")
+    let class = yog_script_java::compile("Sample.ys", src, &checked, "p")
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "public static final class ChargeCommand {",

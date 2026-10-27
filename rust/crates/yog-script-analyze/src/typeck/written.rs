@@ -33,7 +33,11 @@ impl Checker<'_, '_, '_> {
                 let args: Vec<Type> = args.iter().map(|a| self.type_of(a)).collect();
                 let typed = match path.as_slice() {
                     [one] => self.named(&one.text, args, t.span),
-                    _ => self.qualified(path, t.span),
+                    // `System.Collections.Generic.List<T>`: its arguments too.
+                    _ => match self.qualified(path, t.span) {
+                        Type::Own(name, given) if given.is_empty() => Type::Own(name, args),
+                        other => other,
+                    },
                 };
                 self.type_meets(&typed, t.span);
                 typed

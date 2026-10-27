@@ -148,9 +148,8 @@ fn same(a: &Info, b: &Info) -> bool {
 /// A base by its plain name and how many arguments it's written with.
 fn plain_base(t: &Type) -> Option<(&Name, usize)> {
     match &t.kind {
-        crate::ast::TypeKind::Path { path, args } if path.len() == 1 => {
-            path.first().map(|n| (n, args.len()))
-        }
+        // `Base`, `System.Logging.LogValues`: by its name, as `TypeKey`s are.
+        crate::ast::TypeKind::Path { path, args } => path.last().map(|n| (n, args.len())),
         _ => None,
     }
 }
@@ -158,7 +157,7 @@ fn plain_base(t: &Type) -> Option<(&Name, usize)> {
 fn plain_name(t: &Type) -> Option<&Name> {
     match &t.kind {
         // `IList<T>` by its name: its arguments don't change what it asks.
-        crate::ast::TypeKind::Path { path, .. } if path.len() == 1 => path.first(),
+        crate::ast::TypeKind::Path { path, .. } => path.last(),
         _ => None,
     }
 }

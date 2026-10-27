@@ -11,7 +11,7 @@ mod lambda;
 mod member;
 mod params;
 pub(crate) mod patch;
-mod pattern;
+pub(crate) mod pattern;
 mod postfix;
 mod primary;
 mod query;

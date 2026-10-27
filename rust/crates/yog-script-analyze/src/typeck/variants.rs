@@ -39,16 +39,25 @@ impl Checker<'_, '_, '_> {
 
     /// `x switch { … }`: each arm with what its pattern binds; the first
     /// arm's value is the switch's; an enum's cases all covered.
-    pub(super) fn switch(&mut self, on: &Expr, arms: &[Arm], at: Span) -> Type {
+    /// `on switch { arms }` (at `at`); `target`: the type wanted of it,
+    /// each arm's value fitting it (C#'s target-typed `switch`), else
+    /// its first arm's.
+    pub(super) fn switch(&mut self, on: &Expr, arms: &[Arm], at: Span, target: Option<&Type>) -> Type {
         let t = self.expr(on);
-        let mut result = Type::Unknown;
+        let mut result = target.cloned().unwrap_or(Type::Unknown);
         for a in arms {
             self.scoped(|c| {
                 c.bind_arm(&a.pattern, &t);
                 if let Some(g) = &a.guard {
                     c.condition(g);
                 }
-                let v = c.expr(&a.value);
+                let v = match target {
+                    Some(wanted) => {
+                        c.fits(&a.value, wanted);
+                        wanted.clone()
+                    }
+                    None => c.expr(&a.value),
+                };
                 if !result.known() {
                     result = v;
                 }

@@ -42,7 +42,7 @@ impl Checker<'_, '_, '_> {
             ExprKind::Default(Some(ty)) => self.type_of(ty),
             ExprKind::Member { expr, name, safe } => self.member_expr(expr, name, *safe),
             ExprKind::Call { callee, args } => self.call(e, callee, args),
-            ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
+            ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span, None),
             ExprKind::With { expr, inits } => self.with(expr, inits, e.span),
             ExprKind::Lambda { params, body, .. } => {
                 self.in_lambda(e, |c| c.lambda_alone(e, params, body))
@@ -54,12 +54,7 @@ impl Checker<'_, '_, '_> {
                 cond,
                 then,
                 otherwise,
-            } => {
-                self.condition(cond);
-                let t = self.expr_with(super::nulls::proven(cond, true), then);
-                self.expr_with(super::nulls::proven(cond, false), otherwise);
-                t
-            }
+            } => self.conditional(cond, then, otherwise),
             ExprKind::Cast { ty, expr } => {
                 let (got, to) = (self.expr(expr), self.type_of(ty));
                 self.note_cast(e, &got, &to);
@@ -179,7 +174,17 @@ impl Checker<'_, '_, '_> {
         {
             return Type::Static(host, Vec::new());
         }
-        self.imported(name, at)
+        let t = self.imported(name, at);
+        // A method by its name (a method group, `nameof(M)`): typed where
+        // it's given, not here.
+        if matches!(t, Type::Unknown) && self.callable(name).is_empty() {
+            self.report.error(
+                script_problem::UNKNOWN_NAME,
+                at,
+                format!("nothing is named `{name}` here: no local, member or type of that name"),
+            );
+        }
+        t
     }
 
     /// `^n` (`n` a `t`): an index's, counted from the end.
@@ -229,7 +234,12 @@ impl Checker<'_, '_, '_> {
         let a = self.expr(left);
         // `x != null && x.F`: the right side runs only when the left proves it.
         let b = match op {
-            BinOp::And => self.expr_with(super::nulls::proven(left, true), right),
+            // `o is EventId other && Equals(other)`: its patterns' names too.
+            BinOp::And => self.scoped(|c| {
+                c.narrow(super::nulls::proven(left, true));
+                c.patterns_in(left);
+                c.expr(right)
+            }),
             BinOp::Or => self.expr_with(super::nulls::proven(left, false), right),
             _ => self.expr(right),
         };
@@ -305,6 +315,9 @@ impl Checker<'_, '_, '_> {
         if self.tuple_as(e, wanted.non_null()) {
             return;
         }
+        if self.target_typed(e, wanted) {
+            return;
+        }
         let t = self.expr(e);
         if is_number_literal(e) && (wanted.non_null().is_numeric()) {
             self.note_conversion(e, &t, wanted);
@@ -316,6 +329,53 @@ impl Checker<'_, '_, '_> {
         }
         self.want(&t, wanted, e.span);
         self.note_conversion(e, &t, wanted);
+    }
+
+    /// `cond ? then : otherwise`: of `then`'s type (`cond`'s patterns' names
+    /// and what it proves not null in reach of `then`).
+    fn conditional(&mut self, cond: &Expr, then: &Expr, otherwise: &Expr) -> Type {
+        self.condition(cond);
+        let t = self.scoped(|c| {
+            c.narrow(super::nulls::proven(cond, true));
+            c.patterns_in(cond);
+            c.expr(then)
+        });
+        self.expr_with(super::nulls::proven(cond, false), otherwise);
+        t
+    }
+
+    /// A `switch` or `?:` where `wanted` is known: each arm or branch fits
+    /// it, and it's its type (C#'s target-typed ones: `index switch { 0 =>
+    /// count, _ => name }` an `object?`).
+    fn target_typed(&mut self, e: &Expr, wanted: &Type) -> bool {
+        if !wanted.known() {
+            return false;
+        }
+        match &e.kind {
+            ExprKind::Switch { expr, arms } => {
+                self.switch(expr, arms, e.span, Some(wanted));
+            }
+            ExprKind::Conditional {
+                cond,
+                then,
+                otherwise,
+            } => {
+                self.condition(cond);
+                let (yes, no) = (super::nulls::proven(cond, true), super::nulls::proven(cond, false));
+                self.scoped(|c| {
+                    c.narrow(yes);
+                    c.patterns_in(cond);
+                    c.fits(then, wanted);
+                });
+                self.scoped(|c| {
+                    c.narrow(no);
+                    c.fits(otherwise, wanted);
+                });
+            }
+            _ => return false,
+        }
+        self.types.set(e, wanted.clone());
+        true
     }
 
     /// `got` where `wanted` is: reported when it doesn't convert.

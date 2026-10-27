@@ -30,6 +30,11 @@ fn jdk() -> PathBuf {
 /// prints once `sources` (name, text) are built; `None` when there's no
 /// JVM to run on. A source that doesn't check or compile panics.
 pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
+    run_warned(sources, expr, &[])
+}
+
+/// `run`, the sources warned of each of `warned` (codes) and of nothing else.
+pub fn run_warned(sources: &[(&str, &str)], expr: &str, warned: &[&str]) -> Option<String> {
     let (jdk, jar) = (jdk(), runtime_jar());
     if !jdk.join("bin/javac").is_file() || !jar.is_file() {
         eprintln!(
@@ -51,6 +56,7 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
         .map(|(n, t)| declarations(n, t, Env::default()))
         .collect();
     let mut files = Vec::new();
+    let mut seen: Vec<String> = Vec::new();
     for (i, (name, text)) in sources.iter().enumerate() {
         let others: Vec<&[Decl]> = decls
             .iter()
@@ -63,11 +69,13 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
             ..Env::default()
         };
         let checked = check_in(name, text, env);
-        assert!(
-            checked.problems.is_empty(),
-            "{name}: {:#?}",
-            checked.problems
-        );
+        let code = |p: &yog_data::Diagnostic| p.code.as_deref().unwrap_or_default().to_string();
+        let unexpected = checked
+            .problems
+            .iter()
+            .filter(|p| p.is_error() || !warned.contains(&code(p).as_str()));
+        assert!(unexpected.count() == 0, "{name}: {:#?}", checked.problems);
+        seen.extend(checked.problems.iter().map(code));
         let named: Vec<(&str, &[Decl])> = sources
             .iter()
             .zip(&decls)
@@ -85,6 +93,9 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
         let file = src.join(format!("{}.java", class.name));
         std::fs::write(&file, class.source).unwrap();
         files.push(file);
+    }
+    for code in warned {
+        assert!(seen.iter().any(|c| c == code), "no {code} warning");
     }
     let main = work.join("src").join("Main.java");
     std::fs::write(

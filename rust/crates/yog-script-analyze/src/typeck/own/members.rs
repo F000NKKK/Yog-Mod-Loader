@@ -16,11 +16,10 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 ty,
                 name,
                 explicit: None,
-                accessors,
                 ..
             } => {
                 t.values.insert(name.text.clone(), ty.clone());
-                if accessors.iter().all(|a| a.body.is_none()) {
+                if crate::ast::stores_value(d) {
                     threads::field(t, d, &name.text);
                 }
             }

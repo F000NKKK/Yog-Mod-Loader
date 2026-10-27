@@ -1,0 +1,20 @@
+$Modifiers$ void $Method$($Params$) {
+    if ($Logger$.IsEnabled($Level$)) {
+        $Logger$.Log<System.Logging.LogValues>($Level$, $EventField$, new $State$($Values$), $Error$, System.Logging.LogValues.Message);
+    }
+}
+
+private static readonly System.Logging.EventId $EventField$ = new System.Logging.EventId($EventId$, nameof($Method$));
+
+/// What `$Method$` logs: its values typed, its message written by the compiler.
+private readonly sealed class $State$($Fields$) : System.Logging.LogValues {
+    protected override i32 ValueCount => $Count$;
+
+    protected override string Template => "$Template$";
+
+    protected override string NameAt(i32 index) => index switch { $Names$ };
+
+    protected override object? ValueAt(i32 index) => index switch { $Arms$ };
+
+    public override string ToString() => "$Message$";
+}
