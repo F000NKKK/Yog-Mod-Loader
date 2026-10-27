@@ -844,6 +844,8 @@ public final class YogNames {
         public static final String SET_HELD_ITEM_NBT = "yog:player/set_held_item_nbt";
         public static final String OFFHAND_ITEM_NBT = "yog:player/offhand_item_nbt";
         public static final String SET_OFFHAND_ITEM_NBT = "yog:player/set_offhand_item_nbt";
+        public static final String HELD_ITEM_DATA = "yog:player/held_item_data";
+        public static final String SET_HELD_ITEM_DATA = "yog:player/set_held_item_data";
         public static final String SLOT_ITEM = "yog:player/slot_item";
         public static final String SET_SLOT_ITEM = "yog:player/set_slot_item";
         public static final String ADD_XP = "yog:player/add_xp";
@@ -854,7 +856,7 @@ public final class YogNames {
         public static final String ONLINE = "yog:player/online";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, GIVE_ITEM, TELEPORT, TELEPORT_TO_DIM, KICK, SET_GAMEMODE, INVENTORY, SET_SLOT, HELD_ITEM_NBT, SET_HELD_ITEM_NBT, OFFHAND_ITEM_NBT, SET_OFFHAND_ITEM_NBT, SLOT_ITEM, SET_SLOT_ITEM, ADD_XP, SET_MAY_FLY, INFO, SET_ITEM_COOLDOWN, PLACE_BLOCK_FROM_SLOT, ONLINE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, GIVE_ITEM, TELEPORT, TELEPORT_TO_DIM, KICK, SET_GAMEMODE, INVENTORY, SET_SLOT, HELD_ITEM_NBT, SET_HELD_ITEM_NBT, OFFHAND_ITEM_NBT, SET_OFFHAND_ITEM_NBT, HELD_ITEM_DATA, SET_HELD_ITEM_DATA, SLOT_ITEM, SET_SLOT_ITEM, ADD_XP, SET_MAY_FLY, INFO, SET_ITEM_COOLDOWN, PLACE_BLOCK_FROM_SLOT, ONLINE);
     }
 
     public static final class ServiceMedia {

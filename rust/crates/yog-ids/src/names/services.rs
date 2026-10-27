@@ -86,6 +86,8 @@ names! {
         SET_HELD_ITEM_NBT = crate::concatcp!(DOMAIN, "set_held_item_nbt"),
         OFFHAND_ITEM_NBT = crate::concatcp!(DOMAIN, "offhand_item_nbt"),
         SET_OFFHAND_ITEM_NBT = crate::concatcp!(DOMAIN, "set_offhand_item_nbt"),
+        HELD_ITEM_DATA = crate::concatcp!(DOMAIN, "held_item_data"),
+        SET_HELD_ITEM_DATA = crate::concatcp!(DOMAIN, "set_held_item_data"),
         SLOT_ITEM = crate::concatcp!(DOMAIN, "slot_item"),
         SET_SLOT_ITEM = crate::concatcp!(DOMAIN, "set_slot_item"),
         ADD_XP = crate::concatcp!(DOMAIN, "add_xp"),

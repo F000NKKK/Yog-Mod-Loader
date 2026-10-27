@@ -89,13 +89,10 @@ impl Gen<'_> {
         let mut header = header.clone();
         header.bases.insert(0, written_named(base));
         // Its `saved` members: a block's are its chunk's, an entity's its
-        // own store's (their objects' makers read them in).
+        // own store's, an item's its stack's (their objects' makers read
+        // them in).
         if !crate::saved::saved_members(body).is_empty() {
-            if [yog_script_ids::system::BLOCK_OBJECT, yog_script_ids::system::ENTITY_OBJECT].contains(&base) {
-                self.saved_owner = Some(name.to_string());
-            } else {
-                self.not_yet("`saved` members of content of this kind", crate::decls::decl_span(d));
-            }
+            self.saved_owner = Some(name.to_string());
         }
         self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
         let Some(mod_id) = &self.mod_id else {

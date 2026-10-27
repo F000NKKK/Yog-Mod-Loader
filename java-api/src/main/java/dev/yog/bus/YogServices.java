@@ -18428,6 +18428,295 @@ public final class YogServices {
             }
         }
 
+        /** The bytes kept under `key` in the custom data of the stack `player` holds (`off_hand`: in its other hand): a `saved` item's state. */
+        public record HeldItemData(String player, boolean offHand, String key) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("player", player);
+                m.put("off_hand", offHand);
+                m.put("key", key);
+                return m;
+            }
+
+            public static HeldItemData fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new HeldItemData(YogData.str(m.get("player"), ""), YogData.bool(m.get("off_hand"), false), YogData.str(m.get("key"), ""));
+            }
+
+            public static HeldItemData fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putBool(this.offHand);
+                p.putStr(this.key);
+                p.end(at);
+            }
+
+            public static HeldItemData unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                boolean f_offHand = u.more(end) ? u.getBool() : false;
+                String f_key = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new HeldItemData(f_player, f_offHand, f_key);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static HeldItemData fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static HeldItemData fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static HeldItemData readFrame(YogFrame.Unpacker u) {
+                HeldItemData v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code HeldItemData} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean offHand() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+
+                public String key() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServicePlayer.HELD_ITEM_DATA);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "actions.YogItemData.read";
+            public static final String ADDRESS = YogNames.ServicePlayer.HELD_ITEM_DATA;
+
+            public YogTypes.Record call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.Record v = (u.getBool() ? YogTypes.Record.unpack(u) : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HeldItemData, YogTypes.Record> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Record v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                YogTypes.Record v = (out == null ? null : (YogTypes.Record) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+            }
+        }
+
+        /** Keeps `bytes` under `key` in the custom data of the stack `player` holds. */
+        public record SetHeldItemData(String player, boolean offHand, String key, byte[] bytes) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("player", player);
+                m.put("off_hand", offHand);
+                m.put("key", key);
+                m.put("bytes", bytes);
+                return m;
+            }
+
+            public static SetHeldItemData fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new SetHeldItemData(YogData.str(m.get("player"), ""), YogData.bool(m.get("off_hand"), false), YogData.str(m.get("key"), ""), (m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+            }
+
+            public static SetHeldItemData fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putBool(this.offHand);
+                p.putStr(this.key);
+                p.putBytes(this.bytes);
+                p.end(at);
+            }
+
+            public static SetHeldItemData unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                boolean f_offHand = u.more(end) ? u.getBool() : false;
+                String f_key = u.more(end) ? u.getStr() : "";
+                byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new SetHeldItemData(f_player, f_offHand, f_key, f_bytes);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static SetHeldItemData fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static SetHeldItemData fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static SetHeldItemData readFrame(YogFrame.Unpacker u) {
+                SetHeldItemData v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code SetHeldItemData} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean offHand() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+
+                public String key() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public byte[] bytes() {
+                    if (o3 < 0) return new byte[0];
+                    u.seek(o3);
+                    return u.getBytes();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_HELD_ITEM_DATA);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "actions.YogItemData.write";
+            public static final String ADDRESS = YogNames.ServicePlayer.SET_HELD_ITEM_DATA;
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetHeldItemData, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                boolean v = (Boolean) out;
+                p.putBool(v);
+            }
+        }
+
         /** The stack in `slot`. */
         public record SlotItem(String player, long slot) {
             public java.util.Map<String, Object> toData() {

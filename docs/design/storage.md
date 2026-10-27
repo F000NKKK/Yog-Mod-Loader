@@ -136,7 +136,12 @@ For each type with `synced` members, the build generates a mirror spec
    of that kind has an object now (`EntityObject`: `Spawn`, `Damage`,
    `Death`), its `saved` members in the entity's store (`entity/<uuid>`),
    read in as it's made, removed when it dies.
-4. Item stacks: the host's `yog:item/data` on each version.
+4. Item stacks: the host's `yog:item/data` on each version. ✅ The
+   player services `HeldItemData`/`SetHeldItemData` (bytes by key in the
+   held stack's `yog` compound: its tag on 1.19–1.20, its
+   `minecraft:custom_data` on 1.21+), `UseItem` saying which hand; an
+   item's object reads its `saved` members (`mod:Item.Member`) from the
+   stack before its handlers run and writes them after.
 5. `synced` on mirrors.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
 7. The Rust API's parity: `#[saved]` and `#[synced]` on a component

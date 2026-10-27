@@ -27,6 +27,11 @@ actions! {
     OffhandItemNbt { player: String } -> Option<String> = ids::service_player::OFFHAND_ITEM_NBT, "actions.YogPlayerActions.getOffhandItemNbt";
     /// Sets the custom data of `player`'s offhand stack.
     SetOffhandItemNbt { player: String, snbt: String } -> bool = ids::service_player::SET_OFFHAND_ITEM_NBT, "actions.YogPlayerActions.setOffhandItemNbt";
+    /// The bytes kept under `key` in the custom data of the stack `player`
+    /// holds (`off_hand`: in its other hand): a `saved` item's state.
+    HeldItemData { player: String, off_hand: bool, key: String } -> Option<crate::storage::Record> = ids::service_player::HELD_ITEM_DATA, "actions.YogItemData.read";
+    /// Keeps `bytes` under `key` in the custom data of the stack `player` holds.
+    SetHeldItemData { player: String, off_hand: bool, key: String, #[data(with = "yog_data::with::Raw")] bytes: Vec<u8> } -> bool = ids::service_player::SET_HELD_ITEM_DATA, "actions.YogItemData.write";
     /// The stack in `slot`.
     SlotItem { player: String, slot: u32 } -> Option<Stack> = ids::service_player::SLOT_ITEM, "actions.YogQueries.getSlotItem";
     /// Sets the stack in `slot`, with custom data.

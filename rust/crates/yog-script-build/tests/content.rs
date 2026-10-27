@@ -95,3 +95,20 @@ fn entity_objects_and_saved_members() {
         assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
     }
 }
+
+/// An item's `saved` members: the stack's (ItemObject reads them from its
+/// data before its handlers run and writes them after).
+#[test]
+fn saved_item_members() {
+    let src = "item Wand {\n    public saved i32 Charges = 3;\n    Wand() {\n        Use += player => {\n            Charges -= 1;\n        };\n    }\n}\n";
+    let checked = yog_script_analyze::check("A.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static class Wand extends dev.yog.script.yog.ItemObject implements dev.yog.script.yog.State.Saved {",
+        "read.apply(\"Wand.Charges\")",
+    ] {
+        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+    }
+}

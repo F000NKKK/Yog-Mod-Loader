@@ -25,6 +25,8 @@ pub struct UseItem {
     pub item_id: String,
     /// Whether the player was sneaking (shift) during use.
     pub sneaking: bool,
+    /// Whether it's the stack in the player's other hand.
+    pub off_hand: bool,
     pub dimension: String,
 }
 

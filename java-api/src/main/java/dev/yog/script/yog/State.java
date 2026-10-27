@@ -59,6 +59,27 @@ public final class State {
         return live(made, new Place(mod, YogNames.Storage.PLAYER, uuid, ""));
     }
 
+    /** {@code made} (an item's object, as {@code player} uses the stack
+     * in a hand): its {@code saved} members read from the stack's data,
+     * each under {@code mod:Owner.Member}. A stack's state travels with it:
+     * no store, and nothing live. */
+    public static void heldLoad(Saved made, String mod, String player, boolean offHand) {
+        made.$load(key -> {
+            YogTypes.Record r = new YogServices.Player.HeldItemData(player, offHand, stackKey(mod, key)).call();
+            return r == null ? null : r.bytes();
+        });
+    }
+
+    /** {@code made}'s {@code saved} members written to the stack's data, as it's changed. */
+    public static void heldSave(Saved made, String mod, String player, boolean offHand) {
+        made.$save((key, bytes) -> new YogServices.Player.SetHeldItemData(player, offHand, stackKey(mod, key), bytes).call());
+    }
+
+    /** A record's key in a stack's data: its mod's, then its own. */
+    private static String stackKey(String mod, String key) {
+        return mod + YogNames.Sep.NAMESPACE + key;
+    }
+
     /** {@code made} (entity {@code uuid}'s object): read in from its own store, live. */
     public static <T extends Saved> T entity(T made, String mod, String uuid) {
         return live(made, new Place(mod, YogNames.Storage.ENTITY, uuid, ""));

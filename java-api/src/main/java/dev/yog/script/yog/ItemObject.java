@@ -29,9 +29,18 @@ public abstract class ItemObject {
                 Supplier<? extends ItemObject> m = MAKERS.get(e.itemId());
                 if (m != null) {
                     try {
-                        List<Action1<String>> hs = m.get().Use.handlers();
+                        ItemObject o = m.get();
                         String player = e.playerName();
+                        // Its `saved` members: the stack's, read before and written after.
+                        String mod = namespace(e.itemId());
+                        if (o instanceof State.Saved s) {
+                            State.heldLoad(s, mod, player, e.offHand());
+                        }
+                        List<Action1<String>> hs = o.Use.handlers();
                         for (int i = 0, n = hs.size(); i < n; i++) hs.get(i).Invoke(player);
+                        if (o instanceof State.Saved s) {
+                            State.heldSave(s, mod, player, e.offHand());
+                        }
                     } catch (RuntimeException ex) {
                         YogLog.error("Yog Script: an item's handler panicked: " + ex.getMessage());
                     }
@@ -39,5 +48,11 @@ public abstract class ItemObject {
                 return null;
             });
         }
+    }
+
+    /** The mod an id is of: its namespace ({@code mymod:wand}'s {@code mymod}). */
+    private static String namespace(String id) {
+        int sep = id.indexOf(dev.yog.YogNames.Sep.NAMESPACE);
+        return sep < 0 ? id : id.substring(0, sep);
     }
 }

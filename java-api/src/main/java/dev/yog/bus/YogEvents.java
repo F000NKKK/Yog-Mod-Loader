@@ -1075,19 +1075,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             }
 
             /** Fired when a player right-clicks with an item (server side). */
-            public record UseItem(String playerName, String itemId, boolean sneaking, String dimension) {
+            public record UseItem(String playerName, String itemId, boolean sneaking, boolean offHand, String dimension) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("item_id", itemId);
                     m.put("sneaking", sneaking);
+                    m.put("off_hand", offHand);
                     m.put("dimension", dimension);
                     return m;
                 }
 
                 public static UseItem fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.str(m.get("dimension"), ""));
+                    return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.bool(m.get("off_hand"), false), YogData.str(m.get("dimension"), ""));
                 }
 
                 public static UseItem fromBytes(byte[] bytes) {
@@ -1099,6 +1100,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     p.putStr(this.playerName);
                     p.putStr(this.itemId);
                     p.putBool(this.sneaking);
+                    p.putBool(this.offHand);
                     p.putStr(this.dimension);
                     p.end(at);
                 }
@@ -1108,9 +1110,10 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     String f_playerName = u.more(end) ? u.getStr() : "";
                     String f_itemId = u.more(end) ? u.getStr() : "";
                     boolean f_sneaking = u.more(end) ? u.getBool() : false;
+                    boolean f_offHand = u.more(end) ? u.getBool() : false;
                     String f_dimension = u.more(end) ? u.getStr() : "";
                     u.leave(end);
-                    return new UseItem(f_playerName, f_itemId, f_sneaking, f_dimension);
+                    return new UseItem(f_playerName, f_itemId, f_sneaking, f_offHand, f_dimension);
                 }
 
                 public byte[] toFrame() {
@@ -1148,6 +1151,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     private final int o1;
                     private final int o2;
                     private final int o3;
+                    private final int o4;
 
                     public View(YogFrame.Unpacker u) {
                         this.u = u;
@@ -1155,7 +1159,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                         if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                         if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                         if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
-                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
                         u.leave(end);
                     }
 
@@ -1177,9 +1182,15 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                         return u.getBool();
                     }
 
-                    public String dimension() {
-                        if (o3 < 0) return "";
+                    public boolean offHand() {
+                        if (o3 < 0) return false;
                         u.seek(o3);
+                        return u.getBool();
+                    }
+
+                    public String dimension() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
                         return u.getStr();
                     }
                 }
