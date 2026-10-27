@@ -3,7 +3,7 @@
 //! where they are (`Index::place`), a lambda's own type as the library's
 //! `Action` or `Func` of its arity, a game's array as Java's.
 
-use yog_script_ids::system::CONTENT_ID;
+use yog_script_ids::system::{CONTENT_ID, TAG_ID};
 use yog_script_analyze::ast::{Type as Written, TypeKind};
 use yog_script_analyze::{Type, builtin_type, system_type, yog};
 
@@ -22,12 +22,12 @@ impl Gen<'_> {
             return if boxed { boxed_name(p) } else { p }.to_string();
         }
         match t {
-            Type::String | Type::Content(_) | Type::Tag => STRING.into(),
+            Type::String | Type::Content(_) | Type::Tag(_) => STRING.into(),
             Type::Decimal => BIG_DECIMAL.into(),
             Type::Void => if boxed { BOXED_VOID } else { VOID }.into(),
             Type::Unit(_) => self.java(&Type::F64, boxed),
             // A `ContentId<T>` is its text, as an `ItemId` is.
-            Type::Own(name, _) if name == CONTENT_ID => STRING.into(),
+            Type::Own(name, _) if name == CONTENT_ID || name == TAG_ID => STRING.into(),
             Type::Own(name, args) => self.generic(&self.index.place(name, args.len()), args),
             Type::Static(name, args) if args.is_empty() => self.index.place_named(name),
             Type::Static(name, args) => self.index.place(name, args.len()),
@@ -111,7 +111,7 @@ impl Gen<'_> {
                 {
                     return self.java(&b, boxed);
                 }
-                if name == CONTENT_ID {
+                if name == CONTENT_ID || name == TAG_ID {
                     return STRING.into();
                 }
                 // A quantity (`Ticks`, a mod's `Energy`): a number.

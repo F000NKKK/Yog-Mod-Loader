@@ -275,8 +275,8 @@ impl Checker<'_, '_, '_> {
             // An own type, or one it inherits, given the arguments wanted.
             (Type::Own(a, xs), Type::Own(b, ys)) => self.own_converts(a, xs, (b, ys), true),
             (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
-            // An `ItemId` is a `ContentId<T>` (generic code's).
-            (Type::Content(_), Type::Own(b, ys)) => b == yog_script_ids::system::CONTENT_ID && ys.len() == 1,
+            // An `ItemId` is a `ContentId<T>` (generic code's), a tag a `TagId<T>` too.
+            (got @ (Type::Content(_) | Type::Tag(_)), wanted) => content_ids::id_converts(got, wanted),
             (Type::Tuple(got, _), Type::Tuple(wanted, _)) => self.tuple_converts(got, wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {

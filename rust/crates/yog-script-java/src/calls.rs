@@ -519,7 +519,7 @@ impl Gen<'_> {
         args: &[Arg],
         (init, items): (&[(Name, Expr)], &[Stmt]),
     ) -> String {
-        if let Some(Type::Content(_)) = self.types.of(e) {
+        if let Some(Type::Content(_) | Type::Tag(_)) = self.types.of(e) {
             return self.new_content_id(args);
         }
         let a = self.new_args(e, args);

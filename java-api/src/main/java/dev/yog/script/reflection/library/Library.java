@@ -147,6 +147,7 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.yog.GameTime.class, () -> GameTimeCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.ItemObject.class, () -> ItemObjectCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.Sender.class, () -> SenderCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.yog.TagId.class, () -> TagIdCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.Text.class, () -> TextCompanion.TYPE));
 
     public static dev.yog.script.Type of(Class<?> c) {

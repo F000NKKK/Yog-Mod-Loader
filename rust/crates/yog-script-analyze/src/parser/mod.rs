@@ -245,7 +245,6 @@ fn describe(tok: &Tok) -> String {
         Tok::Str(_) | Tok::RawStr(_) | Tok::Text(_) => "a string".into(),
         Tok::Char(_) => "a character".into(),
         Tok::Lifetime(name) => format!("the lifetime `'{name}`"),
-        Tok::Tag(id) => format!("`#{id}`"),
         Tok::Doc(_) => "a doc comment".into(),
         Tok::Eof => "the end of the file".into(),
     }

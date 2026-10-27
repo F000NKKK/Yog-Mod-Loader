@@ -221,10 +221,22 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
         self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id.to_string())]), start);
     }
 
+    /// `#namespace:path`, Yog Script's old tag: said to be a typed id now
+    /// (`new TagId<ItemId>("c:ingots")`), read as its text.
     fn tag(&mut self, start: usize) {
         self.bump();
         let id = self.res_id().to_string();
-        self.push(Tok::Tag(id), start);
+        let span = Span::new(start, self.pos);
+        let (tag, item) = (yog_script_ids::system::TAG_ID, yog_codegen::pascal(yog_ids::kind::ITEM));
+        self.report.error(
+            script_problem::BAD_REFERENCE,
+            span,
+            format!(
+                "a tag is named by a typed id: `new {tag}<{item}{}>(\"{id}\")` (of its content's kind)",
+                yog_script_ids::system::CONTENT_ID_SUFFIX
+            ),
+        );
+        self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id)]), start);
     }
 
     fn punct(&mut self, start: usize, c: char) {

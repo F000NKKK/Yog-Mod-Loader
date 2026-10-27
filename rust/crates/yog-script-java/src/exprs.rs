@@ -61,7 +61,7 @@ impl Gen<'_> {
             ExprKind::Bool(b) => b.to_string(),
             ExprKind::Null => NULL.into(),
             ExprKind::Char(c) => java_char(*c, &self.code.str(&c.to_string())),
-            ExprKind::RawStr(s) | ExprKind::Tag(s) => self.code.str(s),
+            ExprKind::RawStr(s) => self.code.str(s),
             // `t"key"`: Yog's `Text` of the key.
             ExprKind::Text(key) => format!(
                 "{}.{TEXT_OF}({})",

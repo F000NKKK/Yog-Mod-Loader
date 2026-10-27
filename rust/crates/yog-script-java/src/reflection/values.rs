@@ -127,7 +127,7 @@ impl Gen<'_> {
                 ))
             }
             // An `ItemId`: `ContentId<TSelf>`'s companion's.
-            Type::Content(_) => self.index.host(t).map(|h| of_class(&h)),
+            Type::Content(_) | Type::Tag(_) => self.index.host(t).map(|h| of_class(&h)),
             // A quantity is its number on the JVM: an `f64`'s.
             Type::Unit(_) => self.value_of(&Type::F64),
             // Yog's: its class's (a handle's, its subject's: a string's).

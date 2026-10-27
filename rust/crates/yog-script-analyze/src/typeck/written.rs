@@ -84,6 +84,9 @@ impl Checker<'_, '_, '_> {
         if name == yog_script_ids::system::CONTENT_ID && args.len() == 1 && yog(self) {
             return super::content_ids::content_id_of(args);
         }
+        if name == yog_script_ids::system::TAG_ID && args.len() == 1 && yog(self) {
+            return super::content_ids::tag_id_of(args);
+        }
         if own {
             return Type::Own(name.to_string(), args);
         }

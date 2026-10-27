@@ -39,16 +39,15 @@ VERBATIM   = '@"' (char | '""' | '{' expr '}')* '"' ;  (* C#'s $@: no escapes, "
 CHAR       = "'" (char | '\' escape) "'" ;
 LIFETIME   = "'" IDENT ;                              (* 'a, 'static: no closing quote, unlike a CHAR *)
 TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
-TAG        = '#' res_id ;                            (* #minecraft:logs *)
 res_id     = (namespace ':')? path ;
 kind       = IDENT ;                                 (* the content kinds of yog-ids, open: a mod's own kinds too *)
 ```
 
 A unit suffix binds without a space (`20t`, `5s`, `3b`); `20 t` is a
-number and a name. `TAG` is checked at build time against the registries
-of every targeted version. Content is named by a typed id, not a literal:
+number and a name. Content and tags are named by typed ids, not literals:
 `new ItemId("minecraft:stick")` (`BlockId`, `SoundId`, … one each kind,
-all a `ContentId<TSelf>`), its text checked when it's written out.
+all a `ContentId<TSelf>`), `new TagId<ItemId>("c:ingots")`; their text is
+checked when it's written out.
 
 ### 1.3 Keywords
 
@@ -409,7 +408,7 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 expr        = lambda | conditional ;
 primary     = literal | macro_call | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
             | '(' expr ')' | tuple | collection | new_expr | block_lambda ;
-literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | VERBATIM | CHAR | TEXT | TAG | 'true' | 'false' ;
+literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | VERBATIM | CHAR | TEXT | 'true' | 'false' ;
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
 collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
 element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)

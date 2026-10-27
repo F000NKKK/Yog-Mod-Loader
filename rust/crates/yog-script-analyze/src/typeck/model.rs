@@ -33,7 +33,9 @@ pub enum Type {
     Unit(String),
     /// A content's id of a kind: an `ItemId` is `Content("item")` (`content_ids.rs`).
     Content(String),
-    Tag,
+    /// A tag of a content kind: a `TagId<ItemId>` is `Tag("item")`
+    /// (`content_ids.rs`); `""` of kinds not one.
+    Tag(String),
     /// A type the source declares, by name, with its type arguments
     /// (`Box<i32>`; none when it isn't generic).
     Own(String, Vec<Type>),
@@ -181,7 +183,7 @@ impl fmt::Display for Type {
                 write!(f, "{u}")
             }
             Type::Content(kind) => write!(f, "{}", super::content_ids::content_id_name(kind)),
-            Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
+            Type::Tag(kind) => write!(f, "{}", super::content_ids::tag_id_name(kind)),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),
             // As C# writes it: the item, then the ranks outermost first
             // (`i32[][,]`, an array of `i32[,]`).

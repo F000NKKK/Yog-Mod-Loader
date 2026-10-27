@@ -550,6 +550,11 @@ impl Checker<'_, '_, '_> {
             let of = yog_script_ids::system::CONTENT_ID.to_string();
             return Some(Type::Own(of, vec![t.clone()]));
         }
+        // A tag's id: a `TagId<ItemId>`'s, its `ContentId`'s members.
+        if let Type::Tag(kind) = t {
+            let of = yog_script_ids::system::TAG_ID.to_string();
+            return Some(Type::Own(of, vec![Type::Content(kind.clone())]));
+        }
         let name = match t {
             Type::Array(..) => yog_script_ids::system::ARRAY,
             _ => super::builtin::system_name(t)?,

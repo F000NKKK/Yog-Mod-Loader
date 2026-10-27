@@ -180,6 +180,8 @@ pub const LOGGER_EXTENSIONS: &str = "LoggerExtensions";
 /// name and this suffix), all a `ContentId<TSelf>`: `Yog`'s.
 pub const CONTENT_ID: &str = "ContentId";
 pub const CONTENT_ID_SUFFIX: &str = "Id";
+/// A tag's id, of the kind of id it tags: `TagId<ItemId>`, a `ContentId` too.
+pub const TAG_ID: &str = "TagId";
 
 /// The attribute of a constructor that sets its type's `required` members.
 pub const SETS_REQUIRED_MEMBERS: &str = "SetsRequiredMembers";

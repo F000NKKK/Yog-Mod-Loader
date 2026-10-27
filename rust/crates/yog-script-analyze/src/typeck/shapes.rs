@@ -22,7 +22,8 @@ impl Type {
             Shape::Str | Shape::Atom => Type::String,
             Shape::Text => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
             Shape::Ref([kind]) => Type::Content((*kind).to_string()),
-            Shape::Tag(_) => Type::Tag,
+            Shape::Tag([kind]) => Type::Tag((*kind).to_string()),
+            Shape::Tag(_) => Type::Tag(String::new()),
             Shape::List(inner) => Type::Own(LIST.into(), vec![Type::of_shape(&inner())]),
             Shape::Map(inner) => Type::Own(
                 DICTIONARY.into(),

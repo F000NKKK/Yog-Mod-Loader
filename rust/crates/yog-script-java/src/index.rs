@@ -410,10 +410,11 @@ impl Index {
     /// Where built-in type `t`'s members' companion is (`string`'s), if
     /// the library has one.
     pub fn host(&self, t: &yog_script_analyze::Type) -> Option<String> {
-        use yog_script_ids::system::CONTENT_ID;
-        // An `ItemId`, a `ContentId<T>`: `ContentId<TSelf>`'s.
-        if matches!(t.non_null(), yog_script_analyze::Type::Content(_))
-            || matches!(t.non_null(), yog_script_analyze::Type::Own(n, _) if n == CONTENT_ID)
+        use yog_script_analyze::Type::{Content, Own, Tag};
+        use yog_script_ids::system::{CONTENT_ID, TAG_ID};
+        // An `ItemId`, a tag's id, a `ContentId<T>`: `ContentId<TSelf>`'s.
+        if matches!(t.non_null(), Content(_) | Tag(_))
+            || matches!(t.non_null(), Own(n, _) if n == CONTENT_ID || n == TAG_ID)
         {
             return self.hosts.contains(CONTENT_ID).then(|| self.place(CONTENT_ID, 1));
         }

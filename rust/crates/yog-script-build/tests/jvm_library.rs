@@ -286,11 +286,12 @@ fn content_ids() {
                        let name = \"minecraft:oak_log\";\n\
                        let log = new BlockId(name);\n\
                        let made = new BlockId(\"oak\" + \"_planks\");\n\
-                       return stick.Id + \" \" + stick.Namespace + \" \" + Path(log) + \" \" + made.Id + \" \" + (stick.Id == \"minecraft:stick\");\n\
+                       let logs = new TagId<BlockId>(\"logs\");\n\
+                       return stick.Id + \" \" + stick.Namespace + \" \" + Path(log) + \" \" + made.Id + \" \" + (stick.Id == \"minecraft:stick\") + \" \" + logs.Id + \" \" + Path(logs);\n\
                    }\n\
                }\n";
     let Some(out) = support::run(&[("K.ys", src)], "t.KScript.K.Run()") else {
         return;
     };
-    assert_eq!(out, "minecraft:stick minecraft oak_log minecraft:oak_planks True");
+    assert_eq!(out, "minecraft:stick minecraft oak_log minecraft:oak_planks True minecraft:logs logs");
 }

@@ -1,0 +1,9 @@
+namespace Yog;
+
+/// A tag's id, typed by the kind of id it tags: `TagId<ItemId>` (items'
+/// tags), `TagId<BlockId>`, … — a content id too. Made of its text:
+/// `new TagId<ItemId>("c:ingots")` (one without a namespace is the
+/// game's), checked when it's written out. On the JVM it's its text.
+[Intrinsic]
+public abstract class TagId<TKind> : ContentId<TagId<TKind>> {
+}
