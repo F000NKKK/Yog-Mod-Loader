@@ -88,7 +88,7 @@ impl Resolver<'_, '_> {
                 r.expr(cond);
                 r.looping(|r| r.stmt(body));
             }),
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => self.block(b),
             Stmt::Break(at) => self.leaving(
                 *at,
                 self.cx.loops + self.cx.switches,

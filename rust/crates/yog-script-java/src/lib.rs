@@ -11,6 +11,7 @@ mod backing;
 mod bounds;
 mod calls;
 mod captures;
+mod checked;
 mod classes;
 mod collections;
 mod commands;
@@ -227,6 +228,8 @@ pub(crate) struct Gen<'c> {
     /// The `switch` statements around the code, innermost last: one with
     /// `goto case` how it's run again.
     case_jumps: Vec<Option<goto::CaseJump>>,
+    /// The code is in a `checked` context: whole numbers' overflow panics (`checked.rs`).
+    checked: bool,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -288,6 +291,7 @@ impl<'c> Gen<'c> {
             goto_labels: Vec::new(),
             hoisted: std::collections::HashSet::new(),
             case_jumps: Vec::new(),
+            checked: false,
             this_name: None,
             breaks: Vec::new(),
             statik: true,

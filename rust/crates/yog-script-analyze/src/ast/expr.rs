@@ -43,6 +43,12 @@ pub enum ExprKind {
     TypeOf(Type),
     /// `nameof(x.Y)`: its last name, as a string.
     NameOf(Box<Expr>),
+    /// `checked(e)` (`checked`) or `unchecked(e)`: `e`'s whole-number
+    /// arithmetic panicking on overflow, or wrapping (C#'s).
+    Checked {
+        expr: Box<Expr>,
+        checked: bool,
+    },
     /// `default`, `default(T)`: the type's zero value.
     Default(Option<Type>),
     /// `mc >= 1.21`: the running game's version.

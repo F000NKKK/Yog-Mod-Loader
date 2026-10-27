@@ -114,7 +114,11 @@ impl<'p> Interp<'p> {
                 Value::Null => self.panic("`!` on a value that is null", e.span),
                 v => Ok(v),
             },
-            ExprKind::Move(inner) | ExprKind::TypeArgs { expr: inner, .. } => self.eval(inner),
+            // `checked(e)` too: every whole number's overflow panics here
+            // (the interpreter's are `i64`s, none wrapping).
+            ExprKind::Move(inner)
+            | ExprKind::TypeArgs { expr: inner, .. }
+            | ExprKind::Checked { expr: inner, .. } => self.eval(inner),
             ExprKind::NameOf(inner) => Ok(Value::str(&last_name(inner))),
             ExprKind::Macro { name, args } => self.builtin_macro(name, args, e.span),
             ExprKind::Declare { name, .. } => {

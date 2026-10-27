@@ -103,6 +103,9 @@ pub enum Stmt {
     Yield(Option<Expr>, Span),
     /// `unsafe { … }`: the threads checks skipped inside (a warning).
     Unsafe(Block, Span),
+    /// `checked { … }` (`checked`) or `unchecked { … }`: the block's
+    /// whole-number arithmetic panicking on overflow, or wrapping.
+    Checked(Block, bool),
     /// `switch (expr) { case p when g: … break; default: … }` (C#'s
     /// statement): the first section a label of takes the value runs; its
     /// `break` leaves the switch.

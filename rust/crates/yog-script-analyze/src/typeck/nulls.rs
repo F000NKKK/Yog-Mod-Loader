@@ -132,7 +132,7 @@ pub fn leaves(s: &Stmt) -> bool {
     match s {
         Stmt::Return(..) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::Skip(..) | Stmt::Goto(..) => true,
         Stmt::Yield(None, _) => true,
-        Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.last().is_some_and(leaves),
+        Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => b.stmts.last().is_some_and(leaves),
         Stmt::If {
             then,
             otherwise: Some(o),

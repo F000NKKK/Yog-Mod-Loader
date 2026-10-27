@@ -199,3 +199,11 @@ string Run() => Shape(new i32[0]) + "|" + Shape(new i32[] { 7 }) + "|" + Shape(n
 "#;
     assert_eq!(run(src, "Run", vec![]), Ok(Value::str("empty|one 7|zero|1+2+4|True")));
 }
+
+/// `checked`/`unchecked` forms run their code (the interpreter's whole
+/// numbers are `i64`s whose overflow always panics).
+#[test]
+fn checked_forms_run() {
+    let src = "i32 Run() { let mut t = checked(2 + 3); unchecked { t += 1; } checked { t *= 2; } return t; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(12)));
+}

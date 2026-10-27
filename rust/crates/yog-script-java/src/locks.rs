@@ -27,7 +27,7 @@ impl Gen<'_> {
         }
         self.code.open(TRY);
         match body {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.code.close("");

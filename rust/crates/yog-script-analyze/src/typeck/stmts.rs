@@ -69,7 +69,7 @@ impl Checker<'_, '_, '_> {
                 c.condition(cond);
                 c.branch(body);
             }),
-            Stmt::Block(b) => self.block(b),
+            Stmt::Block(b) | Stmt::Checked(b, _) => self.block(b),
             Stmt::Unsafe(b, at) => self.unsafe_block(b, *at),
             Stmt::Yield(v, at) => self.yielded(v.as_ref(), *at),
             Stmt::Lock {

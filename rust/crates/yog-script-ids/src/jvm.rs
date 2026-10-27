@@ -467,3 +467,15 @@ pub mod tasks {
     pub const RESULT: &str = "Result";
     pub const CHECK: &str = "check";
 }
+
+/// `checked` arithmetic's runtime (`dev.yog.script.Checked`): a value kept
+/// in its type's range or a panic, `i64`'s operations exact.
+pub mod checked {
+    pub const CLASS: &str = concat!(runtime!(), sep!(), "Checked");
+    pub const RANGE: &str = "range";
+    pub const FROM_FLOAT: &str = "fromFloat";
+    pub const ADD: &str = "add";
+    pub const SUB: &str = "sub";
+    pub const MUL: &str = "mul";
+    pub const NEG: &str = "neg";
+}

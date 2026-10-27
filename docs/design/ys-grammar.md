@@ -59,7 +59,7 @@ public private internal protected static const readonly new this base
 abstract sealed virtual override typeof nameof default
 void let mut i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 decimal bool char string object dynamic
 ref out move typeof nameof default
-if else switch foreach for in while do break continue goto return
+if else switch foreach for in while do break continue goto return checked unchecked
 true false null is as and or not when
 async await try
 server client shared saved synced was tune test extern
@@ -361,7 +361,8 @@ stmt        = local_decl ';' | expr ';' | assign ';' | block
             | if_stmt | foreach_stmt | for_stmt | while_stmt | do_stmt
             | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';'
             | IDENT ':'                                              (* a label *)
-            | 'goto' (IDENT | 'case' expr | 'default') ';' ;         (* a label of its block or one around it *)
+            | 'goto' (IDENT | 'case' expr | 'default') ';'          (* a label of its block or one around it *)
+            | ('checked' | 'unchecked') block ;                      (* whole numbers' overflow panics / wraps *)
 local_decl  = 'let' 'mut'? binding (':' type)? ('=' expr)?
             | type IDENT ('=' expr)? ;                               (* C#'s typed local: assignable *)
 binding     = IDENT | '(' IDENT (',' IDENT)+ ')' ;                   (* deconstruction *)

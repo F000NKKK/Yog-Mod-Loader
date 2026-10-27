@@ -140,7 +140,7 @@ impl Seen {
                 self.expr(cond, inside);
                 self.stmt(body, inside);
             }
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => {
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => {
                 b.stmts.iter().for_each(|s| self.stmt(s, inside))
             }
             Stmt::Lock { target, body, .. } => {

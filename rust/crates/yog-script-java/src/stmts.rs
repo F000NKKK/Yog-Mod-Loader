@@ -58,7 +58,7 @@ impl Gen<'_> {
     fn branch(&mut self, head: &str, s: &Stmt) {
         self.code.open(head);
         match s {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.code.close("");
@@ -93,6 +93,7 @@ impl Gen<'_> {
                 }
             },
             Stmt::Assign { place, op, value } => self.assign(place, op.as_ref(), value),
+            Stmt::Checked(b, checked) => self.checked_block(b, *checked),
             Stmt::If {
                 cond,
                 then,
@@ -215,7 +216,7 @@ impl Gen<'_> {
 
     fn simple(&mut self, s: &Stmt) {
         match s {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => {
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => {
                 self.code.open("");
                 self.block_stmts(b);
                 self.code.close("");
@@ -376,6 +377,9 @@ impl Gen<'_> {
             Some(op) if self.types.assigned(place).is_some() => {
                 format!("{p} = {}", self.op_value(place, op, p, v))
             }
+            Some(op) if let Some(c) = self.checked_binary(self.types.of(place), op, (p, v), place.span) => {
+                format!("{p} = {c}")
+            }
             Some(op) => format!("{p} {}= {v}", crate::exprs::op_text(op)),
             None => format!("{p} = {v}"),
         }
@@ -452,7 +456,7 @@ impl Gen<'_> {
         self.continues.push(Some(format!("{BREAK} {label};")));
         self.breaks.push(None);
         match body {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.continues.pop();
@@ -539,7 +543,7 @@ impl Gen<'_> {
             ));
         }
         self.loop_body(|g| match body {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => g.block_stmts(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => g.block_stmts(b),
             other => g.stmt(other),
         });
         self.code.close("");

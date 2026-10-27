@@ -135,8 +135,16 @@ impl Gen<'_> {
                     let v = self.expr(expr);
                     self.as_decimal(expr, v)
                 }
-                None => format!("(({}) {})", self.written(ty, false), self.expr(expr)),
+                None => {
+                    let v = self.expr(expr);
+                    let types = (self.types.of(expr), self.types.of(e));
+                    match self.checked_cast(types, &v, e.span) {
+                        Some(checked) => checked,
+                        None => format!("(({}) {v})", self.written(ty, false)),
+                    }
+                }
             },
+            ExprKind::Checked { expr: inner, checked } => self.checked_expr(inner, *checked),
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
@@ -277,7 +285,11 @@ impl Gen<'_> {
             UnOp::Neg if self.types.of(expr).map(Type::non_null) == Some(&Type::Decimal) => {
                 Self::decimal_negated(&self.expr(expr))
             }
-            UnOp::Neg => format!("(-{})", self.expr(expr)),
+            UnOp::Neg => {
+                let v = self.expr(expr);
+                self.checked_neg(self.types.of(expr), &v, expr.span)
+                    .unwrap_or_else(|| format!("(-{v})"))
+            }
             UnOp::FromEnd => self.counted_back(expr),
             UnOp::Not => format!("(!{})", self.expr(expr)),
             UnOp::BitNot => format!("(~{})", self.expr(expr)),
@@ -351,7 +363,9 @@ impl Gen<'_> {
             BinOp::Shr if self.types.of(left).map(Type::non_null) == Some(&Type::U64) => {
                 format!("({l} {UNSIGNED_SHR} {r})")
             }
-            _ => format!("({l} {} {r})", op_text(op)),
+            _ => self
+                .checked_binary(self.types.of(e), op, (&l, &r), e.span)
+                .unwrap_or_else(|| format!("({l} {} {r})", op_text(op))),
         }
     }
 

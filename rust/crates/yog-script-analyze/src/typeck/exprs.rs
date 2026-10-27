@@ -38,7 +38,7 @@ impl Checker<'_, '_, '_> {
                 self.type_of(ty);
                 Type::own(yog_script_ids::system::TYPE)
             }
-            ExprKind::Move(expr) => self.expr(expr),
+            ExprKind::Move(expr) | ExprKind::Checked { expr, .. } => self.expr(expr),
             ExprKind::Default(Some(ty)) => self.type_of(ty),
             ExprKind::Member { expr, name, safe } => self.member_expr(expr, name, *safe),
             ExprKind::Call { callee, args } => self.call(e, callee, args),

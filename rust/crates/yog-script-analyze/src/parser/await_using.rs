@@ -151,6 +151,7 @@ fn nested(x: &Name, s: Stmt, around: Around) -> Stmt {
         },
         Stmt::Block(b) => Stmt::Block(rewrite_block(x, b, around)),
         Stmt::Unsafe(b, at) => Stmt::Unsafe(rewrite_block(x, b, around), at),
+        Stmt::Checked(b, checked) => Stmt::Checked(rewrite_block(x, b, around), checked),
         Stmt::Lock {
             target,
             value,

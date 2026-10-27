@@ -77,6 +77,7 @@ impl Expr {
             ExprKind::NameOf(e)
             | ExprKind::NotNull(e)
             | ExprKind::Move(e)
+            | ExprKind::Checked { expr: e, .. }
             | ExprKind::Unary { expr: e, .. }
             | ExprKind::Cast { expr: e, .. }
             | ExprKind::Is { expr: e, .. }
@@ -185,7 +186,7 @@ impl Stmt {
                 f(cond);
                 body.each_expr(f);
             }
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().for_each(|s| s.each_expr(f)),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => b.stmts.iter().for_each(|s| s.each_expr(f)),
             Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
             Stmt::Lock { target, body, .. } => {
                 f(target);
@@ -202,7 +203,7 @@ impl Stmt {
     /// The statements directly inside it (a local function's aside: its own code).
     pub fn inner(&self) -> Vec<&Stmt> {
         match self {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().collect(),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => b.stmts.iter().collect(),
             Stmt::If {
                 then, otherwise, ..
             } => std::iter::once(&**then).chain(otherwise.as_deref()).collect(),

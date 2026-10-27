@@ -92,7 +92,7 @@ impl<'p> Interp<'p> {
 
     fn leaf(&mut self, s: &Stmt) -> Run<()> {
         match s {
-            Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => self.block(b),
             Stmt::Break(_) => Err(Stop::Break),
             Stmt::Goto(to, _) => Err(Stop::Goto(self.jump(to)?)),
             Stmt::Continue(_) => Err(Stop::Continue),
