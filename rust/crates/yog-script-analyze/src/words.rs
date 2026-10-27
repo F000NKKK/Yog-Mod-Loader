@@ -131,7 +131,7 @@ words! {
     was, requires, every, has, params, r#where, when, get, set, init, value, field, operator, implicit, explicit, mc, out,
     // Modifiers.
     public, private, internal, protected, r#static, r#const, readonly, r#async,
-    r#abstract, r#virtual, r#override, sealed, r#extern, partial,
+    r#abstract, r#virtual, r#override, sealed, r#extern, partial, required,
     server, client, shared, saved, synced, tune,
     // Built-in types.
     void, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, decimal, bool, char, string, object,

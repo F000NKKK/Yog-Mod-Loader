@@ -45,6 +45,7 @@ mod own;
 mod passing;
 mod pick;
 mod shapes;
+mod required;
 mod stmts;
 mod templates;
 pub(crate) mod surface;

@@ -117,6 +117,10 @@ pub(crate) struct OwnType {
     pub templates: HashMap<String, Vec<Option<String>>>,
     /// Its body's constructors' crossings, as `ctors`.
     pub ctor_crossings: Vec<Vec<(String, String)>>,
+    /// Its `required` fields and properties, by name.
+    pub required: Vec<String>,
+    /// Whether each of its constructors (as `ctors`) is `[SetsRequiredMembers]`.
+    pub ctor_sets_required: Vec<bool>,
 }
 
 /// An indexer as written: its getter (`get_Item`, what `x[i]` is typed as

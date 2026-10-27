@@ -175,6 +175,9 @@ pub const LOGGER_MESSAGE: &str = "LoggerMessage";
 /// The class of `LogInformation` & co.: a call of its a log a
 /// `[LoggerMessage]` method writes faster (a warning, .NET's CA1848).
 pub const LOGGER_EXTENSIONS: &str = "LoggerExtensions";
+
+/// The attribute of a constructor that sets its type's `required` members.
+pub const SETS_REQUIRED_MEMBERS: &str = "SetsRequiredMembers";
 pub const LOGGER_MESSAGE_EVENT_ID: &str = "eventId";
 pub const LOGGER_MESSAGE_LEVEL: &str = "level";
 pub const LOGGER_MESSAGE_TEXT: &str = "message";

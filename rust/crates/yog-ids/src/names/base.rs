@@ -391,6 +391,8 @@ names! {
         /// A `goto` to a label not in its block nor one around it, a
         /// label declared twice, `goto case`/`goto default` outside a `switch`.
         GOTO = "YS0046",
+        /// A `new` leaving a `required` member unset (C#'s CS9035).
+        REQUIRED = "YS0047",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

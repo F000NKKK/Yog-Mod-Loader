@@ -436,9 +436,7 @@ impl Checker<'_, '_, '_> {
         if let Some(args) = args {
             self.constructed(e, &t, args);
         }
-        init.iter().for_each(|(_, v)| {
-            self.expr(v);
-        });
+        self.initialized(e, &t, init);
         self.made(&t, e.span);
         t
     }

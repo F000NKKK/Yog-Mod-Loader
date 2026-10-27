@@ -3,11 +3,17 @@
 
 use super::{Indexer, OwnType, threads};
 use crate::ast::{self, Decl, DeclKind};
+use yog_script_ids::system::SETS_REQUIRED_MEMBERS;
 
 /// The values, methods and indexers of a body.
 pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
     for d in body {
         match &d.kind {
+            DeclKind::Field(f) if d.has(ast::Modifier::Required) => {
+                t.required.push(f.name.text.clone());
+                t.values.insert(f.name.text.clone(), f.ty.clone());
+                threads::field(t, d, &f.name.text);
+            }
             DeclKind::Field(f) => {
                 t.values.insert(f.name.text.clone(), f.ty.clone());
                 threads::field(t, d, &f.name.text);
@@ -18,6 +24,9 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 explicit: None,
                 ..
             } => {
+                if d.has(ast::Modifier::Required) {
+                    t.required.push(name.text.clone());
+                }
                 t.values.insert(name.text.clone(), ty.clone());
                 if crate::ast::stores_value(d) {
                     threads::field(t, d, &name.text);
@@ -30,6 +39,8 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
             DeclKind::Ctor(c) => {
                 t.ctors.push(c.params.clone());
                 t.ctor_crossings.push(threads::crossings(d));
+                let sets = threads::attributes(d, SETS_REQUIRED_MEMBERS).next().is_some();
+                t.ctor_sets_required.push(sets);
             }
             DeclKind::Indexer(ix) => {
                 if let Some(get) = ix.getter() {

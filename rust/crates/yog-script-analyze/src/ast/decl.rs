@@ -31,6 +31,9 @@ pub enum Modifier {
     Extern,
     /// Its body is generated: a `[LoggerMessage]` method's.
     Partial,
+    /// `required`: a `new` of its type sets it (in its initializer), unless
+    /// the constructor called is `[SetsRequiredMembers]`.
+    Required,
     /// `new`: hides a member of its name it inherits (`new bool Add(T item)`).
     New,
 }

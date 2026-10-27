@@ -1,0 +1,6 @@
+namespace System.Diagnostics.CodeAnalysis;
+
+/// A constructor that sets every `required` member of its type (.NET's
+/// `SetsRequiredMembersAttribute`): a `new` calling it needn't set them.
+public sealed class SetsRequiredMembers : Attribute {
+}
