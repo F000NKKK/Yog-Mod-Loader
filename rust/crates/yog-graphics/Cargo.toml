@@ -10,3 +10,5 @@ repository = "https://github.com/F000NKKK/Yog-Mod-Loader"
 
 [dependencies]
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }

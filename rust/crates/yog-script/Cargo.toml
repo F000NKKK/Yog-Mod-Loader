@@ -15,5 +15,7 @@ yog-script-build = { workspace = true }
 yog-script-analyze = { workspace = true }
 yog-script-run = { workspace = true }
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-ids = { workspace = true }
 yog-logging = { workspace = true }

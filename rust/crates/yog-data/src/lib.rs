@@ -1,45 +1,30 @@
-//! Yog Data: one data model, text syntax, binary form and schema system for
-//! every Yog format, the build, the ABI and the IDE — the way Minecraft has
-//! NBT. See `docs/design/yog-data.md`.
+//! Yog Data: Substrate Data (one model, text, binary, frames and schemas)
+//! with Yog's domain declared over it — the kinds of content, tags, mod
+//! resources, translation keys, texts players read, images and colours.
+//! See `docs/design/yog-data.md`.
 //!
-//! - [`Value`]: the model — JSON's values plus typed ones (content
-//!   references, tags, mod resources, Yog text, images, colors);
-//! - [`text`]: JSON with comments, trailing commas and unquoted keys,
-//!   parsed with the position of every value;
-//! - [`typed`]: the one grammar of the typed values' string forms
-//!   (`@item:minecraft:stick`, `@tag:item:minecraft:planks`, `@Strings.title`);
-//! - [`binary`]: the compact tagged form content crosses the ABI in.
+//! Everything of Substrate Data is here as it is (`yog_data::Value`,
+//! `yog_data::Schema`, `yog_data::to_bytes`); Yog's own types are the
+//! modules below.
 
-// `::yog_data::…` paths of `#[derive(Schema)]` work inside this crate too.
-extern crate self as yog_data;
+pub use substrate_data::*;
 
-pub mod diagnostic;
-mod forms;
-mod model;
-mod wire;
+mod built_in;
+mod color;
+mod content;
+mod expected;
+pub mod found;
+pub mod export;
+mod image;
+mod res;
+mod tag;
+mod shown;
 
-#[cfg(feature = "json")]
-pub use forms::json;
-#[cfg(feature = "toml")]
-pub use forms::toml;
-pub use forms::{patch, source, text};
-pub use model::{atom, typed};
-pub use schema::with;
-pub use wire::{binary, export, frame, io};
-
-pub use atom::Atom;
-pub use bumpalo::Bump;
-pub use diagnostic::{Diagnostic, Errors, Severity};
-pub use model::borrowed::{MapRef, ValueRef};
-pub use model::value::{Map, Path, Ref, Res, Seg, Value};
-pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
-pub use wire::stream::{Stream, StreamWriter};
-pub mod schema;
-
-pub use schema::{
-    AnyRefOrTag, BlockId, Color, EntityId, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrList,
-    OneOrTag, Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, built_in,
-    from_doc_with, from_text, from_value, from_value_with, kinds, placed, read_bytes,
-    read_ref_value, read_value, to_bytes, to_text,
-};
-pub use yog_data_derive::Schema;
+pub use built_in::built_in;
+pub use color::Color;
+pub use expected::expected;
+pub use content::{BlockId, EntityId, ItemId, RecipeId, kinds};
+pub use image::Image;
+pub use res::Res;
+pub use tag::{AnyRefOrTag, ItemIdOrTag, OneOrTag, TagId};
+pub use shown::{Lang, Text};

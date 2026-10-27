@@ -11,6 +11,8 @@ description = "The schemas of Yog's source formats — .yblock/.yitem, .yrecipe,
 yog-ids = { workspace = true }
 yog-core = { workspace = true }
 yog-data = { workspace = true, features = ["json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 serde_json = { workspace = true }
 # Content definitions whose format is the definition itself (`SoundGroup`).
 yog-registry = { workspace = true }

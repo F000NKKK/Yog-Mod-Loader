@@ -191,7 +191,7 @@ const RESERVED_COLUMNS: [&str; 4] = ["id", "index", "from_id", "all"];
 /// A problem with the table's value at `keys` (`rows.wood.size`).
 fn problem_at(keys: &[&str], message: impl std::fmt::Display) -> Diagnostic {
     let path = keys.iter().fold(At::root(), |at, k| at.key(k));
-    Diagnostic::error(yog_ids::build_problem::CONTENT, message).at_path(path)
+    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::CONTENT), message).at_path(path)
 }
 
 /// The table's fields problems are at.

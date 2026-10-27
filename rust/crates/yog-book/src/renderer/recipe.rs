@@ -22,12 +22,30 @@ pub(crate) struct RecipeVis {
 /// An ingredient: an id, a tag (shown `#ns:path`), or a list of those (any of them).
 fn ingredient(v: &Value) -> Vec<String> {
     match v {
-        Value::Str(s) => vec![s.clone()],
-        Value::Ref(r) => vec![r.id.clone()],
-        Value::Tag(r) => vec![format!("{}{}", yog_ids::sep::TAG_SHOWN, r.id)],
         Value::List(a) => a.iter().flat_map(ingredient).collect(),
-        _ => Vec::new(),
+        one => named(one).into_iter().collect(),
     }
+}
+
+/// What a value names, as the book shows it: an id, a tag `#ns:path`, or
+/// the words of a plain string.
+fn named(v: &Value) -> Option<String> {
+    let r = match v {
+        Value::Ref(r) => r.clone(),
+        Value::Str(s) => match yog_data::typed::classify(s).ok()? {
+            yog_data::typed::Spelled::Ref(r) => r,
+            yog_data::typed::Spelled::Plain(p) => return Some(p),
+            yog_data::typed::Spelled::Bytes(_) => return None,
+        },
+        _ => return None,
+    };
+    let id = r.id.as_str();
+    if r.kind.as_str() != <yog_data::kinds::Tag as yog_data::Kind>::NAME {
+        return Some(id.to_owned());
+    }
+    // A tag's id is its content's kind, then its own.
+    let (_, tag) = id.split_once(yog_ids::sep::NAMESPACE)?;
+    Some(format!("{}{tag}", yog_ids::sep::TAG_SHOWN))
 }
 
 /// A value as a layout's text shows it.
@@ -43,10 +61,7 @@ fn text(x: &Value) -> String {
 /// A recipe in Yog's own format, as the book shows it.
 pub(crate) fn parse_recipe(v: &Value) -> Option<RecipeVis> {
     let kind = v.get(fields::TYPE)?.as_str()?.to_owned();
-    let output = match v.get(fields::RESULT)? {
-        Value::Ref(r) => r.id.clone(),
-        r => r.as_str()?.to_owned(),
-    };
+    let output = named(v.get(fields::RESULT)?)?;
     let count = v
         .get(fields::COUNT)
         .and_then(|c| c.as_i64())

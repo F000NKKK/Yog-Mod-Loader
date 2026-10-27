@@ -13,6 +13,8 @@ yog-ids = { workspace = true }
 # The local patch (`local.toml`) read through a schema: every problem with
 # its line; what Yog Installer installed (`components.ydata`).
 yog-data = { workspace = true, features = ["toml"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 # Versions ordered and matched (`version`).
 semver = { workspace = true }
 # The user's home folder.

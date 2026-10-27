@@ -43,7 +43,7 @@ const CRITERIA: &str = yog_data::field!(AdvancementDef, criteria);
 fn problem(key: &str, index: Option<usize>, message: impl std::fmt::Display) -> Diagnostic {
     let field = At::root().key(key);
     let path = index.map_or(field.clone(), |i| field.index(i));
-    Diagnostic::error(yog_ids::build_problem::CONTENT, message).at_path(path)
+    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::CONTENT), message).at_path(path)
 }
 
 /// Advancement `id` (the mod's own, checked): its JSON in the newest format,

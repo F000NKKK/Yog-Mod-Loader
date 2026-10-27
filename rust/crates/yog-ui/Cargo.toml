@@ -11,6 +11,8 @@ description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rend
 yog-sync = { workspace = true }
 yog-ids = { workspace = true }
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-gfx = { workspace = true }
 yog-abi = { workspace = true }
 

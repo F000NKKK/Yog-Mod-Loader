@@ -41,12 +41,12 @@ impl<'a> Report<'a> {
 
     /// An error of kind `code` at `span`.
     pub fn error(&mut self, code: &str, span: Span, message: impl Display) {
-        self.push(Diagnostic::error(code, message), span);
+        self.push(Diagnostic::error(yog_data::Atom::new(code), message), span);
     }
 
     /// A warning of kind `code` at `span`.
     pub fn warning(&mut self, code: &str, span: Span, message: impl Display) {
-        self.push(Diagnostic::warning(code, message), span);
+        self.push(Diagnostic::warning(yog_data::Atom::new(code), message), span);
     }
 
     /// `d`, placed at `span` of this file.

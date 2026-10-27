@@ -452,6 +452,12 @@ names! {
     typed {
         TAG = crate::kind::TAG,
         LANG = "lang",
+        /// A `.yres` entry: `@res:Strings.title`.
+        RES = "res",
+        /// What the named types are known by in shapes: a text players
+        /// read, a colour.
+        TEXT = crate::word::TEXT,
+        COLOR = "color",
         IMAGE = crate::word::IMAGE,
         /// Bytes as they are, base64 in text: `@bytes:iVBORw0…`.
         BYTES = crate::word::BYTES,

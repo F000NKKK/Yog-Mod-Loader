@@ -388,7 +388,7 @@ pub const ORE_STONES: [(&str, &str); 4] = [
 
 impl yog_data::with::With<String> for OreReplaces {
     fn shape() -> yog_data::Shape {
-        yog_data::Shape::RefOrTag(&[yog_ids::kind::BLOCK])
+        yog_data::OneOrTag::<yog_data::kinds::Block>::shape()
     }
     fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
         use yog_data::ValueRef;
@@ -398,18 +398,19 @@ impl yog_data::with::With<String> for OreReplaces {
                 cx.problem(format!("`{s}`: one of {} — or a tag of blocks (`@tag:block:…`) or a block (`@block:…`)", names.join(", ")));
                 None
             }),
-            ValueRef::Tag { .. } => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| format!("#{}", t.id)),
-            ValueRef::Str(s) if s.starts_with("@tag:") => yog_data::TagId::<yog_data::kinds::Block>::read(v, cx).map(|t| format!("#{}", t.id)),
-            _ => yog_data::with::RefTo::<yog_data::kinds::Block>::read(v, cx),
+            _ => match yog_data::OneOrTag::<yog_data::kinds::Block>::read(v, cx)? {
+                yog_data::OneOrTag::Tag(t) => Some(format!("{}{}", yog_ids::sep::TAG, t.id)),
+                yog_data::OneOrTag::One(_) => yog_data::with::RefTo::<yog_data::kinds::Block>::read(v, cx),
+            },
         }
     }
     fn write(f: &String) -> yog_data::Value {
         if let Some((n, _)) = ORE_STONES.iter().find(|(_, t)| t == f) {
             return yog_data::Value::from(*n);
         }
-        match f.strip_prefix('#') {
-            Some(t) => yog_data::Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, t)),
-            None => yog_data::Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, f.clone())),
+        match f.strip_prefix(yog_ids::sep::TAG) {
+            Some(t) => yog_data::TagId::<yog_data::kinds::Block>::new(t).write(),
+            None => yog_data::Id::<yog_data::kinds::Block>::new(f.clone()).write(),
         }
     }
 }

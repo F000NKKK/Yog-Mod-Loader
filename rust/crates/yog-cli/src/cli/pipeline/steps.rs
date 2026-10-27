@@ -55,7 +55,7 @@ pub(crate) fn warn_all(warnings: &[Diagnostic]) {
 /// Writes the components' index, saying what's wrong with it.
 pub(crate) fn warn_index(root: &Path) -> Result<(), String> {
     if let (_, Some(w)) = component::write_index(root)? {
-        warn_all(&[Diagnostic::warning(yog_ids::build_problem::SCREEN, w)]);
+        warn_all(&[Diagnostic::warning(yog_data::Atom::new(yog_ids::build_problem::SCREEN), w)]);
     }
     Ok(())
 }

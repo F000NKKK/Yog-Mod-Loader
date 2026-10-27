@@ -53,6 +53,8 @@ impl Drop for Held {
     }
 }
 
+yog_data::kind!(HeldObject = nanite_ref::OBJECT: u64);
+
 impl Handle {
     /// The entity `uuid`.
     pub fn entity(uuid: impl Into<String>) -> Handle {
@@ -62,8 +64,8 @@ impl Handle {
     /// As the bus carries it.
     pub fn to_value(&self) -> Value {
         match self {
-            Handle::Object(held) => Value::Ref(Ref::new(nanite_ref::OBJECT, held.0.to_string())),
-            Handle::Entity(uuid) => Value::Ref(Ref::new(kind::ENTITY, uuid.clone())),
+            Handle::Object(held) => Value::Ref(Ref::of::<HeldObject>(&held.0)),
+            Handle::Entity(uuid) => Value::Ref(Ref::of::<yog_data::kinds::Entity>(uuid)),
         }
     }
 
@@ -71,8 +73,8 @@ impl Handle {
     pub fn from_value(v: Value) -> Option<Handle> {
         let Value::Ref(r) = v else { return None };
         match r.kind.as_str() {
-            nanite_ref::OBJECT => r.id.parse().ok().map(|n| Handle::Object(Arc::new(Held(n)))),
-            kind::ENTITY => Some(Handle::Entity(r.id)),
+            nanite_ref::OBJECT => r.id.as_str().parse().ok().map(|n| Handle::Object(Arc::new(Held(n)))),
+            kind::ENTITY => Some(Handle::Entity(r.id.as_str().to_owned())),
             _ => None,
         }
     }

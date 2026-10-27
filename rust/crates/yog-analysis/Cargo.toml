@@ -9,3 +9,5 @@ description = "Yog's toolkit for analyzers: the sources under a folder and their
 
 [dependencies]
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }

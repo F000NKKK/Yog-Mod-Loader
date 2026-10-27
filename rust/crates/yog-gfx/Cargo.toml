@@ -14,6 +14,8 @@ yog-abi = { workspace = true }
 # The graphics primitives every crate shares (colors, rects, images).
 yog-graphics = { workspace = true }
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-sync = { workspace = true }
 
 [features]

@@ -127,7 +127,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
     // Components without a code-behind, for `ui_components!()`.
     let (index, warning) = crate::ui::component::write_index(root)?;
     wanted.push(index);
-    warnings.extend(warning.map(|w| Diagnostic::warning(yog_ids::build_problem::SCREEN, w)));
+    warnings.extend(warning.map(|w| Diagnostic::warning(yog_data::Atom::new(yog_ids::build_problem::SCREEN), w)));
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);

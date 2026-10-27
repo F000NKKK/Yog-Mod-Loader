@@ -10,27 +10,18 @@ description = "Yog Data — the one data model, text syntax, binary form and sch
 exclude = ["benches/hexbook.ybook"]
 
 [dependencies]
-# The names every part shares (namespaces, kinds, typed-value words).
+# The model, text, binary, frames and schemas: Yog's domain is declared over it.
+substrate-data = { workspace = true }
+# The names every part shares (kinds, typed-value words, separators).
 yog-codegen = { workspace = true }
 yog-codegen-typescript = { workspace = true }
 yog-ids = { workspace = true }
 # A built-in table that won't read is reported, not a crash.
 yog-logging = { workspace = true }
-base64 = { workspace = true }
-yog-data-derive = { workspace = true }
-# The arena borrowed values' lists and maps live in (`ValueRef`).
-bumpalo = { workspace = true, features = ["collections"] }
-# `yog.toml` read into the model (`toml` feature).
-toml = { workspace = true, features = ["std", "parse", "preserve_order"], optional = true }
-serde_spanned = { workspace = true, optional = true }
-
-# JSON ⇄ Yog Data (`json` feature).
-serde_json = { workspace = true, optional = true }
-yog-sync = { workspace = true }
 
 [features]
-toml = ["dep:toml", "dep:serde_spanned"]
-json = ["dep:serde_json"]
+toml = ["substrate-data/toml"]
+json = ["substrate-data/json"]
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }

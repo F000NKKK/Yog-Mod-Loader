@@ -18,10 +18,10 @@ pub struct Descriptor {
     pub address: String,
     pub kind: AddressKind,
     pub doc: String,
-    /// The payload's shape (`yog_data::Shape::describe`).
-    pub shape: Value,
+    /// The payload's shape.
+    pub shape: yog_data::ShapeDoc,
     /// A service's reply's shape.
-    pub reply: Option<Value>,
+    pub reply: Option<yog_data::ShapeDoc>,
     /// The interfaces it implements (`yog:energy/storage`): what [`Find`] finds it by.
     #[data(default)]
     pub interfaces: Vec<String>,

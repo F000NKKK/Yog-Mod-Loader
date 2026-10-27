@@ -10,6 +10,8 @@ description = "Safe dlopen/dlclose swap primitives for reloading a mod's native 
 libloading = { workspace = true }
 # The control channel's frames.
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 # What Yog-IDLE hands its webview (`control::ModInfo`, `Changes`).
 serde = { workspace = true, features = ["derive"] }
 yog-sync = { workspace = true }

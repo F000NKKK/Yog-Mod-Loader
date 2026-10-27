@@ -186,7 +186,7 @@ fn cargo_failed(status: ExitStatus, stderr: &str) {
     } else {
         said.join("\n")
     };
-    diagnostics::report(&Diagnostic::error(build_problem::CARGO, message).by(CARGO));
+    diagnostics::report(&Diagnostic::error(yog_data::Atom::new(build_problem::CARGO), message).by(CARGO));
 }
 
 #[cfg(test)]

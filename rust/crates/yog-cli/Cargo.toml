@@ -52,6 +52,8 @@ yog-font = { workspace = true }
 yog-registry = { workspace = true }
 # The data model, text syntax and schemas of every Yog format.
 yog-data = { workspace = true, features = ["toml", "json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 # The schemas of the source formats.
 yog-formats = { workspace = true }
 # The designers (`design`): screens drawn by yog-ui through a recording

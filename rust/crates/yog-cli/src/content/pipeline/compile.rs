@@ -626,28 +626,28 @@ fn check_wanted(wanted: &Wanted, defs: &Defs, known: &refs::Known) -> Result<(),
                 first
             }
         }
-        Wanted::Ref(r) => match r.kind.as_str() {
-            kind::LEVEL => found(defs.level(&r.id).is_some(), "level", &r.id),
-            kind::LADDER => found(defs.order.contains_key(&r.id), "ladder", &r.id),
-            kind::TOOL_MATERIAL => found(
-                defs.tool_materials.iter().any(|m| m.id == r.id)
-                    || ToolMaterial::built_in(&r.id).is_some(),
+        Wanted::Ref(r) => match (r.kind.as_str(), r.id.as_str()) {
+            (kind::LEVEL, id) => found(defs.level(id).is_some(), "level", id),
+            (kind::LADDER, id) => found(defs.order.contains_key(id), "ladder", id),
+            (kind::TOOL_MATERIAL, id) => found(
+                defs.tool_materials.iter().any(|m| m.id == id)
+                    || ToolMaterial::built_in(id).is_some(),
                 "tool material",
-                &r.id,
+                id,
             ),
-            kind::ARMOR_MATERIAL => found(
-                defs.armor_materials.iter().any(|m| m.id == r.id)
-                    || ArmorMaterial::built_in(&r.id).is_some(),
+            (kind::ARMOR_MATERIAL, id) => found(
+                defs.armor_materials.iter().any(|m| m.id == id)
+                    || ArmorMaterial::built_in(id).is_some(),
                 "armor material",
-                &r.id,
+                id,
             ),
-            kind::SOUND_GROUP => found(
-                defs.sound_groups.iter().any(|g| g.id == r.id)
-                    || SoundGroup::built_in(&r.id).is_some(),
+            (kind::SOUND_GROUP, id) => found(
+                defs.sound_groups.iter().any(|g| g.id == id)
+                    || SoundGroup::built_in(id).is_some(),
                 "sound group",
-                &r.id,
+                id,
             ),
-            other => refs::RefKind::from_word(other).map_or(Ok(()), |k| known.check(k, &r.id)),
+            (other, id) => refs::RefKind::from_word(other).map_or(Ok(()), |k| known.check(k, id)),
         },
     }
 }

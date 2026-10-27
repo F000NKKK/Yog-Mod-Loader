@@ -41,6 +41,8 @@ yog-worldgen = { workspace = true }
 yog-hot-reload = { workspace = true }
 # The content blob the hosts read (`content_blob`).
 yog-data = { workspace = true, features = ["json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 
 serde_json = { workspace = true }
 # Dynamic mod loading: native libs (.so/.dll/.dylib) and .yog archives.

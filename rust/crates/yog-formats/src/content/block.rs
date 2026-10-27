@@ -43,7 +43,7 @@ impl Schema for BlockShape {
                 Some(BlockShape::Box(b))
             }
             other => {
-                cx.expected(
+                yog_data::expected(cx,
                     "\"auto\" (the model's bounds), \"full\" or [x1, y1, z1, x2, y2, z2] in pixels",
                     other,
                 );
@@ -123,7 +123,7 @@ impl Schema for Drops {
             ValueRef::Str(s) if *s == "none" => Some(Drops::Nothing),
             ValueRef::Map(_) => DropItem::read(v, cx).map(Drops::Item),
             other => {
-                cx.expected(
+                yog_data::expected(cx,
                     "\"self\", \"none\" or { item: \"@item:ns:item\", count: [1, 3] }",
                     other,
                 );

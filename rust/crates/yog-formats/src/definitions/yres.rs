@@ -152,13 +152,13 @@ fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
     Some(match v {
         ValueRef::Bytes(b) => Value::Bytes(b.to_vec()),
         ValueRef::Str(s) if s.starts_with(BYTES_PREFIX) => match yog_data::typed::classify(s) {
-            Ok(yog_data::Value::Bytes(b)) => Value::Bytes(b),
+            Ok(yog_data::typed::Spelled::Bytes(b)) => Value::Bytes(b),
             Ok(other) => {
-                cx.problem(format!("`{s}`: bytes, not {other:?}"));
+                cx.problem(format!("`{s}`: bytes, not {}", other.kind()));
                 return None;
             }
             Err(e) => {
-                cx.problem(e);
+                cx.problem(e.to_string());
                 return None;
             }
         },
@@ -167,7 +167,7 @@ fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
         ValueRef::Float(f) => Value::Num(format!("{f:?}")),
         ValueRef::Bool(b) => Value::Bool(*b),
         other => {
-            cx.expected("a string, a number or true/false", other);
+            yog_data::expected(cx,"a string, a number or true/false", other);
             return None;
         }
     })

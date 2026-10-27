@@ -47,7 +47,7 @@ pub struct Declared {
 
 fn no_runtime() -> Diagnostic {
     Diagnostic::error(
-        yog_ids::mirror_problem::FAILED,
+        yog_data::Atom::new(yog_ids::mirror_problem::FAILED),
         "no one answers mirrors here",
     )
 }

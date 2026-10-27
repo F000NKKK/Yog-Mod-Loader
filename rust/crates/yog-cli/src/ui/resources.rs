@@ -32,7 +32,7 @@ pub(crate) struct Resources {
 
 /// A problem with the resources at `line`.
 fn problem(line: usize, message: impl std::fmt::Display) -> Diagnostic {
-    Diagnostic::error(yog_ids::build_problem::SCREEN, message).at_line(line)
+    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::SCREEN), message).at_line(line)
 }
 
 /// The resource `v` names (`@Accent` → `Accent`); none for anything else

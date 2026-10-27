@@ -21,9 +21,10 @@
 //! any translation key (`@lang:gui.done`), and
 //! link entries with `{link=@entry:mymod:basics|text}`.
 
-use yog_data::schema::{Read, Resolve, Text, read_ref};
+use yog_data::schema::{Read, Resolve, read_ref};
+use yog_data::typed::{Spelled, classify};
 use yog_data::with::With;
-use yog_data::{Errors, Ref, Schema, Shape, Value, ValueRef, typed};
+use yog_data::{Errors, Kind, Ref, Schema, Shape, Text, Value, ValueRef, kinds};
 
 use super::Book;
 
@@ -56,43 +57,48 @@ pub struct BookText;
 
 impl With<String> for BookText {
     fn shape() -> Shape {
-        Shape::Text
+        Text::shape()
     }
 
+    /// A `.yres` text's links are its resolver's to check, as it expands it.
     fn read(v: &ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
         let t = Text::read(v, cx)?;
-        let words: std::borrow::Cow<str> = match &t {
-            Text::Literal(s) => s.as_str().into(),
-            Text::Res(r) => cx.words(r).unwrap_or_default().into(),
-            Text::NameOf(_) | Text::Lang(_) => "".into(),
+        let ok = match &t {
+            Text::Literal(words) => links_resolve(cx, words),
+            _ => true,
         };
-        let mut ok = true;
-        for l in links(&words) {
-            if l.starts_with("http://") || l.starts_with("https://") {
-                continue;
-            }
-            match typed::classify(l) {
-                Ok(Value::Ref(r)) if r.kind == yog_ids::kind::ENTRY => {
-                    cx.note_ref(r.clone());
-                    if let Err(e) = resolve_link(cx, &r) {
-                        cx.problem(format!("link: {e}"));
-                        ok = false;
-                    }
-                }
-                _ => {
-                    cx.problem(format!("link `{l}`: write {{link=@entry:ns:entry|…}}"));
-                    ok = false;
-                }
-            }
-        }
-        drop(words);
-        let resolved = cx.take_text(t)?;
+        let resolved = t.resolve(cx)?;
         ok.then_some(resolved)
     }
 
     fn write(f: &String) -> Value {
-        Value::Text(f.clone())
+        Text::Literal(f.clone()).write()
     }
+}
+
+/// Whether every link in `words` names an entry there is (each that
+/// doesn't, a problem).
+fn links_resolve(cx: &mut yog_data::Reader, words: &str) -> bool {
+    let mut ok = true;
+    for l in links(words) {
+        if l.starts_with("http://") || l.starts_with("https://") {
+            continue;
+        }
+        match classify(l) {
+            Ok(Spelled::Ref(r)) if r.kind.as_str() == kinds::Entry::NAME => {
+                cx.note_ref(r.clone());
+                if let Err(e) = resolve_link(cx, &r) {
+                    cx.problem(format!("link: {e}"));
+                    ok = false;
+                }
+            }
+            _ => {
+                cx.problem(format!("link `{l}`: write {{link=@entry:ns:entry|…}}"));
+                ok = false;
+            }
+        }
+    }
+    ok
 }
 
 /// A link's entry, checked like a reference (the problem is the caller's to word).
@@ -106,23 +112,31 @@ fn resolve_link(cx: &mut yog_data::Reader, r: &Ref) -> Result<(), String> {
     Err(p.message)
 }
 
+/// What an icon names: an item, a block, or an image.
+const ICON_KINDS: &[&str] = &[kinds::Item::NAME, kinds::Block::NAME, kinds::Image::NAME];
+
 /// An icon: `@item:`/`@block:` (resolved to the id) or an image source as it is.
 pub struct Icon;
 
 impl With<String> for Icon {
     fn shape() -> Shape {
-        Shape::RefOrImage(&[yog_ids::kind::ITEM, yog_ids::kind::BLOCK])
+        Shape::Ref {
+            kinds: ICON_KINDS,
+            id: String::shape,
+        }
     }
 
     fn read(v: &ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<String> {
-        match v {
-            ValueRef::Str(s) if !s.starts_with('@') => Some(s.to_string()),
-            ValueRef::Image(s) => Some(s.to_string()),
-            _ => {
-                let r = read_ref(v, cx, &[yog_ids::kind::ITEM, yog_ids::kind::BLOCK])?;
-                cx.resolve_ref(&r)
-            }
+        if let ValueRef::Str(s) = v
+            && !s.starts_with(yog_ids::sep::TYPED)
+        {
+            return Some(s.to_string());
         }
+        let r = read_ref(v, cx, ICON_KINDS)?;
+        if r.kind.as_str() == kinds::Image::NAME {
+            return Some(r.id.as_str().to_owned());
+        }
+        cx.resolve_ref(&r).map(|id| id.as_str().to_owned())
     }
 
     fn write(f: &String) -> Value {
