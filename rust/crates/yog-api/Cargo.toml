@@ -1,6 +1,6 @@
 [package]
 name = "yog-api"
-version = "0.105.3"
+version = "0.105.4"
 edition = { workspace = true }
 rust-version = { workspace = true }
 authors = { workspace = true }
