@@ -562,3 +562,26 @@ pub mod state {
     pub const TEXT_TO_BYTES: &str = "toBytes";
     pub const TEXT_FROM_BYTES: &str = "fromBytes";
 }
+
+/// `synced` members' runtime (`dev.yog.script.yog.SyncedState`,
+/// storage.md §4): what an object keeping some implements, how it's made
+/// live, and its members' names in what it generates.
+pub mod synced {
+    pub const CLASS: &str = concat!(runtime!(), sep!(), "yog", sep!(), "SyncedState");
+    pub const SYNCED_INTERFACE: &str = "Synced";
+    pub const SYNC: &str = "$sync";
+    pub const SYNCED: &str = "$synced";
+    pub const OUT: &str = "out";
+    pub const KEY: &str = "key";
+    pub const SYNCED_BYTES: &str = "bytes";
+    /// Synced to one player (an `extend Player`'s own), to every player.
+    pub const TO_PLAYER: &str = "toPlayer";
+    pub const TO_ALL: &str = "toAll";
+    /// What a client's object of an owner is made by, for a kind.
+    pub const OWNERS: &str = "owners";
+    /// An object no longer live (its owner gone).
+    pub const FORGET_SYNCED: &str = "forget";
+    /// A client's object of a mod: what the owner it's asked for is called
+    /// (the mod's one object answers any).
+    pub const OWNER_VAR: &str = "$o";
+}

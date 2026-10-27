@@ -9,6 +9,7 @@ use std::collections::HashSet;
 use yog_script_analyze::ast::{Decl, DeclKind, Type as Written, TypeHeader, TypeKind};
 use yog_script_ids::java::{CLASS, FINAL, IMPLEMENTS, METHOD_REF, NEW, PRIVATE, PUBLIC, RETURN, STATIC, THIS};
 use yog_script_ids::jvm::state::{CLASS as STATE, PLAYER, SAVED, WORLD};
+use yog_script_ids::jvm::synced::{CLASS as SYNCED_STATE, FORGET_SYNCED, OWNERS, SYNCED_INTERFACE, TO_ALL, TO_PLAYER};
 use yog_script_ids::jvm::extend::{ALL, CLASS_PREFIX, FIND_OR_MAKE, INSTANCES, OF, OWNER};
 use yog_script_ids::jvm::{MAP, STRING};
 
@@ -104,10 +105,15 @@ impl Gen<'_> {
             OWNER.to_string()
         };
         let saved = !crate::saved::saved_members(body).is_empty();
-        let implements = if saved {
-            format!(" {IMPLEMENTS} {STATE}.{SAVED}")
-        } else {
+        let synced = !crate::saved::synced_members(body).is_empty();
+        let interfaces: Vec<String> = [(saved, format!("{STATE}.{SAVED}")), (synced, format!("{SYNCED_STATE}.{SYNCED_INTERFACE}"))]
+            .into_iter()
+            .filter_map(|(has, i)| has.then_some(i))
+            .collect();
+        let implements = if interfaces.is_empty() {
             String::new()
+        } else {
+            format!(" {IMPLEMENTS} {}", interfaces.join(", "))
         };
         self.code.open(format!("{PUBLIC} {STATIC} {FINAL} {CLASS} {class}{implements}"));
         self.code.line(format!(
@@ -127,15 +133,17 @@ impl Gen<'_> {
         self.first_values(body);
         self.code.close("");
         self.code.open(format!("{PUBLIC} {STATIC} {class} {OF}({STRING} {OWNER})"));
-        let made = if saved {
-            self.live_made(&owner, &class, ty)
-        } else {
-            format!("{class}{METHOD_REF}{NEW}")
-        };
+        let made = self.live_made(&owner, &class, ty, (saved, synced));
         self.code.line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {made});"));
         self.code.close("");
-        if saved {
-            let forget = format!("{ALL}.remove({THIS}.{OWNER});");
+        if saved || synced {
+            let mut forget = format!("{ALL}.remove({THIS}.{OWNER});");
+            if synced {
+                forget.push_str(&format!(" {SYNCED_STATE}.{FORGET_SYNCED}({THIS});"));
+                // A client's object of an owner: what its rows go to.
+                let kind = self.code.str(&self.synced_kind(&class));
+                self.on_load.push(format!("{SYNCED_STATE}.{OWNERS}({kind}, {class}{METHOD_REF}{OF});"));
+            }
             self.saved_state(&owner, body, &forget);
         }
         self.members(body, Place::Class);
@@ -143,20 +151,43 @@ impl Gen<'_> {
         self.code.close("");
     }
 
-    /// What makes an owner's instance of `class` (an `extend` of `owner`
-    /// keeping `saved` members): made, then read in from its scope's store.
-    fn live_made(&mut self, owner: &str, class: &str, ty: &Written) -> String {
+    /// What makes an owner's instance of `class` (an `extend` of `owner`):
+    /// made; read in from its scope's store when it keeps `saved` members;
+    /// live to its clients when it keeps `synced` ones (a player's to that
+    /// player, the world's to every one).
+    fn live_made(&mut self, owner: &str, class: &str, ty: &Written, (saved, synced): (bool, bool)) -> String {
+        if !(saved || synced) {
+            return format!("{class}{METHOD_REF}{NEW}");
+        }
         let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
         let key = self.temp();
-        let made = format!("{NEW} {class}({key})");
-        if owner == yog_script_analyze::yog::world() {
-            format!("{key} -> {STATE}.{WORLD}({made}, {module})")
-        } else if owner == yog_script_analyze::yog::player() {
-            format!("{key} -> {STATE}.{PLAYER}({made}, {module}, {key})")
-        } else {
-            self.not_yet("`saved` members of this object", ty.span);
-            format!("{class}{METHOD_REF}{NEW}")
+        let world = owner == yog_script_analyze::yog::world();
+        if !world && owner != yog_script_analyze::yog::player() {
+            self.not_yet("`saved` or `synced` members of this object", ty.span);
+            return format!("{class}{METHOD_REF}{NEW}");
         }
+        let mut made = format!("{NEW} {class}({key})");
+        if saved {
+            made = if world {
+                format!("{STATE}.{WORLD}({made}, {module})")
+            } else {
+                format!("{STATE}.{PLAYER}({made}, {module}, {key})")
+            };
+        }
+        if synced {
+            let kind = self.code.str(&self.synced_kind(class));
+            made = if world {
+                format!("{SYNCED_STATE}.{TO_ALL}({made}, {kind}, {key})")
+            } else {
+                format!("{SYNCED_STATE}.{TO_PLAYER}({made}, {kind}, {key})")
+            };
+        }
+        format!("{key} -> {made}")
+    }
+
+    /// What a class's synced rows say they're of: the mod's id and the class.
+    pub(crate) fn synced_kind(&self, class: &str) -> String {
+        format!("{}{}{class}", self.mod_id.as_deref().unwrap_or_default(), yog_ids::sep::NAMESPACE)
     }
 
     /// Member `name` of `target` (a handle of `owner`) when an `extend`

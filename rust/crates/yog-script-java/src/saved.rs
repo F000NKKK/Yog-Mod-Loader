@@ -10,7 +10,9 @@
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Decl, DeclKind, Modifier, Type as Written, TypeKind};
-use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, VOID};
+use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, RETURN, VOID};
+use yog_script_ids::jvm::STRING;
+use yog_script_ids::jvm::synced::{KEY, OUT, SYNC, SYNCED, SYNCED_BYTES};
 use yog_script_ids::system::{DICTIONARY, LIST, TEXT_TYPE};
 use yog_script_ids::jvm::state::{
     ACCEPT, ADD_ALL, APPLY, BYTES, ENTRIES, ENTRY_KEY, ENTRY_SUFFIX, ENTRY_VALUE, ENTRY_VAR, ENUM_OF, ENUM_VALUE, FORGET, FROM_BYTES,
@@ -23,8 +25,18 @@ use crate::index::Kind;
 
 /// The `saved` members of `body`: each its type as written and its name.
 pub(crate) fn saved_members(body: &[Decl]) -> Vec<(&Written, &str)> {
+    members_with(body, Modifier::Saved)
+}
+
+/// The `synced` members of `body`: each its type as written and its name.
+pub(crate) fn synced_members(body: &[Decl]) -> Vec<(&Written, &str)> {
+    members_with(body, Modifier::Synced)
+}
+
+/// The stored members of `body` marked `modifier`.
+fn members_with(body: &[Decl], modifier: Modifier) -> Vec<(&Written, &str)> {
     body.iter()
-        .filter(|d| d.has(Modifier::Saved))
+        .filter(|d| d.has(modifier))
         .filter_map(|d| match &d.kind {
             DeclKind::Field(f) => Some((&f.ty, f.name.text.as_str())),
             DeclKind::Property { ty, name, .. } if yog_script_analyze::ast::stores_value(d) => Some((ty, name.text.as_str())),
@@ -34,14 +46,21 @@ pub(crate) fn saved_members(body: &[Decl]) -> Vec<(&Written, &str)> {
 }
 
 impl Gen<'_> {
-    /// `State.Saved`'s members for `body`'s `saved` ones, keyed `owner.Member`;
-    /// `forget` what `$forget` does.
+    /// The members of `body`'s declared state, keyed `owner.Member`: each
+    /// `saved` or `synced` one a record; `State.Saved`'s `$load`/`$save`
+    /// when some are saved, `SyncedState.Synced`'s `$sync`/`$synced` when
+    /// some are synced; `$forget` doing `forget`.
     pub(crate) fn saved_state(&mut self, owner: &str, body: &[Decl], forget: &str) {
-        let mut load = Vec::new();
-        let mut save = Vec::new();
-        for (ty, name) in saved_members(body) {
+        let (saved, synced) = (saved_members(body), synced_members(body));
+        let (mut load, mut save, mut sync, mut take) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        let mut done: Vec<&str> = Vec::new();
+        for (ty, name) in saved.iter().chain(&synced) {
+            if done.contains(name) {
+                continue;
+            }
+            done.push(name);
             let Some(kept) = self.codec_form(ty, name) else {
-                return self.not_yet("saving a value of this type", ty.span);
+                return self.not_yet("keeping a value of this type", ty.span);
             };
             let (field, record) = (Self::ident(name), format!("{RECORD_PREFIX}{name}"));
             for line in &kept.declared {
@@ -49,17 +68,32 @@ impl Gen<'_> {
             }
             self.code.line(format!("{PUBLIC} {RECORD} {record}({} {VALUE}) {{}}", kept.java));
             let key = self.code.str(&format!("{owner}.{name}"));
-            let bytes = self.temp();
-            let read = format!("{FROM_BYTES}({bytes}, {record}.class).{VALUE}()");
-            load.push(format!(
-                "byte[] {bytes} = {READ}.{APPLY}({key}); {IF} ({bytes} != {NULL}) {{ {} }}",
-                (kept.load)(&field, &read)
-            ));
-            let value = (kept.save)(&field);
-            save.push(format!("{WRITE}.{ACCEPT}({key}, {BYTES}({NEW} {record}({value})));"));
+            let read = |bytes: &str| format!("{FROM_BYTES}({bytes}, {record}.class).{VALUE}()");
+            let written = format!("{BYTES}({NEW} {record}({}))", (kept.save)(&field));
+            if saved.iter().any(|(_, n)| n == name) {
+                let bytes = self.temp();
+                load.push(format!(
+                    "byte[] {bytes} = {READ}.{APPLY}({key}); {IF} ({bytes} != {NULL}) {{ {} }}",
+                    (kept.load)(&field, &read(&bytes))
+                ));
+                save.push(format!("{WRITE}.{ACCEPT}({key}, {written});"));
+            }
+            if synced.iter().any(|(_, n)| n == name) {
+                sync.push(format!("{OUT}.{ACCEPT}({key}, {written});"));
+                take.push(format!(
+                    "{IF} ({key}.equals({KEY})) {{ {} {RETURN}; }}",
+                    (kept.load)(&field, &read(SYNCED_BYTES))
+                ));
+            }
         }
-        self.state_method(LOAD, &format!("{READ_TYPE} {READ}"), &load);
-        self.state_method(SAVE, &format!("{WRITE_TYPE} {WRITE}"), &save);
+        if !saved.is_empty() {
+            self.state_method(LOAD, &format!("{READ_TYPE} {READ}"), &load);
+            self.state_method(SAVE, &format!("{WRITE_TYPE} {WRITE}"), &save);
+        }
+        if !synced.is_empty() {
+            self.state_method(SYNC, &format!("{WRITE_TYPE} {OUT}"), &sync);
+            self.state_method(SYNCED, &format!("{STRING} {KEY}, byte[] {SYNCED_BYTES}"), &take);
+        }
         self.state_method(FORGET, "", &[forget.to_string()]);
     }
 

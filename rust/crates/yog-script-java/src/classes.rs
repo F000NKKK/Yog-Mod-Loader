@@ -12,6 +12,7 @@ use crate::index::Kind;
 
 use crate::modifier;
 use yog_script_ids::jvm::state::{CLASS as STATE, GAME, SAVED};
+use yog_script_ids::jvm::synced::{CLASS as SYNCED_STATE, OWNER_VAR, OWNERS, SYNCED_INTERFACE, TO_ALL};
 use yog_script_ids::java::{
     ABSTRACT, CATCH, CLASS, CLASS_LITERAL, EXTENDS, FINAL, IMPLEMENTS, NEW, OVERRIDE, PRIVATE,
     PUBLIC, RECORD, RETURN, STATIC, SUPER, THIS, THROW, TRY, VOID,
@@ -23,10 +24,24 @@ use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
     pub(crate) fn mod_class(&mut self, d: &Decl, name: &str, body: &[Decl]) {
-        // Its `saved` members: the game's store's, read in as it's made.
-        if !crate::saved::saved_members(body).is_empty() {
+        // Its `saved` members: the game's store's, read in as it's made; its
+        // `synced` ones every player's, a client's rows its own.
+        let (saved, synced) = (
+            !crate::saved::saved_members(body).is_empty(),
+            !crate::saved::synced_members(body).is_empty(),
+        );
+        let mut tail = Vec::new();
+        if saved {
             let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
-            self.ctor_tail = Some(format!("{STATE}.{GAME}({THIS}, {module});"));
+            tail.push(format!("{STATE}.{GAME}({THIS}, {module});"));
+        }
+        if synced {
+            let kind = self.code.str(&self.synced_kind(name));
+            tail.push(format!("{SYNCED_STATE}.{TO_ALL}({THIS}, {kind}, \"\");"));
+            tail.push(format!("{SYNCED_STATE}.{OWNERS}({kind}, {OWNER_VAR} -> {THIS});"));
+        }
+        if saved || synced {
+            self.ctor_tail = Some(tail.join(" "));
             self.saved_owner = Some(name.to_string());
         }
         self.class_with(d, (name, &TypeHeader::default()), body, Some(crate::MOD_INTERFACE));
@@ -52,14 +67,8 @@ impl Gen<'_> {
         let name = java.as_str();
         // A generic one keeps the type arguments it's made with (`GetType()`).
         let generic = header.generics.iter().any(|g| !g.lifetime);
-        // Its `saved` members, keyed by `saved_owner` (a mod's, a block's).
         let saved_owner = self.saved_owner.take();
-        let saved_as = format!("{STATE}.{SAVED}");
-        let also = match (also, &saved_owner) {
-            (Some(a), Some(_)) => Some(format!("{a}, {saved_as}")),
-            (None, Some(_)) => Some(saved_as),
-            (a, None) => a.map(str::to_string),
-        };
+        let also = state_interfaces(also, saved_owner.is_some(), body);
         let head = self.class_head(d, (name, header), (struct_, generic), also.as_deref());
         self.code.open(head);
         self.describe(d);
@@ -509,4 +518,18 @@ fn captured<'h>(header: &'h TypeHeader, body: &[Decl]) -> Vec<&'h Param> {
         .flatten()
         .filter(|p| !stored.contains(&p.name.text.as_str()))
         .collect()
+}
+
+/// What a class implements besides `also`: when it keeps declared state
+/// (`owns`, a mod's or a block's), `State.Saved` for its `saved` members
+/// and `SyncedState.Synced` for its `synced` ones.
+fn state_interfaces(also: Option<&str>, owns: bool, body: &[Decl]) -> Option<String> {
+    let mut interfaces: Vec<String> = also.map(str::to_string).into_iter().collect();
+    if owns && !crate::saved::saved_members(body).is_empty() {
+        interfaces.push(format!("{STATE}.{SAVED}"));
+    }
+    if owns && !crate::saved::synced_members(body).is_empty() {
+        interfaces.push(format!("{SYNCED_STATE}.{SYNCED_INTERFACE}"));
+    }
+    (!interfaces.is_empty()).then(|| interfaces.join(", "))
 }

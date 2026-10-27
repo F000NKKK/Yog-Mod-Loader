@@ -1706,6 +1706,7 @@ public final class YogNames {
         public static final String STATE = "yog:state";
         public static final String HANGING = "yog:hanging";
         public static final String ENTITY_NBT = "yog:data";
+        public static final String SYNCED = "yog:synced";
         public static final String ENTITY_DATA = "yog:entity_data";
         public static final String DIMENSIONS = "yog:dimensions";
         public static final String SLOT_PREFIX = "yog:slot:";
@@ -1725,7 +1726,7 @@ public final class YogNames {
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, CUTSCENE_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_VIDEO_PREFIX, DYNAMIC_TEXT_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, SYNCED, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, CUTSCENE_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_VIDEO_PREFIX, DYNAMIC_TEXT_PREFIX);
     }
 
     public static final class GameFont {

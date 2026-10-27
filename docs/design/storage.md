@@ -142,7 +142,14 @@ For each type with `synced` members, the build generates a mirror spec
    `minecraft:custom_data` on 1.21+), `UseItem` saying which hand; an
    item's object reads its `saved` members (`mod:Item.Member`) from the
    stack before its handlers run and writes them after.
-5. `synced` on mirrors.
+5. `synced` on mirrors. ✅ `extend Player`/`World` and `mod` members
+   (SyncedState.java): mirrors are one process's memory, so a server's
+   synced values go to its clients as rows (`kind, owner, key, bytes`, the
+   saved members' codec) on `yog:synced` — each tick the changed ones, a
+   joining player every one; a player's `extend` to that player, the
+   world's and the mod's to all. A client's object of the owner (by its
+   kind's `$of`) takes the row, its reads plain field reads. Blocks and
+   entities next; then the analyzer's client-write check.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
 7. The Rust API's parity: `#[saved]` and `#[synced]` on a component
    struct, made from the same model.

@@ -220,6 +220,9 @@ names! {
         HANGING = crate::id!(crate::ns::YOG, "hanging"),
         /// The key an entity's data is saved under in its NBT.
         ENTITY_NBT = crate::id!(crate::ns::YOG, crate::word::DATA),
+        /// The channel Yog Script's declared state (`synced` members) goes
+        /// to clients on.
+        SYNCED = crate::id!(crate::ns::YOG, "synced"),
         /// The channel entity data is synced on.
         ENTITY_DATA = crate::id!(crate::ns::YOG, crate::concatcp!(crate::kind::ENTITY, crate::sep::WORD, crate::word::DATA)),
         /// The entity data key an entity's own hitbox travels under: width,

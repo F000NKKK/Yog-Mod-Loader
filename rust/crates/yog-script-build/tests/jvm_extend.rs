@@ -122,3 +122,48 @@ fn saved_mod_members() {
     };
     assert_eq!(out, "true [$Starts]");
 }
+
+const SYNCED: &str = r#"using System.Collections.Generic;
+public static class Y {
+    public static string Run() => "ok";
+}
+extend Player {
+    public synced i32 Charge = 0;
+    public saved synced string Rank = "";
+    public synced List<string> Tags = new List<string>();
+}
+mod Charger {
+    public synced i32 Online = 0;
+}
+"#;
+
+/// `synced` members: an object writes each out as a row (`$sync`), and
+/// another of the same owner (a client's) takes them in (`$synced`).
+#[test]
+fn synced_members_reach_another_object() {
+    let java = r#"((java.util.function.Supplier<String>) () -> {
+        try {
+            Class<?> ext = java.util.Arrays.stream(t.YScript.class.getDeclaredClasses())
+                .filter(c -> c.getSimpleName().startsWith("$ExtendPlayer")).findFirst().get();
+            var make = ext.getDeclaredConstructor(String.class);
+            make.setAccessible(true);
+            Object server = make.newInstance("Steve");
+            ext.getField("Charge").setInt(server, 40);
+            ext.getField("Rank").set(server, "gold");
+            ((java.util.List<String>) ext.getField("Tags").get(server)).add("fast");
+            var rows = new java.util.TreeMap<String, byte[]>();
+            ((dev.yog.script.yog.SyncedState.Synced) server).$sync(rows::put);
+            Object client = make.newInstance("Steve");
+            rows.forEach(((dev.yog.script.yog.SyncedState.Synced) client)::$synced);
+            boolean mod = java.util.Arrays.stream(t.YScript.class.getDeclaredClasses())
+                .anyMatch(c -> c.getSimpleName().equals("Charger") && dev.yog.script.yog.SyncedState.Synced.class.isAssignableFrom(c));
+            return rows.keySet() + " " + ext.getField("Charge").getInt(client) + " " + ext.getField("Rank").get(client) + " " + ext.getField("Tags").get(client) + " " + mod;
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }).get()"#;
+    let Some(out) = support::run(&[("Y.ys", SYNCED)], java) else {
+        return;
+    };
+    assert_eq!(out, "[Player.Charge, Player.Rank, Player.Tags] 40 gold [fast] true");
+}

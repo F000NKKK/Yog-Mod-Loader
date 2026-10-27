@@ -94,6 +94,9 @@ impl Gen<'_> {
         if !crate::saved::saved_members(body).is_empty() {
             self.saved_owner = Some(name.to_string());
         }
+        if !crate::saved::synced_members(body).is_empty() {
+            self.not_yet("`synced` members of content (blocks and entities next)", crate::decls::decl_span(d));
+        }
         self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
         let Some(mod_id) = &self.mod_id else {
             return;
