@@ -186,7 +186,9 @@ impl Stmt {
                 f(cond);
                 body.each_expr(f);
             }
-            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => b.stmts.iter().for_each(|s| s.each_expr(f)),
+            Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => {
+                b.stmts.iter().for_each(|s| s.each_expr(f))
+            }
             Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
             Stmt::Lock { target, body, .. } => {
                 f(target);
@@ -206,14 +208,21 @@ impl Stmt {
             Stmt::Block(b) | Stmt::Unsafe(b, _) | Stmt::Checked(b, _) => b.stmts.iter().collect(),
             Stmt::If {
                 then, otherwise, ..
-            } => std::iter::once(&**then).chain(otherwise.as_deref()).collect(),
+            } => std::iter::once(&**then)
+                .chain(otherwise.as_deref())
+                .collect(),
             Stmt::Foreach { body, .. }
             | Stmt::While { body, .. }
             | Stmt::DoWhile { body, .. }
             | Stmt::Lock { body, .. } => vec![&**body],
             Stmt::For {
                 init, step, body, ..
-            } => init.as_deref().into_iter().chain(step.as_deref()).chain([&**body]).collect(),
+            } => init
+                .as_deref()
+                .into_iter()
+                .chain(step.as_deref())
+                .chain([&**body])
+                .collect(),
             Stmt::Switch { sections, .. } => sections.iter().flat_map(|s| &s.body).collect(),
             _ => Vec::new(),
         }
@@ -234,7 +243,12 @@ impl Stmt {
     /// in it (not one of a `switch` inside it).
     pub fn goes_to_case(&self) -> bool {
         self.any_inside(
-            &|s| matches!(s, Stmt::Goto(super::Goto::Case(_) | super::Goto::Default, _)),
+            &|s| {
+                matches!(
+                    s,
+                    Stmt::Goto(super::Goto::Case(_) | super::Goto::Default, _)
+                )
+            },
             &|s| !matches!(s, Stmt::Switch { .. }),
         )
     }

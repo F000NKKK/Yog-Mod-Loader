@@ -493,7 +493,13 @@ pub mod extend {
     pub const OWNER: &str = "$owner";
     pub const ALL: &str = "$all";
     /// The owners' instances' map, made, and what finds or makes one.
-    pub const INSTANCES: &str = concat!(java_util!(), sep!(), "concurrent", sep!(), "ConcurrentHashMap");
+    pub const INSTANCES: &str = concat!(
+        java_util!(),
+        sep!(),
+        "concurrent",
+        sep!(),
+        "ConcurrentHashMap"
+    );
     pub const FIND_OR_MAKE: &str = "computeIfAbsent";
 }
 
@@ -514,12 +520,24 @@ pub mod state {
     /// What reads a record's bytes, what writes them (`$load`'s, `$save`'s).
     pub const READ: &str = "read";
     pub const WRITE: &str = "write";
-    pub const READ_TYPE: &str = concat!(java_util!(), sep!(), "function", sep!(), "Function<String, byte[]>");
-    pub const WRITE_TYPE: &str = concat!(java_util!(), sep!(), "function", sep!(), "BiConsumer<String, byte[]>");
+    /// An owner's records as `$load` sees them (`State.Records`): one
+    /// read by its key, one dropped (an old name's, once read as the new).
+    pub const READ_TYPE: &str = concat!(runtime!(), sep!(), "yog", sep!(), "State.Records");
+    pub const READ_RECORD: &str = "read";
+    pub const DROP_RECORD: &str = "drop";
+    /// What an old save called a member (`was`): its record's name's end
+    /// (`$Energy$was`), read from the old key and dropped.
+    pub const WAS_SUFFIX: &str = "$was";
+    pub const WRITE_TYPE: &str = concat!(
+        java_util!(),
+        sep!(),
+        "function",
+        sep!(),
+        "BiConsumer<String, byte[]>"
+    );
     /// A value's bytes (Yog Data), and one read back: what messages use too.
     pub const BYTES: &str = concat!(bus_api!(), sep!(), "bytes");
     pub const FROM_BYTES: &str = concat!(bus_api!(), sep!(), "fromBytes");
-    pub const APPLY: &str = "apply";
     pub const ACCEPT: &str = "accept";
     /// What a member the codec doesn't keep as it is goes as: a `T?` an
     /// `Optional<T>`, a `List<T>` Java's list, an enum its number.

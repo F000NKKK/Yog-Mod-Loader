@@ -30,9 +30,9 @@ mod groups;
 mod indexers;
 mod inherit;
 mod iterators;
-mod list_patterns;
 mod lambdas;
 mod lineage;
+mod list_patterns;
 mod macro_calls;
 mod members;
 mod messages;
@@ -45,12 +45,12 @@ mod overloads;
 mod own;
 mod passing;
 mod pick;
-mod shapes;
 mod required;
 mod saved;
+mod shapes;
 mod stmts;
-mod templates;
 pub(crate) mod surface;
+mod templates;
 mod threads;
 mod tuples;
 mod types;
@@ -62,9 +62,9 @@ use std::collections::HashMap;
 
 pub use content::content_path;
 pub use iterators::{body_yields, item_of};
+pub use list_patterns::list_item;
 pub use model::Type;
 pub use nulls::leaves;
-pub use list_patterns::list_item;
 pub use templates::{MessageTemplate, holes};
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
@@ -280,7 +280,9 @@ impl Checker<'_, '_, '_> {
             (Type::Own(a, xs), Type::Own(b, ys)) => self.own_converts(a, xs, (b, ys), true),
             (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
             // An `ItemId` is a `ContentId<T>` (generic code's), a tag a `TagId<T>` too.
-            (got @ (Type::Content(_) | Type::Tag(_)), wanted) => content_ids::id_converts(got, wanted),
+            (got @ (Type::Content(_) | Type::Tag(_)), wanted) => {
+                content_ids::id_converts(got, wanted)
+            }
             (Type::Tuple(got, _), Type::Tuple(wanted, _)) => self.tuple_converts(got, wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {

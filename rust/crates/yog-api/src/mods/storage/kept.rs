@@ -8,7 +8,7 @@ use yog_core::BlockPos;
 use yog_data::Schema;
 use yog_sync::Mutex;
 
-pub use owned::{BlockData, PlayerData, WorldData};
+pub use owned::{BlockData, PlayerData, Was, WorldData};
 
 /// What's kept, as the saving sees it.
 trait Kept: Sync {
@@ -76,6 +76,7 @@ pub(super) fn forget_world() {
 pub struct GameData<T> {
     key: &'static str,
     slot: Mutex<Option<T>>,
+    was: Option<Was<T>>,
 }
 
 impl<T: Schema + Default + Send + 'static> GameData<T> {
@@ -83,19 +84,43 @@ impl<T: Schema + Default + Send + 'static> GameData<T> {
         GameData {
             key,
             slot: Mutex::new(None),
+            was: None,
         }
+    }
+
+    /// What an old save called the value: read from there when its key
+    /// has nothing, then kept under its key.
+    pub const fn was(mut self, was: Was<T>) -> Self {
+        self.was = Some(was);
+        self
     }
 
     /// What `read` makes of the value.
     pub fn with<R>(&'static self, read: impl FnOnce(&T) -> R) -> R {
         let mut slot = self.slot.lock();
-        read(slot.get_or_insert_with(|| super::game().get_or_default(self.key)))
+        read(slot.get_or_insert_with(|| self.first()))
+    }
+
+    /// The value as it's first used: the store's under its key, else under
+    /// what an old save called it (moved to its key), else its default.
+    fn first(&self) -> T {
+        let store = super::game();
+        if let Some(value) = store.get(self.key) {
+            return value;
+        }
+        let old = self.was.as_ref().and_then(|was| {
+            let value = was.read(&store, was.key)?;
+            store.remove(was.key);
+            store.set(self.key, &value);
+            Some(value)
+        });
+        old.unwrap_or_default()
     }
 
     /// The value changed by `change`, and written.
     pub fn with_mut<R>(&'static self, change: impl FnOnce(&mut T) -> R) -> R {
         let mut slot = self.slot.lock();
-        let value = slot.get_or_insert_with(|| super::game().get_or_default(self.key));
+        let value = slot.get_or_insert_with(|| self.first());
         let out = change(value);
         let store = super::game();
         store.set(self.key, value);

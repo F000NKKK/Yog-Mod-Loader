@@ -19,13 +19,18 @@ impl Checker<'_, '_, '_> {
                 self.report.error(
                     script_problem::TYPE_MISMATCH,
                     at,
-                    format!("a list pattern matches an array, a string or a `List<T>`, not a `{on}`"),
+                    format!(
+                        "a list pattern matches an array, a string or a `List<T>`, not a `{on}`"
+                    ),
                 );
                 Type::Unknown
             }
             None => Type::Unknown,
         };
-        let slices = items.iter().filter(|p| matches!(p, Pattern::Slice(_))).count();
+        let slices = items
+            .iter()
+            .filter(|p| matches!(p, Pattern::Slice(_)))
+            .count();
         if slices > 1 {
             self.report.error(
                 script_problem::EXPECTED,

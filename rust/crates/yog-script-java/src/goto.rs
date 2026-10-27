@@ -111,11 +111,16 @@ impl Gen<'_> {
     /// leaving it first: a variable set to which (`LEAVE_BY_BREAK`,
     /// `LEAVE_BY_CONTINUE`), then the dispatch loop left; what it was before.
     fn leaving_through(&mut self, dispatch: &str) -> Option<Leave> {
-        let (outer_break, outer_continue) = (self.breaks.last().cloned()?, self.continues.last().cloned());
+        let (outer_break, outer_continue) =
+            (self.breaks.last().cloned()?, self.continues.last().cloned());
         let by = self.temp();
         self.code.line(format!("{INT} {by} = {ZERO};"));
-        self.breaks.push(Some(format!("{by} = {LEAVE_BY_BREAK}; {BREAK} {dispatch};")));
-        self.continues.push(Some(format!("{by} = {LEAVE_BY_CONTINUE}; {BREAK} {dispatch};")));
+        self.breaks.push(Some(format!(
+            "{by} = {LEAVE_BY_BREAK}; {BREAK} {dispatch};"
+        )));
+        self.continues.push(Some(format!(
+            "{by} = {LEAVE_BY_CONTINUE}; {BREAK} {dispatch};"
+        )));
         Some(Leave {
             by,
             outer_break,
@@ -131,9 +136,17 @@ impl Gen<'_> {
         self.breaks.pop();
         self.continues.pop();
         let own = |jump: Option<String>, word: &str| jump.unwrap_or_else(|| format!("{word};"));
-        self.code.line(format!("{IF} ({} == {LEAVE_BY_BREAK}) {{ {} }}", l.by, own(l.outer_break, BREAK)));
+        self.code.line(format!(
+            "{IF} ({} == {LEAVE_BY_BREAK}) {{ {} }}",
+            l.by,
+            own(l.outer_break, BREAK)
+        ));
         if let Some(c) = l.outer_continue {
-            self.code.line(format!("{IF} ({} == {LEAVE_BY_CONTINUE}) {{ {} }}", l.by, own(c, CONTINUE)));
+            self.code.line(format!(
+                "{IF} ({} == {LEAVE_BY_CONTINUE}) {{ {} }}",
+                l.by,
+                own(c, CONTINUE)
+            ));
         }
     }
 
@@ -142,7 +155,10 @@ impl Gen<'_> {
     fn hoist(&mut self, stmts: &[Stmt]) -> HashSet<String> {
         let mut names = HashSet::new();
         for s in stmts {
-            let Stmt::Local { ty, binding, value, .. } = s else {
+            let Stmt::Local {
+                ty, binding, value, ..
+            } = s
+            else {
                 continue;
             };
             let Binding::One(n) = binding else {
@@ -161,7 +177,12 @@ impl Gen<'_> {
                 self.not_yet("a local a lambda changes, after a label", n.span);
                 continue;
             }
-            self.code.line(format!("{} {} = {};", typed.0, Self::ident(&n.text), typed.1));
+            self.code.line(format!(
+                "{} {} = {};",
+                typed.0,
+                Self::ident(&n.text),
+                typed.1
+            ));
             names.insert(n.text.clone());
         }
         self.hoisted.extend(names.iter().cloned());
@@ -206,14 +227,19 @@ impl Gen<'_> {
                         self.code.line(Self::jump(index));
                         return;
                     }
-                    Some((state, Some(dispatch), index)) => format!("{state} = {index}; {CONTINUE} {dispatch};"),
+                    Some((state, Some(dispatch), index)) => {
+                        format!("{state} = {index}; {CONTINUE} {dispatch};")
+                    }
                     None => return self.not_yet("a `goto` out of a lambda", at),
                 }
             }
             Goto::Case(v) => match self.case_jumps.last().cloned().flatten() {
                 Some(j) => {
                     let v = self.expr(v);
-                    format!("{} = {v}; {} = {FALSE}; {CONTINUE} {};", j.value, j.to_default, j.dispatch)
+                    format!(
+                        "{} = {v}; {} = {FALSE}; {CONTINUE} {};",
+                        j.value, j.to_default, j.dispatch
+                    )
                 }
                 None => return self.not_yet("`goto case` here", at),
             },
@@ -237,7 +263,11 @@ impl Gen<'_> {
         (value, v): (&str, &str),
         f: impl FnOnce(&mut Self, Option<&str>),
     ) {
-        if !sections.iter().flat_map(|s| &s.body).any(Stmt::goes_to_case) {
+        if !sections
+            .iter()
+            .flat_map(|s| &s.body)
+            .any(Stmt::goes_to_case)
+        {
             self.case_jumps.push(None);
             f(self, None);
             self.case_jumps.pop();
@@ -272,7 +302,11 @@ fn completes(sections: &[Section]) -> bool {
             x.any_inside(&|i| matches!(i, Stmt::Break(_)), &|i| {
                 !matches!(
                     i,
-                    Stmt::Switch { .. } | Stmt::While { .. } | Stmt::DoWhile { .. } | Stmt::For { .. } | Stmt::Foreach { .. }
+                    Stmt::Switch { .. }
+                        | Stmt::While { .. }
+                        | Stmt::DoWhile { .. }
+                        | Stmt::For { .. }
+                        | Stmt::Foreach { .. }
                 )
             })
         })

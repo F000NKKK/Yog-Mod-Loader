@@ -7,10 +7,14 @@
 use std::collections::HashSet;
 
 use yog_script_analyze::ast::{Decl, DeclKind, Type as Written, TypeHeader, TypeKind};
-use yog_script_ids::java::{CLASS, FINAL, IMPLEMENTS, METHOD_REF, NEW, PRIVATE, PUBLIC, RETURN, STATIC, THIS};
-use yog_script_ids::jvm::state::{CLASS as STATE, PLAYER, SAVED, WORLD};
-use yog_script_ids::jvm::synced::{CLASS as SYNCED_STATE, FORGET_SYNCED, OWNERS, SYNCED_INTERFACE, TO_ALL, TO_PLAYER};
+use yog_script_ids::java::{
+    CLASS, FINAL, IMPLEMENTS, METHOD_REF, NEW, PRIVATE, PUBLIC, RETURN, STATIC, THIS,
+};
 use yog_script_ids::jvm::extend::{ALL, CLASS_PREFIX, FIND_OR_MAKE, INSTANCES, OF, OWNER};
+use yog_script_ids::jvm::state::{CLASS as STATE, PLAYER, SAVED, WORLD};
+use yog_script_ids::jvm::synced::{
+    CLASS as SYNCED_STATE, FORGET_SYNCED, OWNERS, SYNCED_INTERFACE, TO_ALL, TO_PLAYER,
+};
 use yog_script_ids::jvm::{MAP, STRING};
 
 use super::Gen;
@@ -51,7 +55,13 @@ fn member_names(body: &[Decl]) -> HashSet<String> {
 impl Index {
     /// `extend ty { body }` (`header` its own) walked: its class a type of
     /// the source's, its members noted by their owner.
-    pub(crate) fn note_extension(&mut self, ty: &Written, header: &TypeHeader, body: &[Decl], elsewhere: Option<&str>) {
+    pub(crate) fn note_extension(
+        &mut self,
+        ty: &Written,
+        header: &TypeHeader,
+        body: &[Decl],
+        elsewhere: Option<&str>,
+    ) {
         let Some((owner, class)) = class_of(ty) else {
             return;
         };
@@ -106,20 +116,26 @@ impl Gen<'_> {
         };
         let saved = !crate::saved::saved_members(body).is_empty();
         let synced = !crate::saved::synced_members(body).is_empty();
-        let interfaces: Vec<String> = [(saved, format!("{STATE}.{SAVED}")), (synced, format!("{SYNCED_STATE}.{SYNCED_INTERFACE}"))]
-            .into_iter()
-            .filter_map(|(has, i)| has.then_some(i))
-            .collect();
+        let interfaces: Vec<String> = [
+            (saved, format!("{STATE}.{SAVED}")),
+            (synced, format!("{SYNCED_STATE}.{SYNCED_INTERFACE}")),
+        ]
+        .into_iter()
+        .filter_map(|(has, i)| has.then_some(i))
+        .collect();
         let implements = if interfaces.is_empty() {
             String::new()
         } else {
             format!(" {IMPLEMENTS} {}", interfaces.join(", "))
         };
-        self.code.open(format!("{PUBLIC} {STATIC} {FINAL} {CLASS} {class}{implements}"));
+        self.code.open(format!(
+            "{PUBLIC} {STATIC} {FINAL} {CLASS} {class}{implements}"
+        ));
         self.code.line(format!(
             "{PRIVATE} {STATIC} {FINAL} {MAP}<{STRING}, {class}> {ALL} = {NEW} {INSTANCES}<>();"
         ));
-        self.code.line(format!("{PRIVATE} {FINAL} {STRING} {OWNER};"));
+        self.code
+            .line(format!("{PRIVATE} {FINAL} {STRING} {OWNER};"));
         for (t, n) in crate::classes::fields(body) {
             let t = self.written(t, false);
             self.code.line(format!("{PUBLIC} {t} {};", Self::ident(n)));
@@ -128,13 +144,16 @@ impl Gen<'_> {
             self.owner.replace((class.clone(), 0)),
             std::mem::replace(&mut self.extending, true),
         );
-        self.code.open(format!("{PRIVATE} {class}({STRING} {OWNER})"));
+        self.code
+            .open(format!("{PRIVATE} {class}({STRING} {OWNER})"));
         self.code.line(format!("{THIS}.{OWNER} = {OWNER};"));
         self.first_values(body);
         self.code.close("");
-        self.code.open(format!("{PUBLIC} {STATIC} {class} {OF}({STRING} {OWNER})"));
+        self.code
+            .open(format!("{PUBLIC} {STATIC} {class} {OF}({STRING} {OWNER})"));
         let made = self.live_made(&owner, &class, ty, (saved, synced));
-        self.code.line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {made});"));
+        self.code
+            .line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {made});"));
         self.code.close("");
         if saved || synced {
             let mut forget = format!("{ALL}.remove({THIS}.{OWNER});");
@@ -142,7 +161,9 @@ impl Gen<'_> {
                 forget.push_str(&format!(" {SYNCED_STATE}.{FORGET_SYNCED}({THIS});"));
                 // A client's object of an owner: what its rows go to.
                 let kind = self.code.str(&self.synced_kind(&class));
-                self.on_load.push(format!("{SYNCED_STATE}.{OWNERS}({kind}, {class}{METHOD_REF}{OF});"));
+                self.on_load.push(format!(
+                    "{SYNCED_STATE}.{OWNERS}({kind}, {class}{METHOD_REF}{OF});"
+                ));
             }
             self.saved_state(&owner, body, (&forget, false));
         }
@@ -155,7 +176,13 @@ impl Gen<'_> {
     /// made; read in from its scope's store when it keeps `saved` members;
     /// live to its clients when it keeps `synced` ones (a player's to that
     /// player, the world's to every one).
-    fn live_made(&mut self, owner: &str, class: &str, ty: &Written, (saved, synced): (bool, bool)) -> String {
+    fn live_made(
+        &mut self,
+        owner: &str,
+        class: &str,
+        ty: &Written,
+        (saved, synced): (bool, bool),
+    ) -> String {
         if !(saved || synced) {
             return format!("{class}{METHOD_REF}{NEW}");
         }
@@ -187,7 +214,11 @@ impl Gen<'_> {
 
     /// What a class's synced rows say they're of: the mod's id and the class.
     pub(crate) fn synced_kind(&self, class: &str) -> String {
-        format!("{}{}{class}", self.mod_id.as_deref().unwrap_or_default(), yog_ids::sep::NAMESPACE)
+        format!(
+            "{}{}{class}",
+            self.mod_id.as_deref().unwrap_or_default(),
+            yog_ids::sep::NAMESPACE
+        )
     }
 
     /// Member `name` of `target` (a handle of `owner`) when an `extend`

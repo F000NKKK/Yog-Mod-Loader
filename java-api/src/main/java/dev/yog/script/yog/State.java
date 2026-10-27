@@ -7,7 +7,6 @@ import dev.yog.bus.YogTypes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 /**
  * Yog Script's declared state ({@code saved}, docs/design/storage.md): the
@@ -18,10 +17,22 @@ import java.util.function.Function;
 public final class State {
     private State() {}
 
+    /** An owner's records, as an object's saved members are read in. */
+    @FunctionalInterface
+    public interface Records {
+        /** The record under {@code key}'s bytes ({@code null}: none yet). */
+        byte[] read(String key);
+
+        /** The record under {@code key} gone: an old name's ({@code was}),
+         * read as the new. Where records travel with their owner (a stack,
+         * an entity) the old stays until the owner does. */
+        default void drop(String key) {}
+    }
+
     /** An object with saved members: what reads them in and writes them out. */
     public interface Saved {
-        /** Each saved member read from its record ({@code null}: none yet). */
-        void $load(Function<String, byte[]> read);
+        /** Each saved member read from its record. */
+        void $load(Records read);
 
         /** Each saved member written to its record. */
         void $save(BiConsumer<String, byte[]> write);
@@ -108,9 +119,17 @@ public final class State {
 
     private static <T extends Saved> T live(T made, Place at) {
         listen();
-        made.$load(key -> {
-            YogTypes.Record r = new YogServices.Storage.Read(at.mod(), at.where(), at.owner(), key).call();
-            return r == null ? null : r.bytes();
+        made.$load(new Records() {
+            @Override
+            public byte[] read(String key) {
+                YogTypes.Record r = new YogServices.Storage.Read(at.mod(), at.where(), at.owner(), key).call();
+                return r == null ? null : r.bytes();
+            }
+
+            @Override
+            public void drop(String key) {
+                new YogServices.Storage.Remove(at.mod(), at.where(), at.owner(), key).call();
+            }
         });
         LIVE.put(made, at);
         return made;

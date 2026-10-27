@@ -752,7 +752,10 @@ fn text_is_yogs() {
         codes("string S() => Text.Of(\"m.title\");\n"),
         [script_problem::TYPE_MISMATCH]
     );
-    assert_eq!(codes("Text T() => t\"m.title\";\n"), [script_problem::EXPECTED]);
+    assert_eq!(
+        codes("Text T() => t\"m.title\";\n"),
+        [script_problem::EXPECTED]
+    );
 }
 
 /// `params T[] rest`, as C#'s: the arguments past the others go in it,

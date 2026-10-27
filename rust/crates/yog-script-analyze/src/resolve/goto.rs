@@ -16,7 +16,8 @@ impl Resolver<'_, '_> {
             let Stmt::Label(n) = s else {
                 continue;
             };
-            let twice = here.contains(&n.text) || self.labels.iter().flatten().any(|l| *l == n.text);
+            let twice =
+                here.contains(&n.text) || self.labels.iter().flatten().any(|l| *l == n.text);
             if twice {
                 self.report.error(
                     script_problem::GOTO,

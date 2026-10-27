@@ -95,5 +95,8 @@ fn checked_unsigned() {
     let Some(out) = support::run(&[("C.ys", SRC)], &caught("Unsigned")) else {
         return;
     };
-    assert_eq!(out, "18446744073709551614 16000000000000000000 2000000000 7");
+    assert_eq!(
+        out,
+        "18446744073709551614 16000000000000000000 2000000000 7"
+    );
 }

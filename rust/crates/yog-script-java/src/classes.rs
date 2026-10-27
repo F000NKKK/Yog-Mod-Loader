@@ -11,14 +11,16 @@ use crate::decls::{Place, generic_list};
 use crate::index::Kind;
 
 use crate::modifier;
-use yog_script_ids::jvm::state::{CLASS as STATE, GAME, SAVED};
-use yog_script_ids::jvm::synced::{CLASS as SYNCED_STATE, OWNER_VAR, OWNERS, SYNCED_INTERFACE, TO_ALL};
 use yog_script_ids::java::{
     ABSTRACT, CATCH, CLASS, CLASS_LITERAL, EXTENDS, FINAL, IMPLEMENTS, NEW, OVERRIDE, PRIVATE,
     PUBLIC, RECORD, RETURN, STATIC, SUPER, THIS, THROW, TRY, VOID,
 };
 use yog_script_ids::java::{UNCHECKED, WILDCARD};
 use yog_script_ids::jvm::reflection::{TYPE, TYPED, TYPES_FIELD};
+use yog_script_ids::jvm::state::{CLASS as STATE, GAME, SAVED};
+use yog_script_ids::jvm::synced::{
+    CLASS as SYNCED_STATE, OWNER_VAR, OWNERS, SYNCED_INTERFACE, TO_ALL,
+};
 use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 
 impl Gen<'_> {
@@ -38,13 +40,20 @@ impl Gen<'_> {
         if synced {
             let kind = self.code.str(&self.synced_kind(name));
             tail.push(format!("{SYNCED_STATE}.{TO_ALL}({THIS}, {kind}, \"\");"));
-            tail.push(format!("{SYNCED_STATE}.{OWNERS}({kind}, {OWNER_VAR} -> {THIS});"));
+            tail.push(format!(
+                "{SYNCED_STATE}.{OWNERS}({kind}, {OWNER_VAR} -> {THIS});"
+            ));
         }
         if saved || synced {
             self.ctor_tail = Some(tail.join(" "));
             self.saved_owner = Some(name.to_string());
         }
-        self.class_with(d, (name, &TypeHeader::default()), body, Some(crate::MOD_INTERFACE));
+        self.class_with(
+            d,
+            (name, &TypeHeader::default()),
+            body,
+            Some(crate::MOD_INTERFACE),
+        );
     }
 
     pub(crate) fn class(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
@@ -386,7 +395,9 @@ impl Gen<'_> {
             let (name, value) = match &d.kind {
                 DeclKind::Field(_) if d.has(Modifier::Const) || d.has(Modifier::Static) => continue,
                 DeclKind::Field(f) => (&f.name.text, f.value.as_ref()),
-                DeclKind::Property { name, value, .. } if yog_script_analyze::ast::stores_value(d) => {
+                DeclKind::Property { name, value, .. }
+                    if yog_script_analyze::ast::stores_value(d) =>
+                {
                     (&name.text, value.as_ref())
                 }
                 // One keeping its own value: that set first.
@@ -525,7 +536,11 @@ fn captured<'h>(header: &'h TypeHeader, body: &[Decl]) -> Vec<&'h Param> {
 /// (`owns`, a mod's or a block's), `State.Saved` for its `saved` members
 /// and `SyncedState.Synced` for its `synced` ones — an item's (`on_stack`)
 /// all in its stack's data, which the game sends its clients.
-fn state_interfaces(also: Option<&str>, (owns, on_stack): (bool, bool), body: &[Decl]) -> Option<String> {
+fn state_interfaces(
+    also: Option<&str>,
+    (owns, on_stack): (bool, bool),
+    body: &[Decl],
+) -> Option<String> {
     let mut interfaces: Vec<String> = also.map(str::to_string).into_iter().collect();
     let (saved, synced) = (
         !crate::saved::saved_members(body).is_empty(),

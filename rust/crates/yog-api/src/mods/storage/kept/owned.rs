@@ -32,6 +32,38 @@ struct Slot<T> {
     unsent: bool,
 }
 
+/// What an old save called a value (Yog Script's `was`): its key then,
+/// and what reads it from a store as the value is now.
+pub struct Was<T> {
+    pub(super) key: &'static str,
+    read: fn(&Store, &str) -> Option<T>,
+}
+
+impl<T: Schema> Was<T> {
+    /// The old value at `key` of `store`, as the value is now.
+    pub(super) fn read(&self, store: &Store, key: &str) -> Option<T> {
+        (self.read)(store, key)
+    }
+
+    /// The value under `key` before, of the same type.
+    pub const fn renamed(key: &'static str) -> Self {
+        Self::from::<T>(key)
+    }
+
+    /// The value under `key` before, an `Old` the value is made from.
+    pub const fn from<Old: Schema + Into<T>>(key: &'static str) -> Self {
+        Was {
+            key,
+            read: read_as::<Old, T>,
+        }
+    }
+}
+
+/// `store`'s value at `key` as an `Old`, made a `T`.
+fn read_as<Old: Schema + Into<T>, T>(store: &Store, key: &str) -> Option<T> {
+    store.get::<Old>(key).map(Into::into)
+}
+
 /// A value kept for each owner `K`: loaded from the owner's store as it's
 /// first used, written back as the world is saved, removed as the owner
 /// goes; sent to who sees it when `synced`.
@@ -40,6 +72,7 @@ struct Owned<K: 'static, T> {
     slots: Mutex<Option<HashMap<K, Slot<T>>>>,
     owners: &'static Owners<K>,
     synced: Option<Audience>,
+    was: Option<Was<T>>,
 }
 
 impl<K: Hash + Eq + Clone + Send + Sync + 'static, T: Schema + Default + Send + 'static>
@@ -51,6 +84,7 @@ impl<K: Hash + Eq + Clone + Send + Sync + 'static, T: Schema + Default + Send + 
             slots: Mutex::new(None),
             owners,
             synced,
+            was: None,
         }
     }
 
@@ -72,26 +106,45 @@ impl<K: Hash + Eq + Clone + Send + Sync + 'static, T: Schema + Default + Send + 
         let slot = slots
             .get_or_insert_with(HashMap::new)
             .entry(owner)
-            .or_insert_with_key(|owner| Slot {
-                value: self.first(owner),
-                changed: false,
-                unsent: false,
+            .or_insert_with_key(|owner| {
+                let (value, changed) = self.first(owner);
+                Slot {
+                    value,
+                    changed,
+                    unsent: false,
+                }
             });
         f(slot)
     }
 
     /// `owner`'s value as it's first used: what arrived for it (a client),
-    /// or what its store has.
-    fn first(&self, owner: &K) -> T {
+    /// or what its store has — under its key, else under what an old save
+    /// called it (`was`: read as it is now, the old record gone, the value
+    /// to be written under its key: `changed`).
+    fn first(&self, owner: &K) -> (T, bool) {
         let arrived = self
             .synced
             .and_then(|_| synced::pending(self.key, &(self.owners.text)(owner)))
             .and_then(|bytes| yog_data::read_bytes(&bytes).ok());
-        arrived.unwrap_or_else(|| {
-            (self.owners.place)(owner, self.key)
-                .and_then(|(store, key)| store.get(&key))
-                .unwrap_or_default()
-        })
+        if let Some(value) = arrived {
+            return (value, false);
+        }
+        let Some((store, key)) = (self.owners.place)(owner, self.key) else {
+            return (T::default(), false);
+        };
+        if let Some(value) = store.get(&key) {
+            return (value, false);
+        }
+        let old = self.was.as_ref().and_then(|was| {
+            let (store, old_key) = (self.owners.place)(owner, was.key)?;
+            let value = was.read(&store, &old_key)?;
+            store.remove(&old_key);
+            Some(value)
+        });
+        match old {
+            Some(value) => (value, true),
+            None => (T::default(), false),
+        }
     }
 }
 
@@ -186,6 +239,13 @@ macro_rules! owned {
                 $name(Owned::new(key, $owners, Some($audience)))
             }
 
+            /// What an old save called the value: read from there when
+            /// its key has nothing, then kept under its key.
+            pub const fn was(mut self, was: Was<T>) -> Self {
+                self.0.was = Some(was);
+                self
+            }
+
             /// What `read` makes of the owner's value.
             pub fn with<R>(&'static self, owner: $owner, read: impl FnOnce(&T) -> R) -> R {
                 self.0.with($take(owner), read)
@@ -254,6 +314,13 @@ impl<T: Schema + Default + Send + 'static> WorldData<T> {
     /// Kept, and sent to every client as it changes.
     pub const fn synced(key: &'static str) -> Self {
         WorldData(Owned::new(key, &WORLD, Some(Audience::All)))
+    }
+
+    /// What an old save called the value: read from there when its key
+    /// has nothing, then kept under its key.
+    pub const fn was(mut self, was: Was<T>) -> Self {
+        self.0.was = Some(was);
+        self
     }
 
     /// What `read` makes of the value.

@@ -42,7 +42,13 @@ impl Checker<'_, '_, '_> {
     /// `on switch { arms }` (at `at`); `target`: the type wanted of it,
     /// each arm's value fitting it (C#'s target-typed `switch`), else
     /// its first arm's.
-    pub(super) fn switch(&mut self, on: &Expr, arms: &[Arm], at: Span, target: Option<&Type>) -> Type {
+    pub(super) fn switch(
+        &mut self,
+        on: &Expr,
+        arms: &[Arm],
+        at: Span,
+        target: Option<&Type>,
+    ) -> Type {
         let t = self.expr(on);
         let mut result = target.cloned().unwrap_or(Type::Unknown);
         for a in arms {

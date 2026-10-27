@@ -8,9 +8,7 @@ use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, Stmt, StrSeg, U
 use yog_script_ids::java::{
     BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, RETURN, ZERO, ZERO_CHAR,
 };
-use yog_script_ids::jvm::{
-    COPY, EQUALS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
-};
+use yog_script_ids::jvm::{COPY, EQUALS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE};
 use yog_script_ids::members::TO_STRING;
 use yog_script_ids::units::SECOND_SUFFIXES;
 
@@ -131,7 +129,10 @@ impl Gen<'_> {
                     }
                 }
             },
-            ExprKind::Checked { expr: inner, checked } => self.checked_expr(inner, *checked),
+            ExprKind::Checked {
+                expr: inner,
+                checked,
+            } => self.checked_expr(inner, *checked),
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
@@ -466,7 +467,10 @@ pub(crate) fn op_text(op: BinOp) -> &'static str {
 /// the string's escapes, a quote unescaped, an apostrophe escaped.
 fn java_char(c: char, quoted: &str) -> String {
     use yog_script_analyze::token::QUOTE as APOSTROPHE;
-    let inner = quoted.strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap_or(quoted);
+    let inner = quoted
+        .strip_prefix('"')
+        .and_then(|s| s.strip_suffix('"'))
+        .unwrap_or(quoted);
     match c {
         '"' => format!("{APOSTROPHE}{c}{APOSTROPHE}"),
         APOSTROPHE => format!("{APOSTROPHE}\\{APOSTROPHE}{APOSTROPHE}"),

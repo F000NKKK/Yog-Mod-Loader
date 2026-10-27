@@ -72,7 +72,8 @@ impl Checker<'_, '_, '_> {
             return;
         };
         if let Some(why) = bad_syntax(&text.0) {
-            self.report.error(script_problem::BAD_REFERENCE, text.1, why);
+            self.report
+                .error(script_problem::BAD_REFERENCE, text.1, why);
         }
     }
 
@@ -88,7 +89,12 @@ impl Checker<'_, '_, '_> {
 
     /// The text an id (of type `named`) is made of, when it's written out
     /// (and where); its one argument checked as a `string`.
-    fn id_text(&mut self, e: &Expr, named: &str, args: &[Arg]) -> Option<(String, crate::source::token::Span)> {
+    fn id_text(
+        &mut self,
+        e: &Expr,
+        named: &str,
+        args: &[Arg],
+    ) -> Option<(String, crate::source::token::Span)> {
         let [arg] = args else {
             self.report.error(
                 script_problem::WRONG_ARGS,
@@ -124,7 +130,12 @@ fn bad_syntax(id: &str) -> Option<String> {
     let (ns, path) = yog_ids::split(&qualified);
     let fits = |s: &str, extra: &[char]| {
         !s.is_empty()
-            && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-.".contains(c) || extra.contains(&c))
+            && s.chars().all(|c| {
+                c.is_ascii_lowercase()
+                    || c.is_ascii_digit()
+                    || "_-.".contains(c)
+                    || extra.contains(&c)
+            })
     };
     (!fits(ns, &[]) || !fits(path, &['/']))
         .then(|| format!("`{id}` isn't an id: `namespace:path`, lowercase (`minecraft:stick`)"))

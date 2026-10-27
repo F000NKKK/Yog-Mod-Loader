@@ -1,7 +1,8 @@
 //! A string's members.
 
 use yog_script_ids::members::{
-    CONTAINS, ENDS_WITH, ID, LENGTH, NAMESPACE, PATH, STARTS_WITH, SUBSTRING, TO_LOWER, TO_UPPER, TRIM,
+    CONTAINS, ENDS_WITH, ID, LENGTH, NAMESPACE, PATH, STARTS_WITH, SUBSTRING, TO_LOWER, TO_UPPER,
+    TRIM,
 };
 
 use super::Native;

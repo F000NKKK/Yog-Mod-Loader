@@ -27,7 +27,9 @@ impl Resolver<'_, '_> {
                 self.expr(from);
                 self.expr(to);
             }
-            Pattern::Tuple(ps) | Pattern::List(ps, _) => ps.iter().for_each(|a| self.bind_pattern(a)),
+            Pattern::Tuple(ps) | Pattern::List(ps, _) => {
+                ps.iter().for_each(|a| self.bind_pattern(a))
+            }
             Pattern::Slice(inner) => {
                 if let Some(p) = inner {
                     self.bind_pattern(p);

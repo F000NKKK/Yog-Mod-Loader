@@ -23,38 +23,79 @@ const NO_ERROR: &str = "null";
 const NO_EVENT_ID: &str = "0";
 
 /// The method's code, or why there's none.
-pub(super) fn generate(sig: &Signature, args: &Args, instance_logger: Option<&str>) -> Result<String, String> {
+pub(super) fn generate(
+    sig: &Signature,
+    args: &Args,
+    instance_logger: Option<&str>,
+) -> Result<String, String> {
     if !sig.partial || !sig.void {
-        return Err(format!("a `[LoggerMessage]` method is `partial` and gives `void`: `static partial void {}(…);`", sig.name));
+        return Err(format!(
+            "a `[LoggerMessage]` method is `partial` and gives `void`: `static partial void {}(…);`",
+            sig.name
+        ));
     }
     let typed = |name: &str| sig.params.iter().find(|p| bare(&p.ty) == name);
-    let logger = typed(LOGGER).map(|p| p.name.as_str()).or(instance_logger).ok_or_else(|| {
-        format!("`{}` has no `{LOGGER}` to log to: a parameter, or a field of its class", sig.name)
-    })?;
+    let logger = typed(LOGGER)
+        .map(|p| p.name.as_str())
+        .or(instance_logger)
+        .ok_or_else(|| {
+            format!(
+                "`{}` has no `{LOGGER}` to log to: a parameter, or a field of its class",
+                sig.name
+            )
+        })?;
     let level = match (&args.level, typed(LOG_LEVEL)) {
         (Some(l), _) => l.clone(),
         (None, Some(p)) => p.name.clone(),
-        (None, None) => return Err(format!("`{}` has no level: the attribute's, or a `{LOG_LEVEL}` parameter", sig.name)),
+        (None, None) => {
+            return Err(format!(
+                "`{}` has no level: the attribute's, or a `{LOG_LEVEL}` parameter",
+                sig.name
+            ));
+        }
     };
     let message = args.message.as_deref().unwrap_or_default();
-    let pieces = template::pieces(message).ok_or_else(|| format!("`{message}`: a hole isn't closed"))?;
+    let pieces =
+        template::pieces(message).ok_or_else(|| format!("`{message}`: a hole isn't closed"))?;
     let values: Vec<&Param> = sig
         .params
         .iter()
         .filter(|p| ![LOGGER, LOG_LEVEL, ERROR].contains(&bare(&p.ty)))
         .collect();
-    let field = |hole: &str| values.iter().find(|p| p.name.eq_ignore_ascii_case(hole)).map(|p| p.name.clone());
+    let field = |hole: &str| {
+        values
+            .iter()
+            .find(|p| p.name.eq_ignore_ascii_case(hole))
+            .map(|p| p.name.clone())
+    };
     let names = template::names(&pieces);
     if let Some(missing) = names.iter().find(|n| field(n).is_none()) {
-        return Err(format!("`{{{missing}}}` names no parameter of `{}`", sig.name));
+        return Err(format!(
+            "`{{{missing}}}` names no parameter of `{}`",
+            sig.name
+        ));
     }
-    let names_at = arms(names.iter().map(|n| format!("{QUOTE}{}{QUOTE}", template::escaped(n))), format!("{QUOTE}{QUOTE}"));
-    let values_at = arms(names.iter().map(|n| field(n).unwrap_or_default()), null::WORD.text.to_string());
-    let list = |f: &dyn Fn(&Param) -> String| values.iter().map(|p| f(p)).collect::<Vec<_>>().join(", ");
+    let names_at = arms(
+        names
+            .iter()
+            .map(|n| format!("{QUOTE}{}{QUOTE}", template::escaped(n))),
+        format!("{QUOTE}{QUOTE}"),
+    );
+    let values_at = arms(
+        names.iter().map(|n| field(n).unwrap_or_default()),
+        null::WORD.text.to_string(),
+    );
+    let list =
+        |f: &dyn Fn(&Param) -> String| values.iter().map(|p| f(p)).collect::<Vec<_>>().join(", ");
     let error = typed(ERROR).map_or(NO_ERROR, |p| p.name.as_str());
     let state = format!("{}{LOG_VALUES_SUFFIX}", sig.name);
     let event_field = format!("_{}{EVENT_ID_SUFFIX}", camel(&sig.name));
-    let params = sig.params.iter().map(|p| format!("{} {}", p.ty, p.name)).collect::<Vec<_>>().join(", ");
+    let params = sig
+        .params
+        .iter()
+        .map(|p| format!("{} {}", p.ty, p.name))
+        .collect::<Vec<_>>()
+        .join(", ");
     Ok(fill(
         CODE,
         &[
@@ -73,7 +114,10 @@ pub(super) fn generate(sig: &Signature, args: &Args, instance_logger: Option<&st
             ("Names", &names_at),
             ("Arms", &values_at),
             ("Template", &template::escaped(message)),
-            ("Message", &template::message(&pieces, |h| field(h).unwrap_or_default())),
+            (
+                "Message",
+                &template::message(&pieces, |h| field(h).unwrap_or_default()),
+            ),
         ],
     ))
 }
@@ -110,7 +154,10 @@ fn arms(values: impl Iterator<Item = String>, otherwise: String) -> String {
     values
         .enumerate()
         .map(|(i, v)| format!("{i} {} {v}", Punct::FatArrow.text()))
-        .chain(std::iter::once(format!("{WILDCARD} {} {otherwise}", Punct::FatArrow.text())))
+        .chain(std::iter::once(format!(
+            "{WILDCARD} {} {otherwise}",
+            Punct::FatArrow.text()
+        )))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -126,5 +173,8 @@ fn bare(ty: &str) -> &str {
 /// `Name` as `name`.
 fn camel(name: &str) -> String {
     let mut chars = name.chars();
-    chars.next().map(|c| c.to_lowercase().chain(chars).collect()).unwrap_or_default()
+    chars
+        .next()
+        .map(|c| c.to_lowercase().chain(chars).collect())
+        .unwrap_or_default()
 }

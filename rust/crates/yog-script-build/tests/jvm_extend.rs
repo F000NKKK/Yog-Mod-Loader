@@ -98,6 +98,47 @@ fn saved_members_round_trip() {
     );
 }
 
+const WAS: &str = r#"public static class W {
+    public static string Run() => "ok";
+}
+extend Player {
+    public saved i32 Visits = 0 was Count;
+    public saved i64 Spent = 0 was Paid: i32;
+}
+"#;
+
+/// A member's `was`: with nothing under its key, it's read from what an
+/// old save called it (as its type then, cast to the type now), and the
+/// old record is dropped.
+#[test]
+fn was_reads_an_old_saves_records() {
+    let java = r#"((java.util.function.Supplier<String>) () -> {
+        try {
+            Class<?> ext = java.util.Arrays.stream(t.WScript.class.getDeclaredClasses())
+                .filter(c -> c.getSimpleName().startsWith("$ExtendPlayer")).findFirst().get();
+            Class<?> count = java.util.Arrays.stream(ext.getDeclaredClasses()).filter(c -> c.getSimpleName().equals("$Visits")).findFirst().get();
+            Class<?> paid = java.util.Arrays.stream(ext.getDeclaredClasses()).filter(c -> c.getSimpleName().equals("$Spent$was")).findFirst().get();
+            var store = new java.util.TreeMap<String, byte[]>();
+            store.put("Player.Count", dev.yog.api.YogBus.bytes(count.getDeclaredConstructor(int.class).newInstance(7)));
+            store.put("Player.Paid", dev.yog.api.YogBus.bytes(paid.getDeclaredConstructor(int.class).newInstance(12)));
+            var make = ext.getDeclaredConstructor(String.class);
+            make.setAccessible(true);
+            Object again = make.newInstance("Steve");
+            ((dev.yog.script.yog.State.Saved) again).$load(new dev.yog.script.yog.State.Records() {
+                public byte[] read(String key) { return store.get(key); }
+                public void drop(String key) { store.remove(key); }
+            });
+            return store.keySet() + " " + ext.getField("Visits").getInt(again) + " " + ext.getField("Spent").getLong(again);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }).get()"#;
+    let Some(out) = support::run(&[("W.ys", WAS)], java) else {
+        return;
+    };
+    assert_eq!(out, "[] 7 12");
+}
+
 const MOD: &str = r#"mod Charge {
     public saved i32 Starts = 0;
     public i32 Unsaved = 0;
@@ -165,5 +206,8 @@ fn synced_members_reach_another_object() {
     let Some(out) = support::run(&[("Y.ys", SYNCED)], java) else {
         return;
     };
-    assert_eq!(out, "[Player.Charge, Player.Rank, Player.Tags] 40 gold [fast] true");
+    assert_eq!(
+        out,
+        "[Player.Charge, Player.Rank, Player.Tags] 40 gold [fast] true"
+    );
 }

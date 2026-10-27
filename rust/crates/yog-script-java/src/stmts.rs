@@ -377,7 +377,10 @@ impl Gen<'_> {
             Some(op) if self.types.assigned(place).is_some() => {
                 format!("{p} = {}", self.op_value(place, op, p, v))
             }
-            Some(op) if let Some(c) = self.checked_binary(self.types.of(place), op, (p, v), place.span) => {
+            Some(op)
+                if let Some(c) =
+                    self.checked_binary(self.types.of(place), op, (p, v), place.span) =>
+            {
                 format!("{p} = {c}")
             }
             Some(op) => format!("{p} {}= {v}", crate::exprs::op_text(op)),

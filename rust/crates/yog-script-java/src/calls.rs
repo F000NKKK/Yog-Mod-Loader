@@ -117,7 +117,13 @@ impl Gen<'_> {
             return None;
         }
         let holes = yog_script_analyze::holes(last);
-        Some(holes.into_iter().map(|h| self.expr(h)).collect::<Vec<_>>().join(", "))
+        Some(
+            holes
+                .into_iter()
+                .map(|h| self.expr(h))
+                .collect::<Vec<_>>()
+                .join(", "),
+        )
     }
 
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
@@ -473,7 +479,9 @@ impl Gen<'_> {
                 let sep = if a.is_empty() { "" } else { ", " };
                 format!("{host}.{n}({target}{rank}{sep}{a})")
             }
-            Some(Type::Yog(owner)) if let Some(of) = self.extension_member(owner, name, &target) => {
+            Some(Type::Yog(owner))
+                if let Some(of) = self.extension_member(owner, name, &target) =>
+            {
                 format!("{of}.{n}({a})")
             }
             Some(Type::Yog(group)) => match yog::service(group, name) {
@@ -517,7 +525,10 @@ impl Gen<'_> {
             return self.code.str(&yog_ids::qualify(t));
         }
         let v = self.expr(&arg.value);
-        let companion = self.index.host(&Type::Content(String::new())).unwrap_or_default();
+        let companion = self
+            .index
+            .host(&Type::Content(String::new()))
+            .unwrap_or_default();
         format!("{companion}.{}({v})", yog_script_ids::jvm::OF_MEMBER)
     }
 

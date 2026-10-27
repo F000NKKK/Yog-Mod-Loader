@@ -33,7 +33,9 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
             DeclKind::Ctor(c) => {
                 t.ctors.push(c.params.clone());
                 t.ctor_crossings.push(threads::crossings(d));
-                let sets = threads::attributes(d, SETS_REQUIRED_MEMBERS).next().is_some();
+                let sets = threads::attributes(d, SETS_REQUIRED_MEMBERS)
+                    .next()
+                    .is_some();
                 t.ctor_sets_required.push(sets);
             }
             DeclKind::Indexer(ix) => {

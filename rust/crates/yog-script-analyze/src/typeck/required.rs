@@ -42,7 +42,10 @@ impl Checker<'_, '_, '_> {
             self.report.error(
                 script_problem::REQUIRED,
                 e.span,
-                format!("a new `{name}` sets its required {}: `new {name} {{ … }}`", missing.join(", ")),
+                format!(
+                    "a new `{name}` sets its required {}: `new {name} {{ … }}`",
+                    missing.join(", ")
+                ),
             );
         }
     }

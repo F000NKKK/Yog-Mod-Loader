@@ -91,7 +91,12 @@ fn enclosing_logger(tokens: &[Token], i: usize) -> Option<String> {
     // The header: back to the declaration before it (a `;` or a `}`).
     let head = (0..open)
         .rev()
-        .take_while(|&k| !matches!(tokens[k].tok, Tok::Punct(Punct::Semi | Punct::RBrace | Punct::LBrace)))
+        .take_while(|&k| {
+            !matches!(
+                tokens[k].tok,
+                Tok::Punct(Punct::Semi | Punct::RBrace | Punct::LBrace)
+            )
+        })
         .map(|k| tokens[k].clone())
         .collect::<Vec<_>>()
         .into_iter()
@@ -103,10 +108,11 @@ fn enclosing_logger(tokens: &[Token], i: usize) -> Option<String> {
 fn named_logger(tokens: impl Iterator<Item = Token>) -> Option<String> {
     let mut tokens = tokens.skip_while(|t| t.tok != Tok::Ident(LOGGER.to_string()));
     tokens.next()?;
-    tokens.find_map(|t| match t.tok {
-        Tok::Ident(n) => Some(n),
-        Tok::Punct(Punct::Question) => None,
-        _ => Some(String::new()),
-    })
-    .filter(|n| !n.is_empty())
+    tokens
+        .find_map(|t| match t.tok {
+            Tok::Ident(n) => Some(n),
+            Tok::Punct(Punct::Question) => None,
+            _ => Some(String::new()),
+        })
+        .filter(|n| !n.is_empty())
 }

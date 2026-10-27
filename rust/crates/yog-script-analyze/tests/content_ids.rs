@@ -35,16 +35,28 @@ fn typed_ids_are_made_of_their_text() {
 #[test]
 fn the_old_literal_says_what_to_write() {
     let problems = check("A.ys", "string F() => @item:minecraft:stick;\n").problems;
-    let message = problems.first().map(|p| p.message.clone()).unwrap_or_default();
-    assert!(message.contains("new ItemId(\"minecraft:stick\")"), "{message}");
+    let message = problems
+        .first()
+        .map(|p| p.message.clone())
+        .unwrap_or_default();
+    assert!(
+        message.contains("new ItemId(\"minecraft:stick\")"),
+        "{message}"
+    );
 }
 
 /// `#…` is no literal either: said so, with the typed tag id to write.
 #[test]
 fn the_old_tag_literal_says_what_to_write() {
     let problems = check("A.ys", "string F() => #minecraft:logs;\n").problems;
-    let message = problems.first().map(|p| p.message.clone()).unwrap_or_default();
-    assert!(message.contains("new TagId<ItemId>(\"minecraft:logs\")"), "{message}");
+    let message = problems
+        .first()
+        .map(|p| p.message.clone())
+        .unwrap_or_default();
+    assert!(
+        message.contains("new TagId<ItemId>(\"minecraft:logs\")"),
+        "{message}"
+    );
     let mixed = "TagId<BlockId> F() => new TagId<ItemId>(\"c:ingots\");\n";
     assert_eq!(codes(mixed), [script_problem::TYPE_MISMATCH]);
 }

@@ -70,10 +70,14 @@ fn saved_block_members() {
     for want in [
         "public static class Lamp extends dev.yog.script.yog.BlockObject implements dev.yog.script.yog.State.Saved {",
         "public record $Uses(int value) {}",
-        "read.apply(\"Lamp.Uses\")",
+        "read.read(\"Lamp.Uses\")",
         "write.accept(\"Lamp.Uses\", dev.yog.api.YogBus.bytes(new $Uses(Uses)));",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
 }
 
@@ -89,10 +93,14 @@ fn entity_objects_and_saved_members() {
     for want in [
         "public static class Golem extends dev.yog.script.yog.EntityObject implements dev.yog.script.yog.State.Saved {",
         "Damage.add((amount) -> {",
-        "read.apply(\"Golem.Hits\")",
+        "read.read(\"Golem.Hits\")",
         "dev.yog.script.yog.EntityObject.register(\"test:golem\", Golem::new);",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
 }
 
@@ -107,9 +115,13 @@ fn saved_item_members() {
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "public static class Wand extends dev.yog.script.yog.ItemObject implements dev.yog.script.yog.State.Saved {",
-        "read.apply(\"Wand.Charges\")",
+        "read.read(\"Wand.Charges\")",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
 }
 
@@ -127,7 +139,11 @@ fn synced_block_and_entity_members() {
         "public static class Golem extends dev.yog.script.yog.EntityObject implements dev.yog.script.yog.State.Saved, dev.yog.script.yog.SyncedState.Synced {",
         "out.accept(\"Lamp.Glow\"",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
 }
 
@@ -142,10 +158,14 @@ fn synced_item_members_are_the_stacks() {
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "public static class Wand extends dev.yog.script.yog.ItemObject implements dev.yog.script.yog.State.Saved {",
-        "read.apply(\"Wand.Charges\")",
+        "read.read(\"Wand.Charges\")",
         "dev.yog.script.yog.ItemObject.<Wand>Held(Wand.class, false)",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
     assert!(!java.source.contains("SyncedState"), "{}", java.source);
 }

@@ -32,7 +32,12 @@ impl<'p> Interp<'p> {
             .collect::<Run<Vec<_>>>()?;
         // `new ItemId(text)`: its id, as its text.
         let tag = name == yog_script_ids::system::TAG_ID;
-        if tag || matches!(yog_script_analyze::system_type(name), Some(yog_script_analyze::Type::Content(_))) {
+        if tag
+            || matches!(
+                yog_script_analyze::system_type(name),
+                Some(yog_script_analyze::Type::Content(_))
+            )
+        {
             let text = args.first().map(ToString::to_string).unwrap_or_default();
             return Ok(Value::str(&yog_ids::qualify(&text)));
         }

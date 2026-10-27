@@ -399,6 +399,9 @@ names! {
         /// A `saved` or `synced` member of a type with no owner scope (a
         /// plain class): state needs an owner.
         STATE_OWNER = "YS0049",
+        /// A `was` on a member that isn't `saved`, or naming a type the
+        /// member can't be read from (storage.md S5).
+        STATE_WAS = "YS0050",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

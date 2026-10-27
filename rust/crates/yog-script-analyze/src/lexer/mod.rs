@@ -210,20 +210,29 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
         } else {
             ""
         };
-        let typed = format!("{}{}", yog_codegen::pascal(kind), yog_script_ids::system::CONTENT_ID_SUFFIX);
+        let typed = format!(
+            "{}{}",
+            yog_codegen::pascal(kind),
+            yog_script_ids::system::CONTENT_ID_SUFFIX
+        );
         let span = Span::new(start, self.pos);
         self.report.error(
             script_problem::BAD_REFERENCE,
             span,
             format!("content is named by a typed id: `new {typed}(\"{id}\")`; `@` starts a verbatim string or name"),
         );
-        self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id.to_string())]), start);
+        self.push(
+            Tok::Str(vec![crate::source::token::StrPart::Text(id.to_string())]),
+            start,
+        );
     }
 
     /// `t"key"`, Yog Script's old translatable text: said to be `Text.Of`
     /// now, read as its key.
     fn old_text(&mut self, start: usize) {
-        self.raw(start, TEXT_PREFIX.len(), |key| Tok::Str(vec![crate::source::token::StrPart::Text(key)]));
+        self.raw(start, TEXT_PREFIX.len(), |key| {
+            Tok::Str(vec![crate::source::token::StrPart::Text(key)])
+        });
         let Some(Tok::Str(parts)) = self.out.last().map(|t| &t.tok) else {
             return;
         };
@@ -231,11 +240,16 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             [crate::source::token::StrPart::Text(k)] => k.clone(),
             _ => String::new(),
         };
-        let (text, of) = (yog_script_ids::system::TEXT_TYPE, yog_script_ids::jvm::TEXT_OF);
+        let (text, of) = (
+            yog_script_ids::system::TEXT_TYPE,
+            yog_script_ids::jvm::TEXT_OF,
+        );
         self.report.error(
             script_problem::EXPECTED,
             Span::new(start, self.pos),
-            format!("a translatable text is `{text}.{of}(\"{key}\")` (`.With(args)` its arguments)"),
+            format!(
+                "a translatable text is `{text}.{of}(\"{key}\")` (`.With(args)` its arguments)"
+            ),
         );
     }
 
@@ -245,7 +259,10 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
         self.bump();
         let id = self.res_id().to_string();
         let span = Span::new(start, self.pos);
-        let (tag, item) = (yog_script_ids::system::TAG_ID, yog_codegen::pascal(yog_ids::kind::ITEM));
+        let (tag, item) = (
+            yog_script_ids::system::TAG_ID,
+            yog_codegen::pascal(yog_ids::kind::ITEM),
+        );
         self.report.error(
             script_problem::BAD_REFERENCE,
             span,
@@ -254,7 +271,10 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
                 yog_script_ids::system::CONTENT_ID_SUFFIX
             ),
         );
-        self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id)]), start);
+        self.push(
+            Tok::Str(vec![crate::source::token::StrPart::Text(id)]),
+            start,
+        );
     }
 
     fn punct(&mut self, start: usize, c: char) {

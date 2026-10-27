@@ -26,7 +26,9 @@ fn required_members_are_set() {
                      [SetsRequiredMembers]\n\
                      public Item(string name) { Name = name; Id = 0; }\n\
                  }\n";
-    let set = format!("{types}Item A() => new Item {{ Id = 1, Name = \"a\" }};\nItem B() => new Item(\"b\");\n");
+    let set = format!(
+        "{types}Item A() => new Item {{ Id = 1, Name = \"a\" }};\nItem B() => new Item(\"b\");\n"
+    );
     assert!(codes(&set).is_empty(), "{:?}", codes(&set));
     let unset = format!("{types}Item A() => new Item {{ Name = \"a\" }};\n");
     assert_eq!(codes(&unset), [script_problem::REQUIRED]);

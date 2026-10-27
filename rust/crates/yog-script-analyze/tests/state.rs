@@ -25,7 +25,8 @@ fn saved_state_is_yog_data_on_an_owner() {
                     public saved ItemId Favourite = new ItemId(\"stick\");\n\
                 }\n";
     assert!(codes(fine).is_empty(), "{:?}", check("A.ys", fine).problems);
-    let not_data = "using System;\nextend World {\n    public saved Func<i32> Later = () => 1;\n}\n";
+    let not_data =
+        "using System;\nextend World {\n    public saved Func<i32> Later = () => 1;\n}\n";
     assert_eq!(codes(not_data), [script_problem::STATE_TYPE]);
     let no_owner = "public class Plain {\n    public saved i32 Count = 0;\n}\n";
     assert_eq!(codes(no_owner), [script_problem::STATE_OWNER]);
@@ -35,8 +36,26 @@ fn saved_state_is_yog_data_on_an_owner() {
 #[test]
 fn synced_state_is_written_by_the_server() {
     let types = "extend Player {\n    public synced i32 Charge = 0;\n}\n";
-    let fine = format!("{types}server void Fill(Player p) {{ p.Charge += 1; }}\nclient i32 Read(Player p) => p.Charge;\n");
-    assert!(codes(&fine).is_empty(), "{:?}", check("A.ys", &fine).problems);
+    let fine = format!(
+        "{types}server void Fill(Player p) {{ p.Charge += 1; }}\nclient i32 Read(Player p) => p.Charge;\n"
+    );
+    assert!(
+        codes(&fine).is_empty(),
+        "{:?}",
+        check("A.ys", &fine).problems
+    );
     let written = format!("{types}client void Bump(Player p) {{ p.Charge += 1; }}\n");
     assert_eq!(codes(&written), [script_problem::WRONG_SIDE]);
+}
+
+/// A `was` (S5): an old save's name of a `saved` member, of its type or
+/// a number for a number; only a save has old names.
+#[test]
+fn was_names_what_an_old_save_called_a_member() {
+    let fine = "extend Player {\n    public saved i64 Visits = 0 was Count;\n    public saved i64 Spent = 0 was Paid: i32;\n    public saved f64 Speed = 0 was Rate: i32;\n}\n";
+    assert!(codes(fine).is_empty(), "{:?}", check("A.ys", fine).problems);
+    let not_saved = "extend Player {\n    public i32 Visits = 0 was Count;\n}\n";
+    assert_eq!(codes(not_saved), [script_problem::STATE_WAS]);
+    let not_read = "extend Player {\n    public saved i32 Visits = 0 was Count: string;\n}\n";
+    assert_eq!(codes(not_read), [script_problem::STATE_WAS]);
 }

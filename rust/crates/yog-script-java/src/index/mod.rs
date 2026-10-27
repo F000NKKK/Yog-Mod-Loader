@@ -189,8 +189,14 @@ impl Index {
     }
 
     /// Type `key`'s shape, of its `header` and `body`.
-    pub(crate) fn note_shape(&mut self, key: TypeRef, header: &yog_script_analyze::ast::TypeHeader, body: &[Decl]) {
-        self.shapes.insert(key, crate::java_names::shape_of(header, body));
+    pub(crate) fn note_shape(
+        &mut self,
+        key: TypeRef,
+        header: &yog_script_analyze::ast::TypeHeader,
+        body: &[Decl],
+    ) {
+        self.shapes
+            .insert(key, crate::java_names::shape_of(header, body));
     }
 
     /// Type `of`'s events (their addresses) and static methods, from its `body`.
@@ -445,7 +451,10 @@ impl Index {
         if matches!(t.non_null(), Content(_) | Tag(_))
             || matches!(t.non_null(), Own(n, _) if n == CONTENT_ID || n == TAG_ID)
         {
-            return self.hosts.contains(CONTENT_ID).then(|| self.place(CONTENT_ID, 1));
+            return self
+                .hosts
+                .contains(CONTENT_ID)
+                .then(|| self.place(CONTENT_ID, 1));
         }
         let name = match t.non_null() {
             yog_script_analyze::Type::Array(..) => yog_script_ids::system::ARRAY,
@@ -529,7 +538,6 @@ impl Index {
     ) -> Option<&crate::java_names::Shape> {
         self.shapes.get(name)
     }
-
 }
 
 /// The text attribute `attr` of `d` is given (`[Event("charge:overloaded")]`).
@@ -587,9 +595,9 @@ pub(crate) fn computed(body: &[Decl]) -> HashSet<String> {
             DeclKind::Property {
                 name, accessors, ..
             } if d.has(yog_script_analyze::ast::Modifier::Abstract)
-                || accessors
-                    .iter()
-                    .any(|a| matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))) =>
+                || accessors.iter().any(|a| {
+                    matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))
+                }) =>
             {
                 Some(name.text.clone())
             }

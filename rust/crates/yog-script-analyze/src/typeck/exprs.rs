@@ -361,7 +361,10 @@ impl Checker<'_, '_, '_> {
                 otherwise,
             } => {
                 self.condition(cond);
-                let (yes, no) = (super::nulls::proven(cond, true), super::nulls::proven(cond, false));
+                let (yes, no) = (
+                    super::nulls::proven(cond, true),
+                    super::nulls::proven(cond, false),
+                );
                 self.scoped(|c| {
                     c.narrow(yes);
                     c.patterns_in(cond);

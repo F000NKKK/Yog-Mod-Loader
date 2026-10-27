@@ -74,7 +74,12 @@ impl Checker<'_, '_, '_> {
         // `ItemId`, `BlockId`, …; `ContentId<T>`: content's ids, unless the
         // code declares its own of the name.
         let own = self.own.get(name, args.len()).is_some() && self.own_in_reach(name);
-        let yog = |c: &Self| c.own.namespaces.get(name).is_none_or(|ns| *ns == super::names::yog_ns());
+        let yog = |c: &Self| {
+            c.own
+                .namespaces
+                .get(name)
+                .is_none_or(|ns| *ns == super::names::yog_ns())
+        };
         if let Some(kind) = super::content_ids::content_id_kind(name)
             && args.is_empty()
             && (!own || yog(self))

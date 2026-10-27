@@ -3,9 +3,9 @@
 //! where they are (`Index::place`), a lambda's own type as the library's
 //! `Action` or `Func` of its arity, a game's array as Java's.
 
-use yog_script_ids::system::{CONTENT_ID, TAG_ID};
 use yog_script_analyze::ast::{Type as Written, TypeKind};
 use yog_script_analyze::{Type, builtin_type, system_type, yog};
+use yog_script_ids::system::{CONTENT_ID, TAG_ID};
 
 use super::Gen;
 

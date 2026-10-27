@@ -107,7 +107,10 @@ impl Checker<'_, '_, '_> {
     /// A type's, a content's, a component's or a screen's members: `this` is it.
     fn type_body(&mut self, d: &Decl, side: Side) {
         // Content and components own state; a plain type doesn't.
-        let owner = matches!(d.kind, DeclKind::Content { .. } | DeclKind::Component { .. });
+        let owner = matches!(
+            d.kind,
+            DeclKind::Content { .. } | DeclKind::Component { .. }
+        );
         self.owning(owner, |c| c.type_body_of(d, side));
     }
 

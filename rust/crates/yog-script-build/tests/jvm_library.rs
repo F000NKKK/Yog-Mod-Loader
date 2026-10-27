@@ -118,7 +118,8 @@ fn logging() {
                    }\n\
                }\n";
     // `LogInformation` & co. warned of: `[LoggerMessage]` methods are faster.
-    let Some(out) = support::run_warned(&[("L.ys", src)], "t.LScript.L.Run()", &[LOG_BY_METHOD]) else {
+    let Some(out) = support::run_warned(&[("L.ys", src)], "t.LScript.L.Run()", &[LOG_BY_METHOD])
+    else {
         return;
     };
     assert_eq!(
@@ -293,5 +294,8 @@ fn content_ids() {
     let Some(out) = support::run(&[("K.ys", src)], "t.KScript.K.Run()") else {
         return;
     };
-    assert_eq!(out, "minecraft:stick minecraft oak_log minecraft:oak_planks True minecraft:logs logs");
+    assert_eq!(
+        out,
+        "minecraft:stick minecraft oak_log minecraft:oak_planks True minecraft:logs logs"
+    );
 }

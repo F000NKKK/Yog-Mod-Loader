@@ -9,12 +9,18 @@ use crate::java_names::TypeRef;
 impl Index {
     /// Enum `name`'s cases carrying data: each its name, its fields' names
     /// and types (as written).
-    pub(crate) fn data_cases(&self, name: &str) -> Vec<(&str, &[String], &[yog_script_analyze::ast::Type])> {
+    pub(crate) fn data_cases(
+        &self,
+        name: &str,
+    ) -> Vec<(&str, &[String], &[yog_script_analyze::ast::Type])> {
         self.cases
             .iter()
             .filter(|((e, _), fields)| e == name && !fields.is_empty())
             .map(|((e, c), fields)| {
-                let types = self.case_types.get(&(e.clone(), c.clone())).map_or(&[][..], Vec::as_slice);
+                let types = self
+                    .case_types
+                    .get(&(e.clone(), c.clone()))
+                    .map_or(&[][..], Vec::as_slice);
                 (c.as_str(), fields.as_slice(), types)
             })
             .collect()

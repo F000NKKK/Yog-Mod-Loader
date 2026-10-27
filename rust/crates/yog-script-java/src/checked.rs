@@ -9,8 +9,8 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Block, Expr};
 use yog_script_analyze::token::Span;
 use yog_script_ids::jvm::checked::{
-    ADD, CLASS, FROM_FLOAT, MUL, NEG, RANGE, SUB, UNSIGNED_ADD, UNSIGNED_AT_MOST, UNSIGNED_FROM_FLOAT,
-    UNSIGNED_MUL, UNSIGNED_NEG, UNSIGNED_SUB,
+    ADD, CLASS, FROM_FLOAT, MUL, NEG, RANGE, SUB, UNSIGNED_ADD, UNSIGNED_AT_MOST,
+    UNSIGNED_FROM_FLOAT, UNSIGNED_MUL, UNSIGNED_NEG, UNSIGNED_SUB,
 };
 
 use super::Gen;
@@ -41,7 +41,13 @@ impl Gen<'_> {
 
     /// `l op r` (of type `t`, at `at`) in a checked context, when it's
     /// whole numbers' `+ - *`.
-    pub(crate) fn checked_binary(&self, t: Option<&Type>, op: BinOp, (l, r): (&str, &str), at: Span) -> Option<String> {
+    pub(crate) fn checked_binary(
+        &self,
+        t: Option<&Type>,
+        op: BinOp,
+        (l, r): (&str, &str),
+        at: Span,
+    ) -> Option<String> {
         if !self.checked {
             return None;
         }
@@ -61,7 +67,9 @@ impl Gen<'_> {
         let (min, max) = range(t)?;
         let java = primitive(t)?;
         let op = crate::exprs::op_text(op);
-        Some(format!("(({java}) {CLASS}.{RANGE}(({LONG}) ({l}) {op} ({LONG}) ({r}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at}))"))
+        Some(format!(
+            "(({java}) {CLASS}.{RANGE}(({LONG}) ({l}) {op} ({LONG}) ({r}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at}))"
+        ))
     }
 
     /// `-v` (of type `t`) in a checked context.
@@ -78,12 +86,19 @@ impl Gen<'_> {
         }
         let (min, max) = range(t)?;
         let java = primitive(t)?;
-        Some(format!("(({java}) {CLASS}.{RANGE}(-({LONG}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at}))"))
+        Some(format!(
+            "(({java}) {CLASS}.{RANGE}(-({LONG}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at}))"
+        ))
     }
 
     /// `(to) v` (`v` of type `from`) in a checked context: out of `to`'s
     /// range, a panic.
-    pub(crate) fn checked_cast(&self, (from, to): (Option<&Type>, Option<&Type>), v: &str, at: Span) -> Option<String> {
+    pub(crate) fn checked_cast(
+        &self,
+        (from, to): (Option<&Type>, Option<&Type>),
+        v: &str,
+        at: Span,
+    ) -> Option<String> {
         if !self.checked {
             return None;
         }
@@ -95,7 +110,10 @@ impl Gen<'_> {
             return Some(if float {
                 format!("{CLASS}.{UNSIGNED_FROM_FLOAT}(({DOUBLE}) ({v}), {at})")
             } else {
-                format!("{CLASS}.{RANGE}(({LONG}) ({v}), 0{LONG_SUFFIX}, {}{LONG_SUFFIX}, {at})", i64::MAX)
+                format!(
+                    "{CLASS}.{RANGE}(({LONG}) ({v}), 0{LONG_SUFFIX}, {}{LONG_SUFFIX}, {at})",
+                    i64::MAX
+                )
             });
         }
         let (min, max) = match to {
@@ -105,10 +123,14 @@ impl Gen<'_> {
         let java = primitive(to)?;
         // From a `u64`: no more than the type's top (unsigned).
         if *from == Type::U64 {
-            return Some(format!("(({java}) {CLASS}.{UNSIGNED_AT_MOST}({v}, {max}{LONG_SUFFIX}, {at}))"));
+            return Some(format!(
+                "(({java}) {CLASS}.{UNSIGNED_AT_MOST}({v}, {max}{LONG_SUFFIX}, {at}))"
+            ));
         }
         let read = if float {
-            format!("{CLASS}.{FROM_FLOAT}(({DOUBLE}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at})")
+            format!(
+                "{CLASS}.{FROM_FLOAT}(({DOUBLE}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at})"
+            )
         } else if range(from).is_some() || *from == Type::I64 {
             format!("{CLASS}.{RANGE}(({LONG}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at})")
         } else {

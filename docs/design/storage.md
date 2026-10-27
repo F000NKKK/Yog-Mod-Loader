@@ -159,6 +159,12 @@ For each type with `synced` members, the build generates a mirror spec
    service `HeldItemData`). ✅ The analyzer's check: a client's write of a
    synced member is WRONG_SIDE.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
+   ✅ `was`: a `saved` member's old name (its type then, when it changed:
+   a number or quantity for one, YS0050 otherwise) is read when its own
+   record is missing — the old key's bytes as the old type's record, cast
+   to the type now — and dropped (`State.Records.drop`; a stack's or an
+   entity's old key stays with its owner). Rust: `WorldData::new(key)
+   .was(Was::renamed(old))` / `Was::from::<Old>(old)` on every kept value.
 7. The Rust API's parity. ✅ `WorldData`/`PlayerData`/`BlockData` (their
    stores, the same keys; `::synced` on the same rows), `EntityData` (the
    runtime's entity data; `::session` not saved), `ItemData` (the stack;

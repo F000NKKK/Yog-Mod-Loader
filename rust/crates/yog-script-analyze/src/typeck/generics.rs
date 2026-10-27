@@ -96,11 +96,15 @@ impl Checker<'_, '_, '_> {
             }
             (Type::Array(x, rx), Type::Array(y, ry)) => rx == ry && self.unify(x, y, free, found),
             // An `ItemId` where a `ContentId<T>` is wanted: `T` is `ItemId`.
-            (Type::Own(b, ys), Type::Content(_) | Type::Tag(_)) if b == yog_script_ids::system::CONTENT_ID && ys.len() == 1 => {
+            (Type::Own(b, ys), Type::Content(_) | Type::Tag(_))
+                if b == yog_script_ids::system::CONTENT_ID && ys.len() == 1 =>
+            {
                 self.unify(&ys[0], given, free, found)
             }
             // A `TagId<ItemId>` where a `TagId<T>` is wanted: `T` is `ItemId`.
-            (Type::Own(b, ys), Type::Tag(k)) if b == yog_script_ids::system::TAG_ID && ys.len() == 1 => {
+            (Type::Own(b, ys), Type::Tag(k))
+                if b == yog_script_ids::system::TAG_ID && ys.len() == 1 =>
+            {
                 self.unify(&ys[0], &Type::Content(k.clone()), free, found)
             }
             (Type::Nullable(x), Type::Nullable(y)) => self.unify(x, y, free, found),

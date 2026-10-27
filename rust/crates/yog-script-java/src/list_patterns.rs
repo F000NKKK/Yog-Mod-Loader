@@ -33,7 +33,12 @@ impl Gen<'_> {
 
     /// `[items]` on `v` (of `on`) opened as `if`s, its names bound inside:
     /// how many to close.
-    pub(crate) fn list_open(&mut self, items: &[Pattern], (v, on): (&str, Option<&Type>), at: Span) -> usize {
+    pub(crate) fn list_open(
+        &mut self,
+        items: &[Pattern],
+        (v, on): (&str, Option<&Type>),
+        at: Span,
+    ) -> usize {
         let Some((length, reads)) = self.list_reads(items, (v, on), at) else {
             return 0;
         };
@@ -71,7 +76,9 @@ impl Gen<'_> {
                 Pattern::Slice(Some(rest)) => {
                     let kind = self.java(on.non_null(), false);
                     let to = format!("{len} - {after}");
-                    let read = format!("(({kind}) {RUNTIME}.{HELPERS}.{SLICE}({v}, {before}, {to}, false))");
+                    let read = format!(
+                        "(({kind}) {RUNTIME}.{HELPERS}.{SLICE}({v}, {before}, {to}, false))"
+                    );
                     reads.push((&**rest, read, Some(on.non_null().clone())));
                     continue;
                 }

@@ -147,7 +147,13 @@ fn skip_belongs_in_a_before() {
 fn await_belongs_in_async() {
     let src = "using System.Threading.Tasks;\nvoid Arm() {\n    await Task.Delay(5s);\n}\n";
     assert_eq!(codes("A.ys", src), [script_problem::AWAIT_OUTSIDE_ASYNC]);
-    assert!(codes("A.ys", "using System.Threading.Tasks;\nasync void Arm() {\n    await Task.Delay(5s);\n}\n").is_empty());
+    assert!(
+        codes(
+            "A.ys",
+            "using System.Threading.Tasks;\nasync void Arm() {\n    await Task.Delay(5s);\n}\n"
+        )
+        .is_empty()
+    );
 }
 
 /// Names in C#'s case, warned otherwise.

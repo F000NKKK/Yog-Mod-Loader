@@ -40,7 +40,7 @@ use yog_sync::atomic::{AtomicBool, Ordering};
 
 pub use entity::EntityData;
 pub use item::ItemData;
-pub use kept::{BlockData, GameData, PlayerData, WorldData};
+pub use kept::{BlockData, GameData, PlayerData, Was, WorldData};
 #[doc(hidden)]
 pub use records::__provide_records;
 pub use yog_storage::{Scope, Store, close_under, flush_all};

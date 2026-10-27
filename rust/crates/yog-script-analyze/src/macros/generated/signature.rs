@@ -112,27 +112,58 @@ pub(super) struct Args {
 }
 
 pub(super) fn args(tokens: &[Token], text: &str) -> Args {
-    use yog_script_ids::system::{LOGGER_MESSAGE_EVENT_ID, LOGGER_MESSAGE_LEVEL, LOGGER_MESSAGE_TEXT};
+    use yog_script_ids::system::{
+        LOGGER_MESSAGE_EVENT_ID, LOGGER_MESSAGE_LEVEL, LOGGER_MESSAGE_TEXT,
+    };
     let mut out = Args::default();
     for arg in split(tokens) {
         let (named, value) = match arg {
-            [Token { tok: Tok::Ident(n), .. }, Token { tok: Tok::Punct(Punct::Colon), .. }, rest @ ..] => {
-                (Some(n.as_str()), rest)
-            }
+            [
+                Token {
+                    tok: Tok::Ident(n), ..
+                },
+                Token {
+                    tok: Tok::Punct(Punct::Colon),
+                    ..
+                },
+                rest @ ..,
+            ] => (Some(n.as_str()), rest),
             _ => (None, arg),
         };
         let template = match value {
-            [Token { tok: Tok::Str(parts), .. }] => Some(template(parts, text)),
-            [Token { tok: Tok::RawStr(s), .. }] => Some(s.clone()),
+            [
+                Token {
+                    tok: Tok::Str(parts),
+                    ..
+                },
+            ] => Some(template(parts, text)),
+            [
+                Token {
+                    tok: Tok::RawStr(s),
+                    ..
+                },
+            ] => Some(s.clone()),
             _ => None,
         };
         match (named, template) {
             (Some(LOGGER_MESSAGE_TEXT), Some(t)) | (None, Some(t)) => out.message = Some(t),
-            (Some(LOGGER_MESSAGE_EVENT_ID), _) => out.event_id = Some(written(value, text).to_string()),
-            (None, _) if matches!(value, [Token { tok: Tok::Int(_), .. }]) => {
+            (Some(LOGGER_MESSAGE_EVENT_ID), _) => {
+                out.event_id = Some(written(value, text).to_string())
+            }
+            (None, _)
+                if matches!(
+                    value,
+                    [Token {
+                        tok: Tok::Int(_),
+                        ..
+                    }]
+                ) =>
+            {
                 out.event_id = Some(written(value, text).to_string());
             }
-            (Some(LOGGER_MESSAGE_LEVEL) | None, _) => out.level = Some(written(value, text).to_string()),
+            (Some(LOGGER_MESSAGE_LEVEL) | None, _) => {
+                out.level = Some(written(value, text).to_string())
+            }
             _ => {}
         }
     }

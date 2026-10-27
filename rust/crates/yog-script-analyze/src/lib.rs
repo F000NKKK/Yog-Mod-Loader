@@ -19,8 +19,8 @@ mod typeck;
 
 pub use typeck::commands::command_arg;
 pub use typeck::{
-    Message, MethodUse, OperatorUse, Quoted, Type, Types, body_yields, builtin_type, content_path,
-    MessageTemplate, holes, item_of, list_item, leaves, system_name, system_type,
+    Message, MessageTemplate, MethodUse, OperatorUse, Quoted, Type, Types, body_yields,
+    builtin_type, content_path, holes, item_of, leaves, list_item, system_name, system_type,
 };
 pub mod versions;
 pub mod words;
@@ -28,8 +28,8 @@ pub mod words;
 /// How Yog Script spells what its reader reads: what a writer of it
 /// (`yog-codegen-ys`) writes the same way.
 pub mod spelling {
-    pub use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, UNICODE_OPEN};
     pub use crate::lexer::VERBATIM;
+    pub use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, UNICODE_OPEN};
 
     /// Whether `name` is reserved: a keyword, written `@name` as a name.
     #[must_use]

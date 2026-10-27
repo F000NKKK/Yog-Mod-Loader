@@ -244,8 +244,14 @@ fn render(t: &Type, bound: &Bound) -> String {
         TypeKind::Path { path, args } => {
             // `System.Collections.Generic.IEnumerator`: the library's, by its name.
             let name = match path.as_slice() {
-                [first, .., last] if first.text == yog_script_ids::system::ROOT => last.text.clone(),
-                _ => path.iter().map(|n| n.text.as_str()).collect::<Vec<_>>().join("."),
+                [first, .., last] if first.text == yog_script_ids::system::ROOT => {
+                    last.text.clone()
+                }
+                _ => path
+                    .iter()
+                    .map(|n| n.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("."),
             };
             if args.is_empty() {
                 return bound.get(&name).cloned().unwrap_or(name);

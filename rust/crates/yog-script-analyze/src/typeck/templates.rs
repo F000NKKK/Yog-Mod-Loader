@@ -10,10 +10,10 @@ use super::members::Callee;
 use super::own::TypeKey;
 use super::types::MethodUse;
 use crate::ast::{Arg, Expr, ExprKind, StrSeg};
-use yog_ids::script_problem;
-use yog_script_ids::system::{LOGGER_EXTENSIONS, LOGGER_MESSAGE};
 use crate::lexer::VERBATIM;
 use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE};
+use yog_ids::script_problem;
+use yog_script_ids::system::{LOGGER_EXTENSIONS, LOGGER_MESSAGE};
 
 /// A string written for a message template: its text as written (holes
 /// and all), and whether its holes are its values.
@@ -26,7 +26,12 @@ pub struct MessageTemplate {
 impl Checker<'_, '_, '_> {
     /// The written arguments a method `target` (or an extension of its
     /// name) may take as a message template: strings with holes, there.
-    pub(super) fn template_slots(&self, target: &Callee, callee: &Expr, args: &[Arg]) -> Vec<usize> {
+    pub(super) fn template_slots(
+        &self,
+        target: &Callee,
+        callee: &Expr,
+        args: &[Arg],
+    ) -> Vec<usize> {
         let ExprKind::Member { name, .. } = &callee.kind else {
             return Vec::new();
         };
@@ -42,32 +47,46 @@ impl Checker<'_, '_, '_> {
         let instance = matches!(target, Callee::Own(_));
         if let Callee::Own(methods) | Callee::Extension(methods) = target {
             for (m, _) in methods {
-                note(self.template_of(m, &name.text).map(|p| p - usize::from(!instance)));
+                note(
+                    self.template_of(m, &name.text)
+                        .map(|p| p - usize::from(!instance)),
+                );
             }
         }
-        for (_, m) in self.own.extension_methods.get(&name.text).into_iter().flatten() {
-            note(self.template_of(m, &name.text).and_then(|p| p.checked_sub(1)));
+        for (_, m) in self
+            .own
+            .extension_methods
+            .get(&name.text)
+            .into_iter()
+            .flatten()
+        {
+            note(
+                self.template_of(m, &name.text)
+                    .and_then(|p| p.checked_sub(1)),
+            );
         }
         slots
     }
 
     /// The index of method `m`'s (named `name`) template parameter, if it has one.
     fn template_of(&self, m: &crate::ast::Method, name: &str) -> Option<usize> {
-        let param = self
-            .own
-            .all()
-            .find_map(|(_, t)| {
-                let methods = t.methods.get(name)?;
-                let at = methods.iter().position(|x| x.name.span == m.name.span)?;
-                t.templates.get(name)?.get(at).cloned().flatten()
-            })?;
+        let param = self.own.all().find_map(|(_, t)| {
+            let methods = t.methods.get(name)?;
+            let at = methods.iter().position(|x| x.name.span == m.name.span)?;
+            t.templates.get(name)?.get(at).cloned().flatten()
+        })?;
         m.params.iter().position(|p| p.name.text == param)
     }
 
     /// The method chosen (`used`, if one): each of `slots` it takes as a
     /// template noted so (its holes checked when they're its values); the
     /// others checked as the strings they are.
-    pub(super) fn templates_chosen(&mut self, used: Option<&MethodUse>, written: &[Arg], slots: &[usize]) {
+    pub(super) fn templates_chosen(
+        &mut self,
+        used: Option<&MethodUse>,
+        written: &[Arg],
+        slots: &[usize],
+    ) {
         let chosen = used.and_then(|u| self.chosen_template(u, written.len()));
         if let Some(u) = used
             && u.owner.as_deref() == Some(LOGGER_EXTENSIONS)
@@ -91,7 +110,8 @@ impl Checker<'_, '_, '_> {
                             self.expr(h);
                         }
                     }
-                    self.types.set_template(arg, MessageTemplate { text, values });
+                    self.types
+                        .set_template(arg, MessageTemplate { text, values });
                 }
                 _ => {
                     self.expr(arg);
@@ -107,7 +127,11 @@ impl Checker<'_, '_, '_> {
         let owner = used.owner.as_ref()?;
         let own = self.own.of_key(&TypeKey::new(owner, used.owner_arity))?;
         let m = own.methods.get(&used.name)?.get(used.overload)?;
-        let param = own.templates.get(&used.name)?.get(used.overload)?.as_ref()?;
+        let param = own
+            .templates
+            .get(&used.name)?
+            .get(used.overload)?
+            .as_ref()?;
         let p = m.params.iter().position(|x| &x.name.text == param)?;
         let at = p - usize::from(used.extension);
         let rest_after = m.params.len() == p + 2 && m.params.last().is_some_and(|x| x.params);
@@ -156,7 +180,10 @@ fn hole_value(h: &Expr) -> &Expr {
 fn template_text(written: &str) -> String {
     let verbatim = written.strip_prefix(VERBATIM);
     let quoted = verbatim.unwrap_or(written);
-    let inner = quoted.strip_prefix(QUOTE).and_then(|s| s.strip_suffix(QUOTE)).unwrap_or(quoted);
+    let inner = quoted
+        .strip_prefix(QUOTE)
+        .and_then(|s| s.strip_suffix(QUOTE))
+        .unwrap_or(quoted);
     // `@"…"`: no escapes, a `""` its quote.
     if verbatim.is_some() {
         return inner.replace(&format!("{QUOTE}{QUOTE}"), &QUOTE.to_string());

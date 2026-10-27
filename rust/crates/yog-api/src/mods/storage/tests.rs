@@ -3,6 +3,8 @@ use super::*;
 static VISITS: WorldData<u32> = WorldData::new("visits");
 static COINS: PlayerData<i64> = PlayerData::new("coins");
 static GLOW: BlockData<u8> = BlockData::new("glow");
+static STEPS: WorldData<u32> = WorldData::new("steps").was(Was::renamed("walked"));
+static SPENT: WorldData<u64> = WorldData::new("spent").was(Was::from::<u32>("paid"));
 
 static SHOWN: PlayerData<u32> = PlayerData::synced("shown");
 static WEATHER: WorldData<u8> = WorldData::synced("weather");
@@ -40,6 +42,32 @@ fn kept_values_are_saved_with_the_world_and_read_back_after_it_closes() {
     );
     kept::gone(&Gone::Block(DIM, LAMP));
     assert_eq!(GLOW.with((DIM, LAMP), |g| *g), 0, "gone as it broke");
+    *WORLD.lock() = None;
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A value's `was`: with nothing under its key, it's read from what an old
+/// save called it (as the type then), the old record gone, the value then
+/// saved under its key.
+#[test]
+fn values_are_read_from_what_an_old_save_called_them() {
+    let _turn = WORLD_TESTS.lock();
+    let root = std::env::temp_dir().join(format!("yog-api-was-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    *WORLD.lock() = Some(root.clone());
+    let store = crate::storage::world().expect("a world is open");
+    store.set("walked", &4u32);
+    store.set("paid", &9u32);
+    assert_eq!(STEPS.with(|n| *n), 4, "read from its old name");
+    assert_eq!(SPENT.with(|n| *n), 9, "read as the old type, made the new");
+    assert!(
+        !store.contains("walked") && !store.contains("paid"),
+        "the old records are gone"
+    );
+    kept::keep_all();
+    assert_eq!(store.get::<u32>("steps"), Some(4), "kept under its key");
+    assert_eq!(store.get::<u64>("spent"), Some(9));
+    kept::forget_world();
     *WORLD.lock() = None;
     let _ = std::fs::remove_dir_all(&root);
 }

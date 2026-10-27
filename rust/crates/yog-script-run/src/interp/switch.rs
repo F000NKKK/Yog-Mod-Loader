@@ -19,7 +19,8 @@ impl Interp<'_> {
             let chosen = if to_default {
                 default_of(sections)
             } else {
-                self.section_for(sections, &v)?.or_else(|| default_of(sections))
+                self.section_for(sections, &v)?
+                    .or_else(|| default_of(sections))
             };
             let Some((section, label)) = chosen else {
                 return Ok(());
