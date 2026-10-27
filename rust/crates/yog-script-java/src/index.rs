@@ -92,6 +92,8 @@ pub(crate) struct Index {
     file_methods: HashMap<String, Vec<yog_script_analyze::ast::Method>>,
     /// Each type's shape, for its methods' Java names.
     shapes: HashMap<crate::java_names::TypeRef, crate::java_names::Shape>,
+    /// The `extend` blocks' classes (`extensions.rs`).
+    pub(crate) extensions: Vec<crate::extensions::Extension>,
 }
 
 impl Index {
@@ -165,9 +167,23 @@ impl Index {
                     self.events
                         .insert((String::new(), name.text.clone()), attribute_text(d, EVENT));
                 }
+                DeclKind::Extend { ty, header, body } => {
+                    let elsewhere = self.elsewhere.clone();
+                    self.note_extension(ty, header, body, elsewhere.as_deref());
+                }
                 kind => self.walk(kind.members()),
             }
         }
+    }
+
+    /// Class `name` of the source's, of no type parameters, declared.
+    pub(crate) fn declared_type(&mut self, name: &str) {
+        self.declared(name, 0);
+    }
+
+    /// Type `key`'s shape, of its `header` and `body`.
+    pub(crate) fn note_shape(&mut self, key: TypeRef, header: &yog_script_analyze::ast::TypeHeader, body: &[Decl]) {
+        self.shapes.insert(key, crate::java_names::shape_of(header, body));
     }
 
     /// Type `of`'s events (their addresses) and static methods, from its `body`.
@@ -716,7 +732,7 @@ fn properties(body: &[Decl]) -> HashSet<String> {
 
 /// A body's computed properties (`T X => …;`, `T X { get => …; }`, an
 /// abstract one's overrides').
-fn computed(body: &[Decl]) -> HashSet<String> {
+pub(crate) fn computed(body: &[Decl]) -> HashSet<String> {
     body.iter()
         .filter_map(|d| match &d.kind {
             DeclKind::Property {

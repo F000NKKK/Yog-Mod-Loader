@@ -484,3 +484,15 @@ pub mod checked {
     pub const UNSIGNED_AT_MOST: &str = "uatMost";
     pub const UNSIGNED_FROM_FLOAT: &str = "ufromFloat";
 }
+
+/// `extend T { … }` on the JVM: a class of its members, one instance per
+/// owner (`$of(owner)`), the owner's handle kept as `$owner`.
+pub mod extend {
+    pub const CLASS_PREFIX: &str = "$Extend";
+    pub const OF: &str = "$of";
+    pub const OWNER: &str = "$owner";
+    pub const ALL: &str = "$all";
+    /// The owners' instances' map, made, and what finds or makes one.
+    pub const INSTANCES: &str = concat!(java_util!(), sep!(), "concurrent", sep!(), "ConcurrentHashMap");
+    pub const FIND_OR_MAKE: &str = "computeIfAbsent";
+}

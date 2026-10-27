@@ -123,6 +123,12 @@ impl Gen<'_> {
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
+        // A member an `extend` adds: its owner's instance's.
+        if let Some(Type::Yog(owner)) = on_type.as_ref().map(Type::non_null)
+            && let Some(read) = self.extension_read(owner, name, &target)
+        {
+            return read;
+        }
         let (target, on_type) = self.through_bound(on, target, on_type);
         let read = self.member_of(&target, on_type.as_ref(), name, safe);
         match on_type.as_ref().map(Type::non_null) {
@@ -466,6 +472,9 @@ impl Gen<'_> {
             Some(t) if let Some((host, rank)) = self.host_of_call(e, t) => {
                 let sep = if a.is_empty() { "" } else { ", " };
                 format!("{host}.{n}({target}{rank}{sep}{a})")
+            }
+            Some(Type::Yog(owner)) if let Some(of) = self.extension_member(owner, name, &target) => {
+                format!("{of}.{n}({a})")
             }
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {

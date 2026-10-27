@@ -23,6 +23,7 @@ mod drops;
 mod enums;
 mod events;
 mod exprs;
+mod extensions;
 mod goto;
 mod groups;
 mod identity;
@@ -230,6 +231,8 @@ pub(crate) struct Gen<'c> {
     case_jumps: Vec<Option<goto::CaseJump>>,
     /// The code is in a `checked` context: whole numbers' overflow panics (`checked.rs`).
     checked: bool,
+    /// The code is an `extend`'s: `this` is its owner's handle (`extensions.rs`).
+    extending: bool,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -292,6 +295,7 @@ impl<'c> Gen<'c> {
             hoisted: std::collections::HashSet::new(),
             case_jumps: Vec::new(),
             checked: false,
+            extending: false,
             this_name: None,
             breaks: Vec::new(),
             statik: true,

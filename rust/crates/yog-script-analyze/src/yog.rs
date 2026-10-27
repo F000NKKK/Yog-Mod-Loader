@@ -66,9 +66,19 @@ pub fn is_handle(name: &str) -> bool {
     yog_event::SUBJECTS.iter().any(|(_, h)| *h == name)
 }
 
+/// The world's handle's name (`World`): its type's own.
+pub fn world() -> &'static str {
+    handle_name::<yog_event::World>()
+}
+
 /// The player's handle's name (`Player`): its type's own.
 pub fn player() -> &'static str {
-    let full = std::any::type_name::<yog_event::Player>();
+    handle_name::<yog_event::Player>()
+}
+
+/// Handle type `T`'s name, as Yog Script names it: its Rust type's own.
+fn handle_name<T>() -> &'static str {
+    let full = std::any::type_name::<T>();
     full.rsplit(yog_script_ids::rust::PATH_SEP)
         .next()
         .unwrap_or(full)

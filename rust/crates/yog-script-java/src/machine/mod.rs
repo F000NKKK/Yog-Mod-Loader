@@ -361,10 +361,15 @@ impl Gen<'_> {
 impl Gen<'_> {
     /// `this` where the code is: its method's class's in a machine.
     pub(crate) fn this_ref(&self) -> String {
-        match &self.this_name {
+        let this = match &self.this_name {
             Some(owner) => format!("{owner}.{THIS}"),
             None => THIS.to_string(),
+        };
+        // An `extend`'s `this`: its owner's handle.
+        if self.extending {
+            return format!("{this}.{}", yog_script_ids::jvm::extend::OWNER);
         }
+        this
     }
 
     /// `base` where the code is: its method's class's in a machine.

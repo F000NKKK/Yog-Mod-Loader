@@ -350,7 +350,7 @@ impl Gen<'_> {
     }
 
     /// `this.f = …;` for each field with a first value, in order.
-    fn first_values(&mut self, body: &[Decl]) {
+    pub(crate) fn first_values(&mut self, body: &[Decl]) {
         for d in body {
             let (name, value) = match &d.kind {
                 DeclKind::Field(_) if d.has(Modifier::Const) || d.has(Modifier::Static) => continue,
@@ -455,7 +455,7 @@ impl Gen<'_> {
 }
 
 /// A class's stored fields: its fields and auto-properties.
-fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
+pub(crate) fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
     body.iter()
         .filter_map(|d| match &d.kind {
             DeclKind::Field(f) if !d.has(Modifier::Const) && !d.has(Modifier::Static) => {
