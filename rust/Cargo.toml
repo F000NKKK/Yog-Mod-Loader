@@ -102,7 +102,7 @@ yog-analysis = { version = "0.1.1", path = "crates/yog-analysis" }
 yog-codegen = { version = "0.1.1", path = "crates/yog-codegen" }
 yog-codegen-java = { version = "0.1.0", path = "crates/yog-codegen-java" }
 yog-codegen-rust = { version = "0.1.0", path = "crates/yog-codegen-rust" }
-yog-codegen-typescript = { version = "0.1.0", path = "crates/yog-codegen-typescript" }
+yog-codegen-typescript = { version = "0.1.1", path = "crates/yog-codegen-typescript" }
 yog-codegen-ys = { version = "0.1.0", path = "crates/yog-codegen-ys" }
 yog-command = { version = "0.4.0", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
