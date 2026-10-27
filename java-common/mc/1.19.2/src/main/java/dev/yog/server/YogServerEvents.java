@@ -131,8 +131,8 @@ public final class YogServerEvents {
         if (sp.getCooldowns().isOnCooldown(stack.getItem())) return true;
         String itemId = Registry.ITEM.getKey(stack.getItem()).toString();
         String dim = dim(sp.getLevel());
-        if (!new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), hand == InteractionHand.OFF_HAND, dim).emitPre()) return false;
-        new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), hand == InteractionHand.OFF_HAND, dim).emit();
+        if (!new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim, hand == InteractionHand.OFF_HAND).emitPre()) return false;
+        new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim, hand == InteractionHand.OFF_HAND).emit();
         return true;
     }
 

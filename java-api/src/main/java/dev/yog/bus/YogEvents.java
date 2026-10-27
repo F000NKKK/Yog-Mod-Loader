@@ -1075,20 +1075,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             }
 
             /** Fired when a player right-clicks with an item (server side). */
-            public record UseItem(String playerName, String itemId, boolean sneaking, boolean offHand, String dimension) {
+            public record UseItem(String playerName, String itemId, boolean sneaking, String dimension, boolean offHand) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("item_id", itemId);
                     m.put("sneaking", sneaking);
-                    m.put("off_hand", offHand);
                     m.put("dimension", dimension);
+                    m.put("off_hand", offHand);
                     return m;
                 }
 
                 public static UseItem fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.bool(m.get("off_hand"), false), YogData.str(m.get("dimension"), ""));
+                    return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("off_hand"), false));
                 }
 
                 public static UseItem fromBytes(byte[] bytes) {
@@ -1100,8 +1100,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     p.putStr(this.playerName);
                     p.putStr(this.itemId);
                     p.putBool(this.sneaking);
-                    p.putBool(this.offHand);
                     p.putStr(this.dimension);
+                    p.putBool(this.offHand);
                     p.end(at);
                 }
 
@@ -1110,10 +1110,10 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     String f_playerName = u.more(end) ? u.getStr() : "";
                     String f_itemId = u.more(end) ? u.getStr() : "";
                     boolean f_sneaking = u.more(end) ? u.getBool() : false;
-                    boolean f_offHand = u.more(end) ? u.getBool() : false;
                     String f_dimension = u.more(end) ? u.getStr() : "";
+                    boolean f_offHand = u.more(end) ? u.getBool() : false;
                     u.leave(end);
-                    return new UseItem(f_playerName, f_itemId, f_sneaking, f_offHand, f_dimension);
+                    return new UseItem(f_playerName, f_itemId, f_sneaking, f_dimension, f_offHand);
                 }
 
                 public byte[] toFrame() {
@@ -1159,8 +1159,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                         if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                         if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                         if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
-                        if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
-                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
                         u.leave(end);
                     }
 
@@ -1182,16 +1182,16 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                         return u.getBool();
                     }
 
-                    public boolean offHand() {
-                        if (o3 < 0) return false;
+                    public String dimension() {
+                        if (o3 < 0) return "";
                         u.seek(o3);
-                        return u.getBool();
+                        return u.getStr();
                     }
 
-                    public String dimension() {
-                        if (o4 < 0) return "";
+                    public boolean offHand() {
+                        if (o4 < 0) return false;
                         u.seek(o4);
-                        return u.getStr();
+                        return u.getBool();
                     }
                 }
 
@@ -4885,7 +4885,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Command() {}
 
             /** A mod's command run; keyed by its name. Its handlers (subcommands of different shapes) are tried in order — the first to answer sets `reply`, what the source is told. */
-            public record Run(String name, java.util.List<String> args, String source, String uuid, String dimension, int permission, boolean op, String reply) {
+            public record Run(String name, java.util.List<String> args, String source, String uuid, String dimension, String reply, int permission, boolean op) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("name", name);
@@ -4893,15 +4893,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     m.put("source", source);
                     m.put("uuid", uuid);
                     m.put("dimension", dimension);
+                    if (reply != null) m.put("reply", reply);
                     m.put("permission", permission);
                     m.put("op", op);
-                    if (reply != null) m.put("reply", reply);
                     return m;
                 }
 
                 public static Run fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Run(YogData.str(m.get("name"), ""), YogData.list(m.get("args")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (int) YogData.integer(m.get("permission"), 0), YogData.bool(m.get("op"), false), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
+                    return new Run(YogData.str(m.get("name"), ""), YogData.list(m.get("args")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")), (int) YogData.integer(m.get("permission"), 0), YogData.bool(m.get("op"), false));
                 }
 
                 public static Run fromBytes(byte[] bytes) {
@@ -4915,9 +4915,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     p.putStr(this.source);
                     p.putStr(this.uuid);
                     p.putStr(this.dimension);
+                    p.putBool(this.reply != null); if (this.reply != null) { p.putStr(this.reply); }
                     p.putI(this.permission);
                     p.putBool(this.op);
-                    p.putBool(this.reply != null); if (this.reply != null) { p.putStr(this.reply); }
                     p.end(at);
                 }
 
@@ -4928,11 +4928,11 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     String f_source = u.more(end) ? u.getStr() : "";
                     String f_uuid = u.more(end) ? u.getStr() : "";
                     String f_dimension = u.more(end) ? u.getStr() : "";
+                    String f_reply = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
                     int f_permission = u.more(end) ? (int) u.getI() : 0;
                     boolean f_op = u.more(end) ? u.getBool() : false;
-                    String f_reply = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
                     u.leave(end);
-                    return new Run(f_name, f_args, f_source, f_uuid, f_dimension, f_permission, f_op, f_reply);
+                    return new Run(f_name, f_args, f_source, f_uuid, f_dimension, f_reply, f_permission, f_op);
                 }
 
                 public byte[] toFrame() {
@@ -4983,9 +4983,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
                         if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
                         if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
-                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
-                        if (u.more(end)) { o6 = u.position(); u.skip(1); } else { o6 = -1; }
-                        if (u.more(end)) { o7 = u.position(); if (u.getBool()) { u.getU(); } } else { o7 = -1; }
+                        if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.getU(); } } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                        if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
                         u.leave(end);
                     }
 
@@ -5019,22 +5019,22 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return u.getStr();
                     }
 
-                    public int permission() {
-                        if (o5 < 0) return 0;
+                    public String reply() {
+                        if (o5 < 0) return null;
                         u.seek(o5);
+                        return (u.getBool() ? u.getStr() : null);
+                    }
+
+                    public int permission() {
+                        if (o6 < 0) return 0;
+                        u.seek(o6);
                         return (int) u.getI();
                     }
 
                     public boolean op() {
-                        if (o6 < 0) return false;
-                        u.seek(o6);
-                        return u.getBool();
-                    }
-
-                    public String reply() {
-                        if (o7 < 0) return null;
+                        if (o7 < 0) return false;
                         u.seek(o7);
-                        return (u.getBool() ? u.getStr() : null);
+                        return u.getBool();
                     }
                 }
 

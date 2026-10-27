@@ -146,7 +146,7 @@ public final class YogCommands {
         net.minecraft.world.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
         String dim = src.getLevel().dimension().location().toString();
-        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, permissionLevel(src), isOp(src), null).emitChanged().reply();
+        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, null, permissionLevel(src), isOp(src)).emitChanged().reply();
         if (reply != null && !reply.isEmpty()) {
             src.sendSuccess(() -> Component.literal(reply), false);
         }

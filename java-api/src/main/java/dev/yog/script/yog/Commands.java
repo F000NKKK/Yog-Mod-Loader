@@ -47,7 +47,7 @@ public final class Commands {
                 YogLog.error("Yog Script: /" + name + " " + way + " panicked: " + e.getMessage());
                 s.Reply(e.getMessage());
             }
-            return new YogEvents.Server.Command.Run(r.name(), r.args(), r.source(), r.uuid(), r.dimension(), r.permission(), r.op(), s.reply());
+            return new YogEvents.Server.Command.Run(r.name(), r.args(), r.source(), r.uuid(), r.dimension(), s.reply(), r.permission(), r.op());
         });
     }
 }

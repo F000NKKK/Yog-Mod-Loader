@@ -17,11 +17,12 @@ pub struct Run {
     pub uuid: String,
     /// Where it ran; empty for the console.
     pub dimension: String,
+    pub reply: Option<String>,
     /// Its permission level, as the game has it (0 anyone … 4 the
-    /// server's owners; the console all of them).
+    /// server's owners; the console all of them). Appended, as a frame's
+    /// fields only ever are.
     pub permission: i32,
     /// Whether it's an operator: the level the game's operators' commands
     /// want, by the game's own measure.
     pub op: bool,
-    pub reply: Option<String>,
 }

@@ -25,9 +25,10 @@ pub struct UseItem {
     pub item_id: String,
     /// Whether the player was sneaking (shift) during use.
     pub sneaking: bool,
-    /// Whether it's the stack in the player's other hand.
-    pub off_hand: bool,
     pub dimension: String,
+    /// Whether it's the stack in the player's other hand (appended, as a
+    /// frame's fields only ever are).
+    pub off_hand: bool,
 }
 
 /// Fired when a player attacks (left-clicks) an entity (server side).
