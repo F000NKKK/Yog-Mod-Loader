@@ -43,9 +43,15 @@ impl Components {
     /// `path`'s components; none when the file isn't there.
     pub fn read(path: &Path) -> Result<Self, String> {
         match std::fs::read(path) {
-            Ok(bytes) => {
-                yog_data::read_bytes(&bytes).map_err(|e| format!("{}: {e:?}", path.display()))
-            }
+            // One another version of the Installer wrote, in a form this
+            // one can't read: nothing known installed until it's written again.
+            Ok(bytes) => Ok(yog_data::read_bytes(&bytes).unwrap_or_else(|e| {
+                yog_logging::warn!(
+                    "{}: not read ({e:?}); installed components unknown",
+                    path.display()
+                );
+                Self::default()
+            })),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(format!("reading {}: {e}", path.display())),
         }

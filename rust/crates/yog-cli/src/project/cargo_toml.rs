@@ -32,6 +32,7 @@ path       = {lib:?}
 
 [dependencies]
 {api_dep}
+{data_dep}
 {deps}
 {bench}{patch}"#,
         header = Header {
@@ -48,6 +49,7 @@ path       = {lib:?}
         authors_line = authors_toml,
         license = meta.license,
         api_dep = meta.api_line(),
+        data_dep = DATA_DEP,
         deps = deps_lines.join("\n"),
         patch = patch,
         crate_types = if benches.is_empty() {
@@ -218,6 +220,10 @@ pub(crate) fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
     }
     out
 }
+
+/// What `#[derive(Schema)]` expands to: Substrate Data, whichever version
+/// yog-api's requirement picks (any, so the two are one).
+const DATA_DEP: &str = "substrate-data = \"*\"";
 
 #[cfg(test)]
 mod tests {
