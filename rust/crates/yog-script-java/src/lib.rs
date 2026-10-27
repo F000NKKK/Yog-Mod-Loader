@@ -234,6 +234,9 @@ pub(crate) struct Gen<'c> {
     checked: bool,
     /// The code is an `extend`'s: `this` is its owner's handle (`extensions.rs`).
     extending: bool,
+    /// What ends the constructors of the class being written: a mod's
+    /// state made live (`saved.rs`).
+    ctor_tail: Option<String>,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -297,6 +300,7 @@ impl<'c> Gen<'c> {
             case_jumps: Vec::new(),
             checked: false,
             extending: false,
+            ctor_tail: None,
             this_name: None,
             breaks: Vec::new(),
             statik: true,

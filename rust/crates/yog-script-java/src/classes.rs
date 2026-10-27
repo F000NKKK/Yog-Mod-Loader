@@ -11,6 +11,7 @@ use crate::decls::{Place, generic_list};
 use crate::index::Kind;
 
 use crate::modifier;
+use yog_script_ids::jvm::state::{CLASS as STATE, GAME, SAVED};
 use yog_script_ids::java::{
     ABSTRACT, CATCH, CLASS, CLASS_LITERAL, EXTENDS, FINAL, IMPLEMENTS, NEW, OVERRIDE, PRIVATE,
     PUBLIC, RECORD, RETURN, STATIC, SUPER, THIS, THROW, TRY, VOID,
@@ -22,12 +23,19 @@ use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
     pub(crate) fn mod_class(&mut self, d: &Decl, name: &str, body: &[Decl]) {
-        self.class_with(
-            d,
-            (name, &TypeHeader::default()),
-            body,
-            Some(crate::MOD_INTERFACE),
-        );
+        // Its `saved` members: the game's store's, read in as it's made.
+        let saved = !crate::saved::saved_members(body).is_empty();
+        let also = if saved {
+            let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
+            self.ctor_tail = Some(format!("{STATE}.{GAME}({THIS}, {module});"));
+            format!("{}, {STATE}.{SAVED}", crate::MOD_INTERFACE)
+        } else {
+            crate::MOD_INTERFACE.to_string()
+        };
+        self.class_with(d, (name, &TypeHeader::default()), body, Some(&also));
+        if saved {
+            self.ctor_tail = None;
+        }
     }
 
     pub(crate) fn class(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
@@ -74,7 +82,12 @@ impl Gen<'_> {
         if generic {
             self.typed_members();
         }
-        self.constructors(name, header, body);
+        // What ends its constructors (a mod's state made live) is theirs alone.
+        let tail = self.ctor_tail.take();
+        self.constructors(name, header, body, tail.as_deref());
+        if tail.is_some() {
+            self.saved_state(ys, body, "");
+        }
         self.members(body, Place::Class);
         self.inherited_getters(&(ys.to_string(), arity), body);
         let stored: Vec<&str> = fields(body).into_iter().map(|(_, f)| f).collect();
@@ -216,7 +229,7 @@ impl Gen<'_> {
     /// parameters) and each written one. An own generic type's take its
     /// type arguments first (`Type[] $types`): kept on it at once, its `T`
     /// is known in them as anywhere (C#'s).
-    fn constructors(&mut self, name: &str, header: &TypeHeader, body: &[Decl]) {
+    fn constructors(&mut self, name: &str, header: &TypeHeader, body: &[Decl], tail: Option<&str>) {
         let ctors: Vec<&Ctor> = body
             .iter()
             .filter_map(|d| match &d.kind {
@@ -247,10 +260,13 @@ impl Gen<'_> {
                     g.code.line(format!("{THIS}.{n} = {n};"));
                 }
                 g.first_values(body);
+                if let Some(t) = tail {
+                    g.code.line(t);
+                }
                 g.code.close("");
             }
             for c in ctors {
-                g.constructor(name, (header, body), c, taking);
+                g.constructor(name, (header, body), c, (taking, tail));
             }
         });
     }
@@ -261,7 +277,7 @@ impl Gen<'_> {
         name: &str,
         (header, body): (&TypeHeader, &[Decl]),
         c: &Ctor,
-        taking: bool,
+        (taking, tail): (bool, Option<&str>),
     ) {
         let params = self.ctor_params(&c.params, taking);
         self.code.open(format!("{PUBLIC} {name}({params})"));
@@ -289,6 +305,9 @@ impl Gen<'_> {
                 self.code.line(format!("{SUPER}({args});"));
                 self.keep_types(taking);
                 self.first_values(body);
+                if let Some(t) = tail {
+                    self.code.line(t);
+                }
             }
         }
         let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&c.params));

@@ -73,3 +73,28 @@ fn saved_members_round_trip() {
     };
     assert_eq!(out, "[Player.Favourite, Player.Title, Player.Visits] 7 Sir minecraft:stick");
 }
+
+const MOD: &str = r#"mod Charge {
+    public saved i32 Starts = 0;
+    public i32 Unsaved = 0;
+}
+public static class M {
+    public static string Run() => "ok";
+}
+"#;
+
+/// A mod's `saved` members: the mod's class keeps them as `State.Saved`,
+/// a record a member (its constructor reads them in from the game's store).
+#[test]
+fn saved_mod_members() {
+    let java = r#"((java.util.function.Supplier<String>) () -> {
+        Class<?> mod = java.util.Arrays.stream(t.MScript.class.getDeclaredClasses())
+            .filter(c -> c.getSimpleName().equals("Charge")).findFirst().get();
+        var records = java.util.Arrays.stream(mod.getDeclaredClasses()).map(Class::getSimpleName).sorted().toList();
+        return dev.yog.script.yog.State.Saved.class.isAssignableFrom(mod) + " " + records;
+    }).get()"#;
+    let Some(out) = support::run(&[("M.ys", MOD)], java) else {
+        return;
+    };
+    assert_eq!(out, "true [$Starts]");
+}
