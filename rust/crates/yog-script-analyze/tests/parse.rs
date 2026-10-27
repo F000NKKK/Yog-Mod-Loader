@@ -71,7 +71,10 @@ fn a_patch_outside_a_yns_file_is_reported() {
 fn lexing_problems_are_found_where_they_are() {
     let parsed = parse("A.ys", "const string A = \"open;\nconst i32 B = 1;\n");
     let first = &parsed.problems[0];
-    assert_eq!(first.code.map(yog_data::Code::as_str), Some(script_problem::UNTERMINATED));
+    assert_eq!(
+        first.code.map(yog_data::Code::as_str),
+        Some(script_problem::UNTERMINATED)
+    );
     assert_eq!((first.line, first.col), (Some(1), Some(18)));
     assert_eq!(
         codes("A.ys", "const i32 A = @item:;\n"),

@@ -107,7 +107,11 @@ impl<K: Kind<Id = String>> Schema for OneOrTag<K> {
         if let ValueRef::Str(s) = v
             && let Some(tag) = s.strip_prefix(yog_ids::sep::TAG)
         {
-            cx.problem(format!("`{s}`: write a tag as `@{}:{}:{tag}`", kinds::Tag::NAME, K::NAME));
+            cx.problem(format!(
+                "`{s}`: write a tag as `@{}:{}:{tag}`",
+                kinds::Tag::NAME,
+                K::NAME
+            ));
             return None;
         }
         if is_tag(v) {

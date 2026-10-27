@@ -167,7 +167,7 @@ fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
         ValueRef::Float(f) => Value::Num(format!("{f:?}")),
         ValueRef::Bool(b) => Value::Bool(*b),
         other => {
-            yog_data::expected(cx,"a string, a number or true/false", other);
+            yog_data::expected(cx, "a string, a number or true/false", other);
             return None;
         }
     })

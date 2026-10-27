@@ -61,7 +61,9 @@ fn an_entity_is_reached_by_its_uuid() {
     let e = LivingEntity::of(&yog_event::Entity::new("u-1"));
     assert_eq!(
         e.handle().to_value(),
-        yog_data::Value::Ref(yog_data::Ref::of::<yog_data::kinds::Entity>(&"u-1".to_owned()))
+        yog_data::Value::Ref(yog_data::Ref::of::<yog_data::kinds::Entity>(
+            &"u-1".to_owned()
+        ))
     );
 }
 

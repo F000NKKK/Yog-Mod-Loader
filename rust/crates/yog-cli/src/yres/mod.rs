@@ -230,10 +230,16 @@ mod tests;
 
 /// A resources error (`YB0003`), where it is to be said by the caller.
 pub(crate) fn problem(msg: impl std::fmt::Display) -> crate::diagnostics::Diagnostic {
-    crate::diagnostics::Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::RESOURCES), msg)
+    crate::diagnostics::Diagnostic::error(
+        yog_data::Atom::new(yog_ids::build_problem::RESOURCES),
+        msg,
+    )
 }
 
 /// A resources warning (`YB0003`).
 pub(crate) fn caveat(msg: impl std::fmt::Display) -> crate::diagnostics::Diagnostic {
-    crate::diagnostics::Diagnostic::warning(yog_data::Atom::new(yog_ids::build_problem::RESOURCES), msg)
+    crate::diagnostics::Diagnostic::warning(
+        yog_data::Atom::new(yog_ids::build_problem::RESOURCES),
+        msg,
+    )
 }

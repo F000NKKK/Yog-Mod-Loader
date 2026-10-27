@@ -101,7 +101,9 @@ impl Scalar {
         let typed;
         let v = match v {
             Value::Str(s) if s.starts_with('@') => {
-                typed = yog_data::typed::classify(s).map_err(|e| e.to_string())?.into_value();
+                typed = yog_data::typed::classify(s)
+                    .map_err(|e| e.to_string())?
+                    .into_value();
                 &typed
             }
             v => v,
@@ -155,9 +157,9 @@ impl Scalar {
                     (RefKind::Block, yog_ids::kind::BLOCK)
                 };
                 match v {
-                    Value::Ref(r) if r.kind == word => {
-                        known.check(kind, &r.id).map(|()| format!("{:?}", r.id.as_str()))
-                    }
+                    Value::Ref(r) if r.kind == word => known
+                        .check(kind, &r.id)
+                        .map(|()| format!("{:?}", r.id.as_str())),
                     _ => want(&format!("`@{word}:<id>`")),
                 }
             }
@@ -191,7 +193,11 @@ const RESERVED_COLUMNS: [&str; 4] = ["id", "index", "from_id", "all"];
 /// A problem with the table's value at `keys` (`rows.wood.size`).
 fn problem_at(keys: &[&str], message: impl std::fmt::Display) -> Diagnostic {
     let path = keys.iter().fold(At::root(), |at, k| at.key(k));
-    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::CONTENT), message).at_path(path)
+    Diagnostic::error(
+        yog_data::Atom::new(yog_ids::build_problem::CONTENT),
+        message,
+    )
+    .at_path(path)
 }
 
 /// The table's fields problems are at.

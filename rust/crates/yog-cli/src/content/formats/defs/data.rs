@@ -34,7 +34,7 @@ pub(super) fn tag_entries(t: &TagDef, ns: &str) -> Result<(String, TagEntries), 
                 AnyRefOrTag::One(r) => (yog_ids::qualify_in(MINECRAFT, &r.id), required),
                 // A tag only some versions or loaders have: where it isn't, the rest still counts.
                 AnyRefOrTag::Tag(_, id) => {
-                    let tag = yog_ids::qualify_in(MINECRAFT, &id);
+                    let tag = yog_ids::qualify_in(MINECRAFT, id);
                     let everywhere = !matches!(
                         refs::tag_hosts(yog_ids::registry_of(&t.of), &tag),
                         Some(Some(_))

@@ -642,8 +642,7 @@ fn check_wanted(wanted: &Wanted, defs: &Defs, known: &refs::Known) -> Result<(),
                 id,
             ),
             (kind::SOUND_GROUP, id) => found(
-                defs.sound_groups.iter().any(|g| g.id == id)
-                    || SoundGroup::built_in(id).is_some(),
+                defs.sound_groups.iter().any(|g| g.id == id) || SoundGroup::built_in(id).is_some(),
                 "sound group",
                 id,
             ),

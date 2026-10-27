@@ -198,7 +198,8 @@ fn text_form(t: Text) -> Result<String, String> {
         Text::Literal(s) => Ok(yog_data::typed::escape_at(&s)),
         Text::Res(r) => Ok(r.to_string()),
         Text::NameOf(_) | Text::Lang(_) => Err(
-            "a mod's name and description are text or a `.yres` text (`@res:Strings.mod_name`)".into(),
+            "a mod's name and description are text or a `.yres` text (`@res:Strings.mod_name`)"
+                .into(),
         ),
     }
 }

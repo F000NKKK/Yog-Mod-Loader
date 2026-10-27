@@ -94,7 +94,11 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let videos = dir.join(RESOURCES_DIR).join(yog_formats::video::DIR);
         std::fs::create_dir_all(&videos).unwrap();
-        std::fs::write(videos.join("intro.yvideo"), r#"{ source: "@res:Videos.nope" }"#).unwrap();
+        std::fs::write(
+            videos.join("intro.yvideo"),
+            r#"{ source: "@res:Videos.nope" }"#,
+        )
+        .unwrap();
         std::fs::write(
             dir.join(RESOURCES_DIR).join("stray.yvideo"),
             r#"{ source: "@res:V.a" }"#,

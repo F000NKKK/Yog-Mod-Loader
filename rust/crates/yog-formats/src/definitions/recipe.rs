@@ -189,7 +189,7 @@ impl Schema for RecipeFile {
             Some(ValueRef::Str(t)) => t.to_string(),
             Some(other) => {
                 cx.at(Seg::Key(TYPE_FIELD.into()), |cx| {
-                    yog_data::expected(cx,"a recipe type", other)
+                    yog_data::expected(cx, "a recipe type", other)
                 });
                 return None;
             }

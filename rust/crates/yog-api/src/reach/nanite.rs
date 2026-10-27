@@ -73,7 +73,12 @@ impl Handle {
     pub fn from_value(v: Value) -> Option<Handle> {
         let Value::Ref(r) = v else { return None };
         match r.kind.as_str() {
-            nanite_ref::OBJECT => r.id.as_str().parse().ok().map(|n| Handle::Object(Arc::new(Held(n)))),
+            nanite_ref::OBJECT => {
+                r.id.as_str()
+                    .parse()
+                    .ok()
+                    .map(|n| Handle::Object(Arc::new(Held(n))))
+            }
             kind::ENTITY => Some(Handle::Entity(r.id.as_str().to_owned())),
             _ => None,
         }

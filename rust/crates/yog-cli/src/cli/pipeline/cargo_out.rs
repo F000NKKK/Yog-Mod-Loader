@@ -124,7 +124,8 @@ fn message(v: &Value, build_dir: &Path, root: &Path) -> Option<Severity> {
         .pointer("/code/code")
         .and_then(Value::as_str)
         .unwrap_or(build_problem::COMPILER);
-    let mut d = Diagnostic::of(severity, yog_data::Atom::new(code), text).by(yog_data::Atom::new(RUSTC));
+    let mut d =
+        Diagnostic::of(severity, yog_data::Atom::new(code), text).by(yog_data::Atom::new(RUSTC));
     if let Some(span) = primary_span(m) {
         place(&mut d, span, build_dir, root);
     }
@@ -186,7 +187,10 @@ fn cargo_failed(status: ExitStatus, stderr: &str) {
     } else {
         said.join("\n")
     };
-    diagnostics::report(&Diagnostic::error(yog_data::Atom::new(build_problem::CARGO), message).by(yog_data::Atom::new(CARGO)));
+    diagnostics::report(
+        &Diagnostic::error(yog_data::Atom::new(build_problem::CARGO), message)
+            .by(yog_data::Atom::new(CARGO)),
+    );
 }
 
 #[cfg(test)]

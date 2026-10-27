@@ -66,8 +66,12 @@ fn own(file: &Path, res: &str) -> Result<Vec<u8>, ServiceError> {
         .split_once(yog_ids::sep::DOT)
         .ok_or_else(|| ServiceError::from(format!("`{res}`: a sound is `@res:Set.name`")))?;
     let root = mod_root(file).ok_or("not in a mod")?;
-    crate::media::assets::sound(&root, set, name)
-        .ok_or_else(|| ServiceError::not_found(format!("no sound `{}{res}` in the mod's .yres", yog_ids::reference::RES)))
+    crate::media::assets::sound(&root, set, name).ok_or_else(|| {
+        ServiceError::not_found(format!(
+            "no sound `{}{res}` in the mod's .yres",
+            yog_ids::reference::RES
+        ))
+    })
 }
 
 /// The game's sound file `id`, from its assets.

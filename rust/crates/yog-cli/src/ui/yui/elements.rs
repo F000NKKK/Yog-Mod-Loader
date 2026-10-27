@@ -132,9 +132,10 @@ pub(super) fn component_expr(el: &Element) -> Result<String, Diagnostic> {
             }
             match v.strip_prefix(yog_ids::sep::TYPED) {
                 // A `.yres` color (for a color property): its value.
-                Some(_) if let Some(rest) = v.strip_prefix(yog_ids::reference::RES)
-                    && !is_resource_text(rest)
-                    && resource_color(rest).is_some() =>
+                Some(_)
+                    if let Some(rest) = v.strip_prefix(yog_ids::reference::RES)
+                        && !is_resource_text(rest)
+                        && resource_color(rest).is_some() =>
                 {
                     let c = resource_color(rest).unwrap_or_default();
                     Ok(format!("({k:?}, \"#{c:08X}\")"))

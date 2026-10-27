@@ -84,7 +84,9 @@ fn typed_values_are_classified_by_the_service() {
     assert_eq!(at(&r, &["0", "id"]).as_str(), Some("minecraft:stick"));
     assert_eq!(t("1"), Some("tag"));
     assert_eq!(t("2"), Some("res"));
-    assert_eq!(at(&r, &["3", "v"]).as_str(), Some("@x"));
+    // A string in the model is as spelled: the text `@x` is `@@x`.
+    let text = yog_data::read_value::<String>(at(&r, &["3", "v"])).ok();
+    assert_eq!(text.as_deref(), Some("@x"));
     assert_eq!(at(&r, &["4", "v"]).as_str(), Some("plain"));
     assert!(at(&r, &["5", "error"]).as_str().is_some());
 }

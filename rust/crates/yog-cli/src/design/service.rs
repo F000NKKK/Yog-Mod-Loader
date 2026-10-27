@@ -64,7 +64,9 @@ fn texture_file_id(file: &Path) -> Option<String> {
 /// as the IDE sends one) written back as text, else the text itself.
 fn sound_param(params: &Value) -> Result<String, ServiceError> {
     match params.get(P::SOUND) {
-        Some(Value::Ref(r)) if let Some(yog_data::Meaning::Res(r)) = yog_data::Meaning::of(r.clone()) => {
+        Some(Value::Ref(r))
+            if let Some(yog_data::Meaning::Res(r)) = yog_data::Meaning::of(r.clone()) =>
+        {
             Ok(r.to_string())
         }
         Some(Value::Str(s)) => Ok(s.clone()),

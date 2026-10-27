@@ -44,7 +44,11 @@ fn the_examples_resolve_cleanly() {
         let problems: Vec<_> = checked
             .problems
             .into_iter()
-            .filter(|d| !d.code.map(yog_data::Code::as_str).is_some_and(|c| TYPES.contains(&c)))
+            .filter(|d| {
+                !d.code
+                    .map(yog_data::Code::as_str)
+                    .is_some_and(|c| TYPES.contains(&c))
+            })
             .collect();
         assert!(problems.is_empty(), "{lang}: {problems:#?}");
     }

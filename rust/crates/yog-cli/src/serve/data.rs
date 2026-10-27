@@ -105,8 +105,14 @@ fn classified(v: &Value) -> Value {
     use yog_data::typed::Spelled;
     let typed = match yog_data::typed::classify(v.as_str().unwrap_or_default()) {
         Ok(Spelled::Ref(r)) => match yog_data::Meaning::of(r.clone()) {
-            Some(yog_data::Meaning::Tag(t)) => Typed::Tag { kind: t.kind, id: t.id },
-            Some(yog_data::Meaning::Res(r)) => Typed::Res { set: r.set, key: r.key },
+            Some(yog_data::Meaning::Tag(t)) => Typed::Tag {
+                kind: t.kind,
+                id: t.id,
+            },
+            Some(yog_data::Meaning::Res(r)) => Typed::Res {
+                set: r.set,
+                key: r.key,
+            },
             Some(yog_data::Meaning::Image(source)) => Typed::Image { source },
             Some(yog_data::Meaning::Lang(key)) => Typed::Lang { key },
             Some(yog_data::Meaning::Content(c)) => Typed::Ref {
@@ -120,7 +126,12 @@ fn classified(v: &Value) -> Value {
         },
         Ok(Spelled::Bytes(_)) => Typed::Bytes,
         Ok(Spelled::Plain(v)) => Typed::Str { v },
-        Err(e) => return NotTyped { error: e.to_string() }.write(),
+        Err(e) => {
+            return NotTyped {
+                error: e.to_string(),
+            }
+            .write();
+        }
     };
     typed.write()
 }

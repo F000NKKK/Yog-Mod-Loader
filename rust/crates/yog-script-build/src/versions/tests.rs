@@ -62,5 +62,8 @@ fn a_patch_is_checked_on_each_version() {
         problems[0].message
     );
     let none = check("a.yns", "targets mc < 1.19;\n", game, Env::default());
-    assert_eq!(none[0].code.map(yog_data::Code::as_str), Some(script_problem::NO_VERSION));
+    assert_eq!(
+        none[0].code.map(yog_data::Code::as_str),
+        Some(script_problem::NO_VERSION)
+    );
 }

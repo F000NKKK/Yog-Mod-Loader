@@ -51,10 +51,14 @@ impl NamedType for Color {
             Value::Int(c) => u32::try_from(c).ok().map(Color::Argb),
             Value::Str(s) if s.starts_with(yog_ids::sep::TAG) => Color::parse(&s).map(Color::Argb),
             Value::Str(s) => match classify(&s).ok()? {
-                Spelled::Ref(r) if r.kind.as_str() == kinds::Res::NAME => Res::parse(r.id.as_str()).map(Color::Res),
+                Spelled::Ref(r) if r.kind.as_str() == kinds::Res::NAME => {
+                    Res::parse(r.id.as_str()).map(Color::Res)
+                }
                 _ => None,
             },
-            Value::Ref(r) if r.kind.as_str() == kinds::Res::NAME => Res::parse(r.id.as_str()).map(Color::Res),
+            Value::Ref(r) if r.kind.as_str() == kinds::Res::NAME => {
+                Res::parse(r.id.as_str()).map(Color::Res)
+            }
             _ => None,
         }
     }

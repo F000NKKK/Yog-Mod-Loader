@@ -23,7 +23,9 @@ impl Type {
             Shape::Named(n) if n.name() == yog_ids::typed::TEXT => {
                 Type::own(yog_script_ids::system::TEXT_TYPE.to_string())
             }
-            Shape::Ref { kinds: [tag], .. } if *tag == yog_ids::typed::TAG => Type::Tag(String::new()),
+            Shape::Ref { kinds: [tag], .. } if *tag == yog_ids::typed::TAG => {
+                Type::Tag(String::new())
+            }
             Shape::Ref { kinds: [kind], .. } => Type::Content((*kind).to_string()),
             Shape::List(inner) => Type::Own(LIST.into(), vec![Type::of_shape(&inner())]),
             Shape::Map(inner) => Type::Own(

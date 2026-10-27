@@ -48,7 +48,13 @@ pub(in crate::content) fn compile_recipe(
     };
     // Fine while nothing it says is a problem.
     let problems = cx.errors.len();
-    names_there(cx, loc, against.known, &read.refs, &yog_data::found::tags(&read.refs));
+    names_there(
+        cx,
+        loc,
+        against.known,
+        &read.refs,
+        &yog_data::found::tags(&read.refs),
+    );
     let RecipeFile { common: c, body } = read.value;
     let ty = body.kind().to_string();
     let root = At::root();

@@ -4,8 +4,8 @@
 
 use yog_data::schema::{Resolve, Unresolved};
 use yog_data::{
-    Color, Id, Image, ItemIdOrTag, Kind, Path, Ref, RefKey, Res, Schema, TagId, Text, Value, from_text,
-    from_value_with, kinds,
+    Color, Id, Image, ItemIdOrTag, Kind, Path, Ref, RefKey, Res, Schema, TagId, Text, Value,
+    from_text, from_value_with, kinds,
 };
 
 /// A recipe-like document: what each Yog type reads.
@@ -28,7 +28,9 @@ const CARD: &str = r##"{
 }"##;
 
 fn card() -> Card {
-    from_text::<Card>(CARD).unwrap_or_else(|e| panic!("{e}")).value
+    from_text::<Card>(CARD)
+        .unwrap_or_else(|e| panic!("{e}"))
+        .value
 }
 
 #[test]
@@ -56,7 +58,9 @@ fn reads_yogs_typed_values() {
 #[test]
 fn writes_back_what_it_read_in_every_form() {
     let c = card();
-    let again: Card = from_text(&yog_data::to_text(&c)).unwrap_or_else(|e| panic!("{e}")).value;
+    let again: Card = from_text(&yog_data::to_text(&c))
+        .unwrap_or_else(|e| panic!("{e}"))
+        .value;
     assert_eq!(again, c, "text");
     let bytes = yog_data::to_bytes(&c);
     assert_eq!(yog_data::read_bytes::<Card>(&bytes).ok(), Some(c), "binary");
@@ -65,7 +69,10 @@ fn writes_back_what_it_read_in_every_form() {
 #[test]
 fn a_tag_of_another_kind_is_a_problem() {
     let wrong = r#"{ name: "x", icon: "@image:x", ingredients: ["@tag:block:minecraft:logs"] }"#;
-    let errors = from_text::<Card>(wrong).err().map(|e| e.to_string()).unwrap_or_default();
+    let errors = from_text::<Card>(wrong)
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_default();
     assert!(errors.contains("tag of item"), "{errors}");
 }
 
@@ -117,7 +124,9 @@ fn texts_resolve_through_the_resolvers_expand() {
     )
     .unwrap_or_else(|e| panic!("{e}"))
     .value;
-    let shown = from_value_with::<Shown>(&doc, &mut Game).unwrap_or_else(|e| panic!("{e:?}")).value;
+    let shown = from_value_with::<Shown>(&doc, &mut Game)
+        .unwrap_or_else(|e| panic!("{e:?}"))
+        .value;
     assert_eq!(
         shown,
         Shown {
@@ -136,10 +145,18 @@ fn what_a_read_met_splits_into_content_tags_and_entries() {
     let read = from_text::<Card>(CARD).unwrap_or_else(|e| panic!("{e}"));
     let tags = yog_data::found::tags(&read.refs);
     assert_eq!(tags.len(), 1);
-    assert_eq!((tags[0].value.kind.as_str(), tags[0].value.id.as_str()), ("item", "minecraft:planks"));
+    assert_eq!(
+        (tags[0].value.kind.as_str(), tags[0].value.id.as_str()),
+        ("item", "minecraft:planks")
+    );
     let entries = yog_data::found::resources(&read.refs);
-    assert_eq!(entries.iter().map(|f| f.value.name()).collect::<Vec<_>>(), ["Strings.card.title"]);
-    let content: Vec<_> = yog_data::found::content(&read.refs).map(|f| f.value.to_string()).collect();
+    assert_eq!(
+        entries.iter().map(|f| f.value.name()).collect::<Vec<_>>(),
+        ["Strings.card.title"]
+    );
+    let content: Vec<_> = yog_data::found::content(&read.refs)
+        .map(|f| f.value.to_string())
+        .collect();
     assert_eq!(content, ["@item:minecraft:stick", "@item:minecraft:stick"]);
 }
 

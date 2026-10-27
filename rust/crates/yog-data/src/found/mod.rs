@@ -17,8 +17,14 @@ pub struct TagRef {
 /// The references to content in `refs`: neither tags nor `.yres` entries
 /// nor translation keys nor images.
 pub fn content(refs: &[Found<Ref>]) -> impl Iterator<Item = &Found<Ref>> {
-    let domain = [kinds::Tag::NAME, kinds::Res::NAME, kinds::Lang::NAME, kinds::Image::NAME];
-    refs.iter().filter(move |f| !domain.contains(&f.value.kind.as_str()))
+    let domain = [
+        kinds::Tag::NAME,
+        kinds::Res::NAME,
+        kinds::Lang::NAME,
+        kinds::Image::NAME,
+    ];
+    refs.iter()
+        .filter(move |f| !domain.contains(&f.value.kind.as_str()))
 }
 
 /// The tags in `refs`.

@@ -35,9 +35,9 @@ impl Res {
 /// A key as `.yres` files have them: letters, digits, `_`, dotted.
 pub fn is_key(key: &str) -> bool {
     key.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
-        && key
-            .split(yog_ids::sep::DOT)
-            .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
+        && key.split(yog_ids::sep::DOT).all(|part| {
+            !part.is_empty() && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        })
 }
 
 impl fmt::Display for Res {

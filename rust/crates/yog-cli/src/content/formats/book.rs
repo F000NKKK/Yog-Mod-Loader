@@ -52,10 +52,17 @@ impl Resolve for Check<'_> {
         match (own, RefKind::from_word(&r.kind)) {
             (Some(set), _) if set.contains(r.id.as_str()) => Ok(r.id.clone()),
             (Some(_), _) => Err(Unresolved::Missing(r.clone())),
-            (None, Some(kind)) => self.known.check(kind, &r.id).map(|()| r.id.clone()).map_err(refused),
+            (None, Some(kind)) => self
+                .known
+                .check(kind, &r.id)
+                .map(|()| r.id.clone())
+                .map_err(refused),
             // A text's reference (`@res:`, `@lang:`) is its expansion's to check.
             (None, None) if Text::of_ref(r.clone()).is_some() => Ok(r.id.clone()),
-            (None, None) => Err(refused(format!("`@{}:` names nothing a book shows", r.kind))),
+            (None, None) => Err(refused(format!(
+                "`@{}:` names nothing a book shows",
+                r.kind
+            ))),
         }
     }
 
@@ -323,8 +330,8 @@ fn read_field(
     kind: PropKind,
     check: &mut Check,
 ) -> (Option<yog_data::Value>, Vec<String>) {
-    use yog_data::Value;
     use yog_data::TextOf;
+    use yog_data::Value;
     use yog_data::with::RefTo;
     use yog_formats::book::refs::{BookText, Icon};
     let arena = yog_data::Bump::new();
