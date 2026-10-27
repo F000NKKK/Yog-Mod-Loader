@@ -1,6 +1,6 @@
 [package]
 name = "yog-event"
-version = "0.11.5"
+version = "0.11.6"
 edition = { workspace = true }
 rust-version = { workspace = true }
 authors = { workspace = true }
