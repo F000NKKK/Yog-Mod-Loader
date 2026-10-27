@@ -60,6 +60,19 @@ pub struct Owners {
     pub at: Where,
 }
 
+/// A `synced` value as it goes to a client (on `yog_ids::yog::SYNCED`):
+/// what it's of (`kind`: a Yog Script class, `mod:Class`; a Rust mod's id),
+/// its owner (a player, an entity, a block; empty for the world's), its
+/// key and its bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Schema)]
+pub struct SyncedRow {
+    pub kind: String,
+    pub owner: String,
+    pub key: String,
+    #[data(with = "Raw")]
+    pub bytes: Vec<u8>,
+}
+
 /// A record's key in its store: its owner's, then its type's.
 #[must_use]
 pub fn record_key(owner: &str, ty: &str) -> String {

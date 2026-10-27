@@ -2,6 +2,7 @@ use super::*;
 
 #[test]
 fn a_chunks_instance_reads_with_its_dimension() {
+    let _turn = super::super::WORLD_TESTS.lock();
     let at = |instance: &str| Where {
         scope: SESSION.into(),
         instance: instance.into(),

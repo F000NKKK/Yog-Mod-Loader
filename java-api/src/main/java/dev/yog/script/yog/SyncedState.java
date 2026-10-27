@@ -5,6 +5,7 @@ import dev.yog.YogNames;
 import dev.yog.api.YogBus;
 import dev.yog.bus.YogEvents;
 import dev.yog.bus.YogServices;
+import dev.yog.bus.YogTypes.SyncedRow;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,9 +36,6 @@ public final class SyncedState {
         /** Its owner gone (a player left): it's no longer live. */
         void $forget();
     }
-
-    /** A synced member's value, as it goes to a client: its owner and its bytes. */
-    public record Row(String kind, String owner, String key, byte[] bytes) {}
 
     /** What an object's rows say of its owner, and who gets them ({@code ""}: everyone). */
     private record Owner(String kind, String owner, String to) {}
@@ -82,11 +80,11 @@ public final class SyncedState {
         for (Map.Entry<Synced, Owner> e : LIVE.entrySet()) {
             Owner at = e.getValue();
             Map<String, byte[]> sent = SENT.computeIfAbsent(e.getKey(), k -> new ConcurrentHashMap<>());
-            List<Row> changed = new ArrayList<>();
+            List<SyncedRow> changed = new ArrayList<>();
             e.getKey().$sync((key, bytes) -> {
                 if (!Arrays.equals(sent.get(key), bytes)) {
                     sent.put(key, bytes);
-                    changed.add(new Row(at.kind(), at.owner(), key, bytes));
+                    changed.add(new SyncedRow(at.kind(), at.owner(), key, bytes));
                 }
             });
             if (!changed.isEmpty()) {
@@ -101,7 +99,7 @@ public final class SyncedState {
         return at.to().isEmpty() ? new YogServices.Player.Online().call() : List.of(at.to());
     }
 
-    private static void send(List<String> players, Row row) {
+    private static void send(List<String> players, SyncedRow row) {
         byte[] payload = YogBus.bytes(row);
         for (String p : players) {
             new YogServices.Net.SendToPlayer(p, YogNames.Yog.SYNCED, payload).call();
@@ -112,13 +110,13 @@ public final class SyncedState {
     private static void joined(String name) {
         LIVE.forEach((o, at) -> {
             if (at.to().isEmpty() || at.to().equals(name)) {
-                o.$sync((key, bytes) -> send(List.of(name), new Row(at.kind(), at.owner(), key, bytes)));
+                o.$sync((key, bytes) -> send(List.of(name), new SyncedRow(at.kind(), at.owner(), key, bytes)));
             }
         });
     }
 
     /** A row arrived at a client: its owner's object takes it. */
-    private static void received(Row row) {
+    private static void received(SyncedRow row) {
         Function<String, Synced> made = OWNERS.get(row.kind());
         if (made == null) {
             return;
@@ -156,7 +154,7 @@ public final class SyncedState {
             });
             YogEvents.Client.Net.Packet.on(YogNames.Yog.SYNCED, 0, p -> {
                 try {
-                    received(YogBus.fromBytes(p.payload(), Row.class));
+                    received(YogBus.fromBytes(p.payload(), SyncedRow.class));
                 } catch (RuntimeException ex) {
                     YogLog.error("Yog Script: a synced value didn't arrive: " + ex.getMessage());
                 }

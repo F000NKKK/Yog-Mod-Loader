@@ -311,6 +311,8 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::nanite::Mappings as yog_data::Schema>::shape,
     // Mods' nanites, read by the host before the game's classes load.
     <crate::nanite::Nanites as yog_data::Schema>::shape,
+    // A `synced` value, sent to clients on `yog:synced`.
+    <crate::storage::SyncedRow as yog_data::Schema>::shape,
 ];
 
 /// Which code a generated class belongs to: the API's (any Java's, the

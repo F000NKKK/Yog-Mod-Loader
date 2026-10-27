@@ -2,12 +2,13 @@
 //! back as the world is saved — no loading and saving by hand.
 
 mod owned;
+pub(super) mod synced;
 
 use yog_core::BlockPos;
 use yog_data::Schema;
 use yog_sync::Mutex;
 
-pub use owned::{BlockData, EntityData, PlayerData};
+pub use owned::{BlockData, EntityData, PlayerData, WorldData};
 
 /// What's kept, as the saving sees it.
 trait Kept: Sync {
@@ -17,6 +18,13 @@ trait Kept: Sync {
     fn forget(&self);
     /// `owner` is gone for good: what it kept removed.
     fn gone(&self, _owner: &Gone<'_>) {}
+    /// Its `synced` values to send: the changed ones, or `every` one (a
+    /// player joined).
+    fn sync(&self, _every: bool, _out: &mut dyn FnMut(synced::Outgoing)) {}
+    /// A synced value arrived (a client): taken when this keeps `key`.
+    fn take(&self, _key: &str, _owner: &str, _bytes: &[u8]) -> bool {
+        false
+    }
 }
 
 /// An owner gone for good: what it kept goes with it.
@@ -49,72 +57,19 @@ pub(super) fn gone(owner: &Gone<'_>) {
     }
 }
 
+pub(super) fn sync(every: bool, out: &mut dyn FnMut(synced::Outgoing)) {
+    for kept in KEPT.lock().iter() {
+        kept.sync(every, out);
+    }
+}
+
+pub(super) fn take(key: &str, owner: &str, bytes: &[u8]) -> bool {
+    KEPT.lock().iter().any(|kept| kept.take(key, owner, bytes))
+}
+
 pub(super) fn forget_world() {
     for kept in KEPT.lock().iter() {
         kept.forget();
-    }
-}
-
-/// A value and whether it changed since it was put in its store.
-struct Slot<T> {
-    value: T,
-    changed: bool,
-}
-
-/// A value kept with the world (`<world>/yog-data/<mod>/world.ydata`, at
-/// its key): its default where there's none yet; with no world open (a
-/// client of another's server) it's kept in memory only.
-pub struct WorldData<T> {
-    key: &'static str,
-    slot: Mutex<Option<Slot<T>>>,
-}
-
-impl<T: Schema + Default + Send + 'static> WorldData<T> {
-    pub const fn new(key: &'static str) -> Self {
-        WorldData {
-            key,
-            slot: Mutex::new(None),
-        }
-    }
-
-    /// What `read` makes of the value.
-    pub fn with<R>(&'static self, read: impl FnOnce(&T) -> R) -> R {
-        self.at(|slot| read(&slot.value))
-    }
-
-    /// The value changed by `change` (saved with the world); what `change` returns.
-    pub fn with_mut<R>(&'static self, change: impl FnOnce(&mut T) -> R) -> R {
-        self.at(|slot| {
-            slot.changed = true;
-            change(&mut slot.value)
-        })
-    }
-
-    fn at<R>(&'static self, f: impl FnOnce(&mut Slot<T>) -> R) -> R {
-        register(self);
-        let mut slot = self.slot.lock();
-        f(slot.get_or_insert_with(|| Slot {
-            value: super::world()
-                .and_then(|store| store.get(self.key))
-                .unwrap_or_default(),
-            changed: false,
-        }))
-    }
-}
-
-impl<T: Schema + Default + Send + 'static> Kept for WorldData<T> {
-    fn keep(&self) {
-        let mut slot = self.slot.lock();
-        if let Some(slot) = slot.as_mut().filter(|s| s.changed)
-            && let Some(store) = super::world()
-        {
-            store.set(self.key, &slot.value);
-            slot.changed = false;
-        }
-    }
-
-    fn forget(&self) {
-        *self.slot.lock() = None;
     }
 }
 

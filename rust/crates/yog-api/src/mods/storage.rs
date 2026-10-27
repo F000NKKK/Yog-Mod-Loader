@@ -89,6 +89,11 @@ pub fn chunk(dim: &str, cx: i32, cz: i32) -> Option<Store> {
     in_world(Scope::Chunk(dim, cx, cz))
 }
 
+/// The server runs in this game: its world is open here.
+fn world_open() -> bool {
+    WORLD.lock().is_some()
+}
+
 fn in_world(scope: Scope<'_>) -> Option<Store> {
     let root = WORLD.lock().clone()?;
     Some(Store::open(&root, crate::mod_id(), scope))
@@ -120,6 +125,7 @@ pub fn __save_with_world(registry: &mut Registry) {
     // Gone after the mod's handlers: theirs still read what it kept.
     registry.on::<Break, _>(|e, _| kept::gone(&Gone::Block(&e.dimension, e.pos)));
     registry.on::<Death, _>(|e, _| kept::gone(&Gone::Entity(&e.uuid)));
+    kept::synced::listen(registry);
 }
 
 /// The world being saved: what's kept written; the world's last save closes it.
@@ -138,6 +144,10 @@ fn saving() {
         crate::error!("[{}] couldn't save its data: {e}", crate::mod_id());
     }
 }
+
+/// Tests that open a world, or count on none open, take turns.
+#[cfg(test)]
+static WORLD_TESTS: Mutex<()> = Mutex::new(());
 
 #[cfg(test)]
 mod tests;

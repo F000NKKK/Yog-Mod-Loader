@@ -5851,6 +5851,117 @@ public final class YogTypes {
         }
     }
 
+    /** A `synced` value as it goes to a client (on `yog_ids::yog::SYNCED`): what it's of (`kind`: a Yog Script class, `mod:Class`; a Rust mod's id), its owner (a player, an entity, a block; empty for the world's), its key and its bytes. */
+    public record SyncedRow(String kind, String owner, String key, byte[] bytes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("kind", kind);
+            m.put("owner", owner);
+            m.put("key", key);
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static SyncedRow fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new SyncedRow(YogData.str(m.get("kind"), ""), YogData.str(m.get("owner"), ""), YogData.str(m.get("key"), ""), (m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static SyncedRow fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.kind);
+            p.putStr(this.owner);
+            p.putStr(this.key);
+            p.putBytes(this.bytes);
+            p.end(at);
+        }
+
+        public static SyncedRow unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_kind = u.more(end) ? u.getStr() : "";
+            String f_owner = u.more(end) ? u.getStr() : "";
+            String f_key = u.more(end) ? u.getStr() : "";
+            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new SyncedRow(f_kind, f_owner, f_key, f_bytes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static SyncedRow fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static SyncedRow fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static SyncedRow readFrame(YogFrame.Unpacker u) {
+            SyncedRow v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code SyncedRow} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
+                u.leave(end);
+            }
+
+            public String kind() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String owner() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String key() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public byte[] bytes() {
+                if (o3 < 0) return new byte[0];
+                u.seek(o3);
+                return u.getBytes();
+            }
+        }
+    }
+
     /** The posed geometry of an entity (entity space, see the design doc). */
     public record BodyCapture(String source, java.util.List<YogTypes.BodyMesh> meshes) {
         public java.util.Map<String, Object> toData() {
