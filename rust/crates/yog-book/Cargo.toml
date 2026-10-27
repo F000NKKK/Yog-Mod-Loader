@@ -16,6 +16,8 @@ yog-gfx = { workspace = true }
 # The .ybook format it draws.
 yog-formats = { workspace = true }
 yog-data = { workspace = true, features = ["json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 
 # Serialization (for runtime JSON parsing)
 serde_json = { workspace = true }

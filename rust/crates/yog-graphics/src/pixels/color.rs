@@ -96,27 +96,22 @@ impl From<u32> for Color {
     }
 }
 
-/// In Yog Data, a color value: `#RRGGBB`/`#AARRGGBB` in text.
+/// In Yog Data, a colour as written: `#RRGGBB`/`#AARRGGBB` (Yog Data's
+/// [`yog_data::Color`]; a `.yres` colour isn't one here).
 impl yog_data::Schema for Color {
     fn shape() -> yog_data::schema::Shape {
-        yog_data::schema::Shape::Color
+        yog_data::Color::shape()
     }
-    fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::schema::Reader) -> Option<Self> {
-        match v {
-            yog_data::ValueRef::Color(c) => Some(Color(*c)),
-            yog_data::ValueRef::Str(s) if s.starts_with('#') => {
-                yog_data::typed::parse_color(s).map(Color).or_else(|| {
-                    cx.problem(format!("`{s}` isn't a color (#RRGGBB or #AARRGGBB)"));
-                    None
-                })
-            }
-            other => {
-                cx.expected("a color (#RRGGBB or #AARRGGBB)", other);
+    fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::schema::Reader<'_>) -> Option<Self> {
+        match yog_data::Color::read(v, cx)? {
+            yog_data::Color::Argb(c) => Some(Color(c)),
+            yog_data::Color::Res(r) => {
+                cx.problem(format!("`{r}`: a colour here is `#RRGGBB` or `#AARRGGBB`"));
                 None
             }
         }
     }
     fn write(&self) -> yog_data::Value {
-        yog_data::Value::Color(self.0)
+        yog_data::Color::Argb(self.0).write()
     }
 }

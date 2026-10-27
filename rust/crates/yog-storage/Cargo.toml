@@ -10,6 +10,8 @@ description = "Yog persistent key-value storage for mod data."
 yog-ids = { workspace = true }
 # The stores' files: binary Yog Data.
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 # A store shared by its handles.
 yog-sync = { workspace = true }
 

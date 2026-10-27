@@ -14,10 +14,12 @@ pub(crate) fn read_object(text: &str) -> Option<Value> {
 /// `@tag:item:x` → `#x` (what yog-book's renderer and the hosts read).
 pub(crate) fn runtime_ids(v: &mut Value) {
     match v {
-        Value::Str(s) if s.starts_with('@') => match yog_data::typed::classify(s) {
-            Ok(Value::Ref(r)) => *s = r.id,
-            Ok(Value::Tag(r)) => *s = format!("#{}", r.id),
-            Ok(Value::Str(plain)) => *s = plain,
+        Value::Str(s) if s.starts_with(yog_ids::sep::TYPED) => match yog_data::typed::classify(s) {
+            Ok(yog_data::typed::Spelled::Ref(r)) => match yog_data::Meaning::of(r.clone()) {
+                Some(yog_data::Meaning::Tag(t)) => *s = format!("{}{}", yog_ids::sep::TAG, t.id),
+                _ => *s = r.id.to_string(),
+            },
+            Ok(yog_data::typed::Spelled::Plain(plain)) => *s = plain,
             _ => {}
         },
         Value::List(items) => items.iter_mut().for_each(runtime_ids),

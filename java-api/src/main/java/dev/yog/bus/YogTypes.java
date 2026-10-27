@@ -1491,21 +1491,21 @@ public final class YogTypes {
     }
 
     /** An address's descriptor. */
-    public record Descriptor(String address, String kind, String doc, Object shape, Object reply, java.util.List<String> interfaces) {
+    public record Descriptor(String address, String kind, String doc, YogTypes.ShapeDoc shape, YogTypes.ShapeDoc reply, java.util.List<String> interfaces) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("address", address);
             m.put("kind", kind);
             m.put("doc", doc);
-            m.put("shape", shape);
-            if (reply != null) m.put("reply", reply);
+            m.put("shape", shape.toData());
+            if (reply != null) m.put("reply", reply.toData());
             m.put("interfaces", interfaces);
             return m;
         }
 
         public static Descriptor fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Descriptor(YogData.str(m.get("address"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("doc"), ""), m.get("shape"), (m.get("reply") == null ? null : m.get("reply")), YogData.list(m.get("interfaces")).stream().map(e0 -> YogData.str(e0, "")).toList());
+            return new Descriptor(YogData.str(m.get("address"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("doc"), ""), YogTypes.ShapeDoc.fromData(m.get("shape")), (m.get("reply") == null ? null : YogTypes.ShapeDoc.fromData(m.get("reply"))), YogData.list(m.get("interfaces")).stream().map(e0 -> YogData.str(e0, "")).toList());
         }
 
         public static Descriptor fromBytes(byte[] bytes) {
@@ -1517,8 +1517,8 @@ public final class YogTypes {
             p.putStr(this.address);
             p.putU(switch (this.kind) { case "event" -> 0; case "service" -> 1; default -> 0; });
             p.putStr(this.doc);
-            p.putTagged(this.shape);
-            p.putBool(this.reply != null); if (this.reply != null) { p.putTagged(this.reply); }
+            this.shape.pack(p);
+            p.putBool(this.reply != null); if (this.reply != null) { this.reply.pack(p); }
             { int l0 = p.beginList(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); } p.end(l0); }
             p.end(at);
         }
@@ -1528,8 +1528,8 @@ public final class YogTypes {
             String f_address = u.more(end) ? u.getStr() : "";
             String f_kind = u.more(end) ? switch ((int) u.getU()) { case 0 -> "event"; case 1 -> "service"; default -> ""; } : "event";
             String f_doc = u.more(end) ? u.getStr() : "";
-            Object f_shape = u.more(end) ? u.getTagged() : null;
-            Object f_reply = u.more(end) ? (u.getBool() ? u.getTagged() : null) : null;
+            YogTypes.ShapeDoc f_shape = u.more(end) ? YogTypes.ShapeDoc.unpack(u) : null;
+            YogTypes.ShapeDoc f_reply = u.more(end) ? (u.getBool() ? YogTypes.ShapeDoc.unpack(u) : null) : null;
             java.util.List<String> f_interfaces = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
             u.leave(end);
             return new Descriptor(f_address, f_kind, f_doc, f_shape, f_reply, f_interfaces);
@@ -1579,8 +1579,8 @@ public final class YogTypes {
                 if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                 if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                 if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
-                if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
-                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.skipBytes(); } } else { o4 = -1; }
+                if (u.more(end)) { o3 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o4 = -1; }
                 if (u.more(end)) { o5 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o5 = -1; }
                 u.leave(end);
             }
@@ -1603,16 +1603,16 @@ public final class YogTypes {
                 return u.getStr();
             }
 
-            public Object shape() {
+            public YogTypes.ShapeDoc.View shape() {
                 if (o3 < 0) return null;
                 u.seek(o3);
-                return u.getTagged();
+                return new YogTypes.ShapeDoc.View(u);
             }
 
-            public Object reply() {
+            public YogTypes.ShapeDoc reply() {
                 if (o4 < 0) return null;
                 u.seek(o4);
-                return (u.getBool() ? u.getTagged() : null);
+                return (u.getBool() ? YogTypes.ShapeDoc.unpack(u) : null);
             }
 
             public java.util.List<String> interfaces() {
@@ -4381,6 +4381,95 @@ public final class YogTypes {
                 if (o5 < 0) return false;
                 u.seek(o5);
                 return u.getBool();
+            }
+        }
+    }
+
+    /** A shape as data: written `{ root, defs }`, structs and enums once in `defs` and referred to by name. */
+    public record ShapeDoc(String root, java.util.Map<String, String> defs) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("root", root);
+            m.put("defs", defs);
+            return m;
+        }
+
+        public static ShapeDoc fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ShapeDoc(YogData.str(m.get("root"), ""), YogData.map(m.get("defs")).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), ""))));
+        }
+
+        public static ShapeDoc fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putTagged(this.root);
+            p.putTagged(this.defs);
+            p.end(at);
+        }
+
+        public static ShapeDoc unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_root = u.more(end) ? YogData.str(u.getTagged(), "") : null;
+            java.util.Map<String, String> f_defs = u.more(end) ? YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), ""))) : java.util.Map.of();
+            u.leave(end);
+            return new ShapeDoc(f_root, f_defs);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static ShapeDoc fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static ShapeDoc fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static ShapeDoc readFrame(YogFrame.Unpacker u) {
+            ShapeDoc v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code ShapeDoc} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String root() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return YogData.str(u.getTagged(), "");
+            }
+
+            public java.util.Map<String, String> defs() {
+                if (o1 < 0) return java.util.Map.of();
+                u.seek(o1);
+                return YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), "")));
             }
         }
     }

@@ -78,5 +78,5 @@ fn components<T>(
 
 /// A problem with a book's own `.yui` (`YB0004` unless it says what it is).
 fn screen_problem(found: Diagnostic) -> Diagnostic {
-    found.or_code(yog_ids::build_problem::SCREEN)
+    found.or_code(yog_data::Atom::new(yog_ids::build_problem::SCREEN))
 }

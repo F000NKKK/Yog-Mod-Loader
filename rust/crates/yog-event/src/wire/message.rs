@@ -17,14 +17,25 @@ pub trait Message: Schema + Sized {
         yog_data::frame::read_frame(bytes)
     }
 
-    /// `f` on the payload, packed in this thread's reused buffers: nothing
-    /// allocated once they've grown to the thread's messages.
+    /// `f` on the payload, packed in this thread's packer: nothing
+    /// allocated once its buffers have grown to the thread's messages.
     fn with_bytes<R>(&self, f: impl FnOnce(&[u8]) -> R) -> R {
-        yog_data::frame::with_frame(self, f)
+        // Taken out while `f` runs: a message sent from inside `f` packs
+        // in a packer of its own instead of finding this one borrowed.
+        let mut packer = PACKER.take().unwrap_or_default();
+        let out = packer.with_frame(self, f);
+        PACKER.set(Some(packer));
+        out
     }
 }
 
 impl<T: Schema> Message for T {}
+
+thread_local! {
+    /// The packer each thread's messages are packed in, its buffers reused.
+    static PACKER: std::cell::Cell<Option<yog_data::frame::Packer>> =
+        const { std::cell::Cell::new(None) };
+}
 
 /// `address`'s branch for `key`: where a keyed message with that key goes.
 pub fn keyed(address: &str, key: &str) -> String {

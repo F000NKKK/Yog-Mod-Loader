@@ -12,6 +12,8 @@ yog-ids = { workspace = true }
 yog-graphics = { workspace = true }
 # Definitions cross the ABI as Yog Data (`register_content`).
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-sync = { workspace = true }
 
 [dev-dependencies]

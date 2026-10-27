@@ -24,7 +24,7 @@ fn param<T: Schema>(params: &Value, name: &str) -> Result<T, ServiceError> {
         .map_err(|e| ServiceError::param(name, e))
 }
 
-/// A parameter that's markup's text (`item:apple`, `@Images.logo`): as spelled.
+/// A parameter that's markup's text (`item:apple`, `@res:Images.logo`): as spelled.
 fn spelled(params: &Value, name: &str) -> Result<String, ServiceError> {
     use yog_data::with::{Spelled, With};
     let v = params.get(name).unwrap_or(&Value::Null);
@@ -60,14 +60,18 @@ fn texture_file_id(file: &Path) -> Option<String> {
     Some(format!("{}{id}", yog_ids::reference::TEXTURE))
 }
 
-/// The `sound` parameter as `sound_data` takes it: a resource (`@Sounds.x`,
+/// The `sound` parameter as `sound_data` takes it: a resource (`@res:Sounds.x`,
 /// as the IDE sends one) written back as text, else the text itself.
 fn sound_param(params: &Value) -> Result<String, ServiceError> {
     match params.get(P::SOUND) {
-        Some(Value::Res(r)) => Ok(r.to_string()),
+        Some(Value::Ref(r))
+            if let Some(yog_data::Meaning::Res(r)) = yog_data::Meaning::of(r.clone()) =>
+        {
+            Ok(r.to_string())
+        }
         Some(Value::Str(s)) => Ok(s.clone()),
         _ => Err(ServiceError::from(format!(
-            "`{}`: a sound, `@Sounds.x` or a game's file",
+            "`{}`: a sound, `@res:Sounds.x` or a game's file",
             P::SOUND
         ))),
     }

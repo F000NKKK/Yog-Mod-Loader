@@ -44,7 +44,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
             param(params, P::VALUE)
                 .map(|v| yog_data::patch::format(v, usize::try_from(level).unwrap_or(0)).into())
         }
-        // Strings as typed values (`@item:x`, `@tag:item:x`, `@Set.key`, `@image:…`,
+        // Strings as typed values (`@item:x`, `@tag:item:x`, `@res:Set.key`, `@image:…`,
         // `@lang:…`, `@@` escaped, else plain text): each `{t, …}` or `{error}`.
         M::TYPED_CLASSIFY => param(params, P::VALUES).and_then(|values| {
             let values = values.as_list().ok_or("`values` is a list")?;
@@ -79,7 +79,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         M::FORMAT_SHAPE => param(params, P::FORMAT).and_then(|name| {
             let name = name.as_str().ok_or("`format` is a name")?;
             yog_formats::shape_of(name)
-                .map(|shape| shape.describe())
+                .map(|shape| shape.describe().write())
                 .ok_or_else(|| format!("no format `{name}`").into())
         }),
         _ => return None,
@@ -102,27 +102,41 @@ fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, ServiceError> {
 
 /// A string as a typed value, the way a tool takes it.
 fn classified(v: &Value) -> Value {
+    use yog_data::typed::Spelled;
     let typed = match yog_data::typed::classify(v.as_str().unwrap_or_default()) {
-        Ok(Value::Ref(r)) => Typed::Ref {
-            kind: r.kind,
-            id: r.id,
+        Ok(Spelled::Ref(r)) => match yog_data::Meaning::of(r.clone()) {
+            Some(yog_data::Meaning::Tag(t)) => Typed::Tag {
+                kind: t.kind,
+                id: t.id,
+            },
+            Some(yog_data::Meaning::Res(r)) => Typed::Res {
+                set: r.set,
+                key: r.key,
+            },
+            Some(yog_data::Meaning::Image(source)) => Typed::Image { source },
+            Some(yog_data::Meaning::Lang(key)) => Typed::Lang { key },
+            Some(yog_data::Meaning::Content(c)) => Typed::Ref {
+                kind: c.kind.as_str().to_owned(),
+                id: c.id.as_str().to_owned(),
+            },
+            None => {
+                return NotTyped {
+                    error: format!(
+                        "`{r}`: `{}` isn't an id (lower case `namespace:path`)",
+                        r.id
+                    ),
+                }
+                .write();
+            }
         },
-        Ok(Value::Tag(r)) => Typed::Tag {
-            kind: r.kind,
-            id: r.id,
-        },
-        Ok(Value::Res(r)) => Typed::Res {
-            set: r.set,
-            key: r.key,
-        },
-        Ok(Value::Image(source)) => Typed::Image { source },
-        Ok(Value::Lang(key)) => Typed::Lang { key },
-        Ok(Value::Bytes(_)) => Typed::Bytes,
-        Ok(Value::Str(v)) => Typed::Str { v },
-        Ok(other) => Typed::Str {
-            v: yog_data::typed::typed_string(&other).unwrap_or_default(),
-        },
-        Err(error) => return NotTyped { error }.write(),
+        Ok(Spelled::Bytes(_)) => Typed::Bytes,
+        Ok(Spelled::Plain(v)) => Typed::Str { v },
+        Err(e) => {
+            return NotTyped {
+                error: e.to_string(),
+            }
+            .write();
+        }
     };
     typed.write()
 }

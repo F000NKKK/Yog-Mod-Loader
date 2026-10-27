@@ -211,11 +211,11 @@ fn read_parts(
     let loc = |p: &At| doc.locate(text, p).line as usize;
     let read = match kind {
         Format::Item => yog_data::schema::from_doc::<ItemFile>(text, doc)
-            .map(|r| (Parts::from(r.value), r.refs, r.tags)),
+            .map(|r| (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)),
         _ => yog_data::schema::from_doc::<BlockFile>(text, doc)
-            .map(|r| (Parts::from(r.value), r.refs, r.tags)),
+            .map(|r| (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)),
     };
-    let (parts, refs, tag_refs) = match read {
+    let (parts, tag_refs, refs) = match read {
         Ok(r) => r,
         Err(e) => {
             cx.schema_errors(e);

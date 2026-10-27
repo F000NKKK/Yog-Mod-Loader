@@ -14,6 +14,8 @@ yog-abi = { workspace = true }
 yog-ids = { workspace = true }
 # Specs on the bus; problems as Diagnostics.
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-sync = { workspace = true }
 
 [dev-dependencies]

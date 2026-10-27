@@ -216,27 +216,10 @@ names! {
         VIDEO = crate::concatcp!(crate::sep::TYPED, crate::kind::VIDEO, crate::sep::NAMESPACE),
         /// A tag, its registry after: `@tag:item:c:ingots`.
         TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
-    }
-
-    /// What's wrong with Yog Data (`YD…`), as the Error List and the docs name it.
-    data_problem {
-        /// Any other problem with a value.
-        INVALID = "YD0000",
-        /// Text that doesn't parse.
-        SYNTAX = "YD0001",
-        /// A value of another type than its field's.
-        EXPECTED = "YD0002",
-        /// A bare id where a reference goes (`@item:…`).
-        NOT_A_REFERENCE = "YD0003",
-        /// A reference to another kind of content than its field takes.
-        WRONG_KIND = "YD0004",
-        UNKNOWN_FIELD = "YD0005",
-        MISSING_FIELD = "YD0006",
-        OUT_OF_RANGE = "YD0007",
-        /// A string written as a typed value that isn't one (`@Item:x`).
-        BAD_TYPED = "YD0008",
-        /// Binary Yog Data that won't decode.
-        BAD_BINARY = "YD0009",
+        /// A `.yres` entry, its set and key after: `@res:Strings.title`.
+        RES = crate::concatcp!(crate::sep::TYPED, crate::typed::RES, crate::sep::NAMESPACE),
+        /// A translation key: `@lang:gui.done`.
+        LANG = crate::concatcp!(crate::sep::TYPED, crate::typed::LANG, crate::sep::NAMESPACE),
     }
 
     /// What's wrong with a request to the CLI's service (`YC…`).
@@ -452,6 +435,12 @@ names! {
     typed {
         TAG = crate::kind::TAG,
         LANG = "lang",
+        /// A `.yres` entry: `@res:Strings.title`.
+        RES = "res",
+        /// What the named types are known by in shapes: a text players
+        /// read, a colour.
+        TEXT = crate::word::TEXT,
+        COLOR = "color",
         IMAGE = crate::word::IMAGE,
         /// Bytes as they are, base64 in text: `@bytes:iVBORw0…`.
         BYTES = crate::word::BYTES,

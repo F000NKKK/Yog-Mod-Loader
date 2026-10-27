@@ -69,7 +69,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         M::MEDIA_IMPORT => path(params, P::FILE).and_then(|file| {
             let bytes = std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
             let kind = yog_formats::yres::kind_of(&yog_formats::yres::Value::Bytes(bytes.clone()));
-            let value = yog_data::typed::typed_string(&Value::Bytes(bytes)).unwrap_or_default();
+            let value = yog_data::typed::spelling(&Value::Bytes(bytes)).unwrap_or_default();
             Ok(Imported {
                 value,
                 kind: kind.name().into(),
@@ -146,7 +146,7 @@ fn info(e: &Entry, set_and_mod: Option<(&str, &str)>) -> EntryInfo {
         yog_formats::yres::Value::Num(n) => yog_data::text::parse_value(n).unwrap_or(Value::Null),
         yog_formats::yres::Value::Bool(b) => Value::Bool(*b),
         yog_formats::yres::Value::Bytes(b) => {
-            Value::Str(yog_data::typed::typed_string(&Value::Bytes(b.clone())).unwrap_or_default())
+            Value::Str(yog_data::typed::spelling(&Value::Bytes(b.clone())).unwrap_or_default())
         }
     };
     let translation_key = match (set_and_mod, e.kind) {
@@ -196,7 +196,7 @@ fn entry(e: &Value) -> Result<Entry, ServiceError> {
     let value = match e.get("value") {
         Some(Value::Str(s)) if s.starts_with(yog_ids::sep::TYPED) => {
             match yog_data::typed::classify(s) {
-                Ok(Value::Bytes(b)) => yog_formats::yres::Value::Bytes(b),
+                Ok(yog_data::typed::Spelled::Bytes(b)) => yog_formats::yres::Value::Bytes(b),
                 _ => yog_formats::yres::Value::Str(s.clone()),
             }
         }

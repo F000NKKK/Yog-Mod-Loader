@@ -10,58 +10,43 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Yog Data's binary form (the Rust crate {@code yog-data}, module
+ * Yog Data's binary form, Substrate Data's (the Rust crate {@code substrate-data}, module
  * {@code binary}): the one format content crosses between the native
  * runtime and the hosts in. Pure Java, no Minecraft types — every host
  * shares it.
  *
  * <p>Values decode to: {@code null}, {@link Boolean}, {@link Long},
  * {@link Double}, {@link String}, {@link List}, {@link Map} (insertion
- * ordered), and the typed records {@link Ref}, {@link Tag}, {@link Res},
- * {@link Text}, {@link Image}, {@link Color}, {@link Lang}. {@link #encode} takes the
+ * ordered), and {@link Ref}. {@link #encode} takes the
  * same (plus {@link Integer}/{@link Float}) and writes exactly what the
  * Rust encoder writes for the same value.
  */
 public final class YogData {
     private YogData() {}
 
-    public static final byte[] MAGIC = {'Y', 'O', 'G', 'D'};
-    public static final int VERSION = 2;
+    /** Substrate Data's binary form ({@code substrate_data::binary::MAGIC}, {@code VERSION}). */
+    public static final byte[] MAGIC = {'S', 'D', 'A', 'T'};
+    public static final int VERSION = 1;
     /** Nested deeper than this is malformed. */
     public static final int MAX_DEPTH = 256;
+
+    /** What a typed value's spelling starts with, and what ends its kind ({@code @item:x}). */
+    private static final String TYPED = dev.yog.YogNames.Sep.TYPED, KIND_END = dev.yog.YogNames.Sep.NAMESPACE;
 
     /** A string's varint: a new one's is odd (its length), a reference even (its index). */
     private static final long NEW_STRING = 1;
 
     private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
-            REF = 8, TAG = 9, RES = 10, TEXT = 11, IMAGE = 12, COLOR = 13, LANG = 14, BYTES = 15,
+            REF = 8, BYTES = 9,
             /** A list of ints, packed: no tag each. */
-            INTS = 16,
+            INTS = 10,
             /** A list in a body of its own: a u32 length, then its count and values with their own strings. */
-            STREAM = 17,
+            STREAM = 11,
             /** A 32-bit float; lists of floats and of 32-bit floats, packed (no tag each). */
-            FLOAT32 = 18, FLOATS = 19, FLOATS32 = 20;
+            FLOAT32 = 12, FLOATS = 13, FLOATS32 = 14;
 
-    /** Content of a kind ({@code item}, {@code block}, ...) by id. */
+    /** A reference: its kind ({@code item}, {@code tag}, {@code res}, ...) and id. */
     public record Ref(String kind, String id) {}
-
-    /** A tag of content of a kind. */
-    public record Tag(String kind, String id) {}
-
-    /** A mod resource, {@code @Set.key}. */
-    public record Res(String set, String key) {}
-
-    /** Yog text ({@code {b|bold}}). */
-    public record Text(String text) {}
-
-    /** An image source ({@code sprite:button}, {@code mymod:gui/logo}). */
-    public record Image(String source) {}
-
-    /** {@code 0xAARRGGBB}. */
-    public record Color(int argb) {}
-
-    /** A translation key of the game's or a mod's lang files ({@code @lang:gui.done}). */
-    public record Lang(String key) {}
 
     /** Malformed binary data. */
     public static final class DecodeException extends RuntimeException {
@@ -79,7 +64,7 @@ public final class YogData {
     public static Object decode(byte[] bytes) {
         Reader r = new Reader(bytes);
         for (int i = 0; i < 4; i++) {
-            if (bytes.length <= i || bytes[i] != MAGIC[i]) throw new DecodeException("not Yog Data (no `YOGD` header)", 0);
+            if (bytes.length <= i || bytes[i] != MAGIC[i]) throw new DecodeException("not Yog Data (no `SDAT` header)", 0);
         }
         r.i = 4;
         int version = r.u8();
@@ -213,12 +198,6 @@ public final class YogData {
                     return list;
                 }
                 case REF: return new Ref(string(), string());
-                case TAG: return new Tag(string(), string());
-                case RES: return new Res(string(), string());
-                case TEXT: return new Text(string());
-                case IMAGE: return new Image(string());
-                case COLOR: return new Color((int) fixed(4));
-                case LANG: return new Lang(string());
                 case BYTES: {
                     int n = count(1);
                     byte[] bytes = java.util.Arrays.copyOfRange(b, i, i + n);
@@ -299,26 +278,6 @@ public final class YogData {
                 body.write(REF);
                 string(r.kind());
                 string(r.id());
-            } else if (v instanceof Tag t) {
-                body.write(TAG);
-                string(t.kind());
-                string(t.id());
-            } else if (v instanceof Res r) {
-                body.write(RES);
-                string(r.set());
-                string(r.key());
-            } else if (v instanceof Text t) {
-                body.write(TEXT);
-                string(t.text());
-            } else if (v instanceof Image img) {
-                body.write(IMAGE);
-                string(img.source());
-            } else if (v instanceof Lang l) {
-                body.write(LANG);
-                string(l.key());
-            } else if (v instanceof Color c) {
-                body.write(COLOR);
-                fixed(c.argb() & 0xFFFFFFFFL, 4);
             } else if (v instanceof byte[] bytes) {
                 body.write(BYTES);
                 varint(body, bytes.length);
@@ -374,19 +333,7 @@ public final class YogData {
             }
             out.append('}');
         } else if (v instanceof Ref r) {
-            quote("@" + r.kind() + ":" + r.id(), out);
-        } else if (v instanceof Tag t) {
-            quote("@tag:" + t.kind() + ":" + t.id(), out);
-        } else if (v instanceof Res r) {
-            quote("@" + r.set() + "." + r.key(), out);
-        } else if (v instanceof Text t) {
-            quote(t.text(), out);
-        } else if (v instanceof Image i) {
-            quote("@image:" + i.source(), out);
-        } else if (v instanceof Lang l) {
-            quote("@lang:" + l.key(), out);
-        } else if (v instanceof Color c) {
-            quote(String.format("#%08X", c.argb()), out);
+            quote(TYPED + r.kind() + KIND_END + r.id(), out);
         } else {
             quote(String.valueOf(v), out);
         }
@@ -425,11 +372,11 @@ public final class YogData {
         return v instanceof List<?> l ? (List<Object>) l : Collections.emptyList();
     }
 
-    /** {@code v} as a string ({@link Text} and {@link Image} give theirs), or {@code def}. */
+    /** {@code v} as a string — a string's text (stored as spelled: a leading
+     * {@code @} doubled), an image reference's source — or {@code def}. */
     public static String str(Object v, String def) {
-        if (v instanceof String s) return s;
-        if (v instanceof Text t) return t.text();
-        if (v instanceof Image i) return i.source();
+        if (v instanceof String s) return s.startsWith(TYPED + TYPED) ? s.substring(TYPED.length()) : s;
+        if (v instanceof Ref r && r.kind().equals(dev.yog.YogNames.Typed.IMAGE)) return r.id();
         return def;
     }
 

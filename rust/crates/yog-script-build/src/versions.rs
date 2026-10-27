@@ -29,7 +29,7 @@ pub(crate) fn check(
         if versions.is_empty() {
             problems.push(
                 Diagnostic::error(
-                    script_problem::NO_VERSION,
+                    yog_data::Atom::new(script_problem::NO_VERSION),
                     format!(
                         "`targets` takes none of the versions Yog runs on ({})",
                         game_version::ALL_VALUES.join(", ")
@@ -49,7 +49,7 @@ pub(crate) fn check(
             Err(e) => {
                 out.push(
                     Diagnostic::warning(
-                        script_problem::NO_VERSION,
+                        yog_data::Atom::new(script_problem::NO_VERSION),
                         format!(
                             "the game's classes of {v} aren't at hand ({e}): not checked on it"
                         ),

@@ -20,10 +20,13 @@ impl Type {
             Shape::Float { bits } if *bits <= u32::BITS => Type::F32,
             Shape::Float { .. } => Type::F64,
             Shape::Str | Shape::Atom => Type::String,
-            Shape::Text => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
-            Shape::Ref([kind]) => Type::Content((*kind).to_string()),
-            Shape::Tag([kind]) => Type::Tag((*kind).to_string()),
-            Shape::Tag(_) => Type::Tag(String::new()),
+            Shape::Named(n) if n.name() == yog_ids::typed::TEXT => {
+                Type::own(yog_script_ids::system::TEXT_TYPE.to_string())
+            }
+            Shape::Ref { kinds: [tag], .. } if *tag == yog_ids::typed::TAG => {
+                Type::Tag(String::new())
+            }
+            Shape::Ref { kinds: [kind], .. } => Type::Content((*kind).to_string()),
             Shape::List(inner) => Type::Own(LIST.into(), vec![Type::of_shape(&inner())]),
             Shape::Map(inner) => Type::Own(
                 DICTIONARY.into(),

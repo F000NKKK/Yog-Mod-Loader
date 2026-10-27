@@ -41,7 +41,7 @@ pub const HEX_MARK: &str = yog_ui::attr::HEX_MARKS[0];
 /// A color attribute: a literal (see [`color`]) or `@<Set>.<name>`, a color
 /// of `resources/<Set>.yres` (see [`set_resource_refs`]).
 pub(crate) fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, Diagnostic> {
-    if let Some(reference) = value.trim().strip_prefix('@') {
+    if let Some(reference) = value.trim().strip_prefix(yog_ids::reference::RES) {
         return resource_color(reference).ok_or_else(|| {
             Diagnostic::from(format!(
                 "<{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
@@ -91,7 +91,7 @@ pub(super) fn pick<'v>(
 }
 
 /// The Rust expression for a text attribute, its `@` forms as everywhere
-/// in Yog Data (`yog_data::typed`): `"@Strings.title"` is a text of
+/// in Yog Data (`yog_data::typed`): `"@res:Strings.title"` is a text of
 /// `resources/Strings.yres` (see [`set_resource_refs`]), `"@lang:gui.done"`
 /// any translation key, `"@item:minecraft:stick"` (`@block:`, `@entity:`)
 /// that content's name — each looked up when the tree is built
@@ -103,27 +103,29 @@ pub fn text_expr(value: &str) -> Result<String, Diagnostic> {
     }
     let tr = |key: &str| format!("::yog_api::tr({key:?})");
     match yog_data::typed::classify(value.trim()) {
-        Ok(yog_data::Value::Str(s)) => Ok(format!("{s:?}")),
-        Ok(yog_data::Value::Lang(key)) => Ok(tr(&key)),
-        Ok(yog_data::Value::Res(r)) => {
-            RESOURCE_REFS.with(|refs| Ok(refs.borrow().text(&r).map(|(k, _)| tr(k))?))
-        }
-        Ok(yog_data::Value::Ref(r))
-            if matches!(
+        Ok(yog_data::typed::Spelled::Plain(s)) => Ok(format!("{s:?}")),
+        Ok(yog_data::typed::Spelled::Ref(r)) => match yog_data::Text::of_ref(r) {
+            Some(yog_data::Text::Lang(key)) => Ok(tr(&key)),
+            Some(yog_data::Text::Res(r)) => {
+                RESOURCE_REFS.with(|refs| Ok(refs.borrow().text(&r).map(|(k, _)| tr(k))?))
+            }
+            Some(yog_data::Text::NameOf(r)) if matches!(
                 r.kind.as_str(),
                 yog_ids::kind::ITEM | yog_ids::kind::BLOCK | yog_ids::kind::ENTITY
             ) =>
         {
             // A block's state (`[facing=north]`) isn't part of its name.
-            let id = r.id.split(STATE_OPEN).next().unwrap_or(&r.id);
-            Ok(tr(&yog_ids::lang_key(&r.kind, id)))
-        }
-        Ok(other) => Err(format!("{} isn't a text", other.kind_name()).into()),
+                let id = r.id.split(STATE_OPEN).next().unwrap_or(&r.id);
+                Ok(tr(&yog_ids::lang_key(&r.kind, id)))
+            }
+            _ => Err(format!("`{}` isn't a text", value.trim()).into()),
+        },
+        Ok(other) => Err(format!("{} isn't a text", other.kind()).into()),
         Err(_) if !value.contains(':') => Err(format!(
-            "write a translation key as `@lang:{}`, a .yres text as `@Set.name`, a literal `@` as `@@`",
+            "write a translation key as `@lang:{}`, a .yres text as `@res:Set.name`, a literal `@` as `@@`",
             value[1..].trim()
         ).into()),
-        Err(e) => Err(e.into()),
+        Err(e) => Err(e.to_string().into()),
     }
 }
 
@@ -143,7 +145,7 @@ thread_local! {
 }
 
 /// Makes the mod's compiled `.yres` resources visible to the generator:
-/// `text="@Strings.title"` and `source="@Icons.logo"` resolve through them.
+/// `text="@res:Strings.title"` and `source="@res:Icons.logo"` resolve through them.
 pub fn set_resource_refs(refs: &crate::yres::Refs) {
     RESOURCE_REFS.with(|r| *r.borrow_mut() = refs.clone());
 }
@@ -215,17 +217,17 @@ pub(crate) fn str_consts(values: &[String]) -> String {
 }
 
 /// Whether a `bg` value is an image (`sprite:panel`, `mymod:gui/frame`,
-/// an `@Set.name` image) rather than a color (`#RRGGBB`, `@Colors.name`).
+/// an `@res:Set.name` image) rather than a color (`#RRGGBB`, `@res:Colors.name`).
 pub(crate) fn is_image_value(v: &str) -> bool {
     let v = v.trim();
-    match v.strip_prefix('@') {
+    match v.strip_prefix(yog_ids::reference::RES) {
         Some(name) => RESOURCE_REFS.with(|r| r.borrow().images.contains_key(name)),
         None => !v.starts_with('#') && v.contains(':'),
     }
 }
 
 /// An image source attribute (`<Image source>`, `bg="sprite:..."`): checks
-/// it and resolves `@Set.name` and `mod:` → the source the host draws.
+/// it and resolves `@res:Set.name` and `mod:` → the source the host draws.
 pub(crate) fn image_source(
     el: &Element,
     attr: &str,
@@ -236,7 +238,7 @@ pub(crate) fn image_source(
     let kind = el.name.as_str();
     let mod_id = mod_id.map(str::to_owned);
     let resolved;
-    let source = match source.strip_prefix('@') {
+    let source = match source.strip_prefix(yog_ids::reference::RES) {
         Some(name) => {
             resolved = RESOURCE_REFS
                 .with(|r| r.borrow().images.get(name).cloned())

@@ -26,7 +26,7 @@ pub struct EntityDef {
     /// Its id; a source may leave it out: the file's name, the build fills it in.
     #[data(default)]
     pub id: String,
-    /// Its name (a text or a `@Set.key` resource); default: the id's lang key.
+    /// Its name (a text or a `@res:Set.key` resource); default: the id's lang key.
     pub name: Option<String>,
     #[data(default)]
     pub kind: EntityKind,

@@ -151,12 +151,12 @@ pub trait Component {
     /// The `.yui` element name (`<StatBar …/>`), PascalCase.
     const NAME: &'static str;
     /// Its description: the designer's toolbox tooltip and property grid
-    /// header. Texts here and below may be `@Set.key` resource references.
+    /// header. Texts here and below may be `@res:Set.key` resource references.
     const DOC: &'static str = "";
     /// The designer's toolbox label (empty: `NAME`).
     const DISPLAY_NAME: &'static str = "";
     /// The toolbox icon, a Yog image source (`item:…`, `sprite:…`, `mod:…`)
-    /// or `@Icons.x`; empty: a generic glyph.
+    /// or `@res:Icons.x`; empty: a generic glyph.
     const ICON: &'static str = "";
     /// The toolbox category (empty: "<mod> Components").
     const CATEGORY: &'static str = "";

@@ -9,6 +9,8 @@ description = "Yog fonts — one format for every font of the system: glyphs as 
 
 [dependencies]
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-graphics = { workspace = true }
 
 [dev-dependencies]

@@ -220,8 +220,8 @@ mod tests {
     #[test]
     fn clips_are_cut_fitted_faded_and_laid_over() {
         let (a, b) = (
-            clip(r#"{ video: "@V.a", from: 1, to: 3, fade_in: 0.5 }"#),
-            clip(r#"{ image: "@I.b", at: 1, to: 2, opacity: 0.5, track: 1 }"#),
+            clip(r#"{ video: "@res:V.a", from: 1, to: 3, fade_in: 0.5 }"#),
+            clip(r#"{ image: "@res:I.b", at: 1, to: 2, opacity: 0.5, track: 1 }"#),
         );
         let placed = [
             Placed {

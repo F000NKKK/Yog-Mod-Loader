@@ -220,27 +220,11 @@ public final class YogNames {
         public static final String TEXTURE = "@texture:";
         public static final String VIDEO = "@video:";
         public static final String TAG = "@tag:";
+        public static final String RES = "@res:";
+        public static final String LANG = "@lang:";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, VIDEO, TAG);
-    }
-
-    public static final class DataProblem {
-        private DataProblem() {}
-
-        public static final String INVALID = "YD0000";
-        public static final String SYNTAX = "YD0001";
-        public static final String EXPECTED = "YD0002";
-        public static final String NOT_A_REFERENCE = "YD0003";
-        public static final String WRONG_KIND = "YD0004";
-        public static final String UNKNOWN_FIELD = "YD0005";
-        public static final String MISSING_FIELD = "YD0006";
-        public static final String OUT_OF_RANGE = "YD0007";
-        public static final String BAD_TYPED = "YD0008";
-        public static final String BAD_BINARY = "YD0009";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INVALID, SYNTAX, EXPECTED, NOT_A_REFERENCE, WRONG_KIND, UNKNOWN_FIELD, MISSING_FIELD, OUT_OF_RANGE, BAD_TYPED, BAD_BINARY);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, VIDEO, TAG, RES, LANG);
     }
 
     public static final class RequestProblem {
@@ -332,9 +316,10 @@ public final class YogNames {
         public static final String REQUIRED = "YS0047";
         public static final String STATE_TYPE = "YS0048";
         public static final String STATE_OWNER = "YS0049";
+        public static final String STATE_WAS = "YS0050";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED, OPERATOR, UNKNOWN_TYPE, UNASSIGNED, CONTENT_PROPERTY, NO_CONTENT_FILE, ITERATOR, THREADS, UNSAFE, CONSTRAINT, LOGGER_MESSAGE, LOG_BY_METHOD, UNKNOWN_NAME, GOTO, REQUIRED, STATE_TYPE, STATE_OWNER);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED, OPERATOR, UNKNOWN_TYPE, UNASSIGNED, CONTENT_PROPERTY, NO_CONTENT_FILE, ITERATOR, THREADS, UNSAFE, CONSTRAINT, LOGGER_MESSAGE, LOG_BY_METHOD, UNKNOWN_NAME, GOTO, REQUIRED, STATE_TYPE, STATE_OWNER, STATE_WAS);
     }
 
     public static final class ScriptJvm {
@@ -389,11 +374,14 @@ public final class YogNames {
 
         public static final String TAG = "tag";
         public static final String LANG = "lang";
+        public static final String RES = "res";
+        public static final String TEXT = "text";
+        public static final String COLOR = "color";
         public static final String IMAGE = "image";
         public static final String BYTES = "bytes";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TAG, LANG, IMAGE, BYTES);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TAG, LANG, RES, TEXT, COLOR, IMAGE, BYTES);
     }
 
     public static final class BusWord {
@@ -1383,7 +1371,7 @@ public final class YogNames {
     public static final class NaniteRef {
         private NaniteRef() {}
 
-        public static final String OBJECT = "yog:object";
+        public static final String OBJECT = "yog_object";
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(OBJECT);

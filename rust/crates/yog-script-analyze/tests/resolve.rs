@@ -44,7 +44,11 @@ fn the_examples_resolve_cleanly() {
         let problems: Vec<_> = checked
             .problems
             .into_iter()
-            .filter(|d| !d.code.as_deref().is_some_and(|c| TYPES.contains(&c)))
+            .filter(|d| {
+                !d.code
+                    .map(yog_data::Code::as_str)
+                    .is_some_and(|c| TYPES.contains(&c))
+            })
             .collect();
         assert!(problems.is_empty(), "{lang}: {problems:#?}");
     }
@@ -197,7 +201,7 @@ fn await_needs_an_async_lambda_too() {
     assert!(
         codes
             .iter()
-            .any(|c| c == yog_ids::script_problem::AWAIT_OUTSIDE_ASYNC),
+            .any(|c| c.as_str() == yog_ids::script_problem::AWAIT_OUTSIDE_ASYNC),
         "{codes:?}"
     );
 }

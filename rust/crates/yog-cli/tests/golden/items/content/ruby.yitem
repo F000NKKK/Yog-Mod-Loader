@@ -1,7 +1,7 @@
 {
   "$note": "metadata is dropped",
-  "name": "@Items.ruby",
-  "tooltip": "@Items.ruby.desc",
+  "name": "@res:Items.ruby",
+  "tooltip": "@res:Items.ruby.desc",
   "item": {
     "stack_size": 16
   },

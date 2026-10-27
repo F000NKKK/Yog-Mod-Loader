@@ -19,6 +19,8 @@ to-server = []
 yog-ids = { workspace = true }
 # Content crosses the ABI as Yog Data blobs (`register_content`).
 yog-data = { workspace = true, features = ["json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-abi = { workspace = true }
 yog-core = { workspace = true }
 yog-event = { workspace = true }

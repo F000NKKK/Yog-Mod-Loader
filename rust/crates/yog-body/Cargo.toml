@@ -10,5 +10,7 @@ description = "Bodies for Yog mods: skeletons and animations (.ymodel/.yanim), v
 [dependencies]
 yog-ids = { workspace = true }
 yog-data = { workspace = true }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-graphics = { workspace = true }
 yog-sync = { workspace = true }

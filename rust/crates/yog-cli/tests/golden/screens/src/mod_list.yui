@@ -8,11 +8,11 @@
         x:ViewModel="ModListVm">
     <Screen.Resources>
         <Style x:Key="Filter" target="ToggleButton" w="58" h="16" />
-        <Style x:Key="Detail" target="Label" w="100%" color="@Colors.detail" />
+        <Style x:Key="Detail" target="Label" w="100%" color="@res:Colors.detail" />
     </Screen.Resources>
     <Grid w="100%" h="100%" rows="20,*,Auto">
         <Row padding="0 8" gap="4" align="center">
-            <Label text="@Strings.screen.title" no_wrap="true" />
+            <Label text="@res:Strings.screen.title" no_wrap="true" />
             <Spacer flex="1" />
             <Label x:Name="mod_count"
                    text="{x:Bind count_text()}"
@@ -27,23 +27,23 @@
             <TextBox x:Name="search"
                      max_length="64"
                      text="{x:Bind search, Mode=TwoWay}"
-                     placeholder="@Strings.search.placeholder" />
+                     placeholder="@res:Strings.search.placeholder" />
             <Row Grid.Row="1" gap="3">
                 <ToggleButton x:Name="filter_all"
                               style="@Filter"
-                              text="@Strings.filter.all"
+                              text="@res:Strings.filter.all"
                               checked="{x:Bind filter == Filter::All}"
                               command="{x:Bind set_filter(Filter::All)}" />
                 <ToggleButton x:Name="filter_yog"
                               style="@Filter"
-                              text="@Strings.filter.yog"
+                              text="@res:Strings.filter.yog"
                               checked="{x:Bind filter == Filter::Yog}"
                               enabled="{x:Bind has(Filter::Yog)}"
                               command="{x:Bind set_filter(Filter::Yog)}" />
                 <ToggleButton x:Name="filter_platform"
                               style="@Filter"
                               w="64"
-                              text="@Strings.filter.platform"
+                              text="@res:Strings.filter.platform"
                               checked="{x:Bind filter == Filter::Platform}"
                               enabled="{x:Bind has(Filter::Platform)}"
                               command="{x:Bind set_filter(Filter::Platform)}" />
@@ -63,22 +63,22 @@
                                 h="22"
                                 padding="3 4"
                                 gap="1"
-                                hover:bg="@Colors.row.hover"
-                                selected:bg="@Colors.row.selected">
+                                hover:bg="@res:Colors.row.hover"
+                                selected:bg="@res:Colors.row.selected">
                             <Label w="100%"
                                    text="{x:Bind name}"
-                                   color="@Colors.row.name"
-                                   selected:color="@Colors.row.name_selected"
+                                   color="@res:Colors.row.name"
+                                   selected:color="@res:Colors.row.name_selected"
                                    ellipsis="true" />
                             <Label w="100%"
                                    text="{x:Bind subtitle()}"
-                                   color="@Colors.row.subtitle"
+                                   color="@res:Colors.row.subtitle"
                                    ellipsis="true" />
                         </Column>
                     </DataTemplate>
                 </ListView.ItemTemplate>
                 <ListView.Empty>
-                    <Label text="{x:Bind empty_text()}" color="@Colors.empty" shadow="false" />
+                    <Label text="{x:Bind empty_text()}" color="@res:Colors.empty" shadow="false" />
                 </ListView.Empty>
             </ListView>
             <ScrollView x:Name="details"
@@ -89,17 +89,17 @@
                 <ContentPresenter w="100%" content="{x:Bind selected()}">
                     <DataTemplate x:DataType="ModEntry">
                         <Column w="100%" gap="3">
-                            <Label x:Name="detail_name" w="100%" text="{x:Bind name}" color="@Colors.detail.name" />
-                            <Label style="@Detail" text="{x:Bind Strings::details_version(version)}" color="@Colors.detail.version" />
+                            <Label x:Name="detail_name" w="100%" text="{x:Bind name}" color="@res:Colors.detail.name" />
+                            <Label style="@Detail" text="{x:Bind Strings::details_version(version)}" color="@res:Colors.detail.version" />
                             <Label style="@Detail" text="{x:Bind source.label()}" color="{x:Bind source.color()}" />
                             <Label style="@Detail" text="{x:Bind authors_text()}" />
-                            <Label style="@Detail" text="{x:Bind Strings::details_id(id)}" color="@Colors.detail.id" />
+                            <Label style="@Detail" text="{x:Bind Strings::details_id(id)}" color="@res:Colors.detail.id" />
                             <Spacer h="4" />
-                            <Label style="@Detail" text="{x:Bind description_text()}" color="@Colors.detail.description" />
+                            <Label style="@Detail" text="{x:Bind description_text()}" color="@res:Colors.detail.description" />
                         </Column>
                     </DataTemplate>
                     <ContentPresenter.Empty>
-                        <Label text="@Strings.details.none_selected" color="@Colors.detail.none" />
+                        <Label text="@res:Strings.details.none_selected" color="@res:Colors.detail.none" />
                     </ContentPresenter.Empty>
                 </ContentPresenter>
             </ScrollView>
@@ -110,7 +110,7 @@
                 h="20"
                 halign="right"
                 margin="4 8 6 8"
-                text="@Strings.screen.done"
+                text="@res:Strings.screen.done"
                 command="{x:Bind cx.close()}" />
     </Grid>
 </Screen>

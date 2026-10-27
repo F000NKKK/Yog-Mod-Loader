@@ -11,7 +11,7 @@ pub struct ToolKindRef;
 
 impl yog_data::with::With<String> for ToolKindRef {
     fn shape() -> Shape {
-        Shape::Tag(&[yog_ids::kind::BLOCK])
+        yog_data::TagId::<yog_data::kinds::Block>::shape()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -27,7 +27,7 @@ impl yog_data::with::With<String> for ToolKindRef {
         if TOOL_KINDS.contains(&f.as_str()) {
             Value::from(f.as_str())
         } else {
-            Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, f.clone()))
+            yog_data::TagId::<yog_data::kinds::Block>::new(f.clone()).write()
         }
     }
 }
@@ -37,7 +37,7 @@ impl yog_data::with::With<String> for ToolKindRef {
 pub struct MaterialRef<K>(std::marker::PhantomData<K>);
 
 /// Which built-in materials a kind of material has.
-pub trait MaterialKind: yog_data::Kind {
+pub trait MaterialKind: yog_data::Kind<Id = String> {
     fn built_in(name: &str) -> Option<String>;
     fn names() -> Vec<String>;
 }
@@ -68,7 +68,7 @@ impl MaterialKind for ArmorMaterialKind {
 
 impl<K: MaterialKind> yog_data::with::With<String> for MaterialRef<K> {
     fn shape() -> Shape {
-        Shape::Ref(<K as yog_data::Kinds>::NAMES)
+        yog_data::schema::ref_shape::<K>()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -86,7 +86,7 @@ impl<K: MaterialKind> yog_data::with::With<String> for MaterialRef<K> {
     fn write(f: &String) -> Value {
         match yog_ids::game_path(f) {
             Some(s) if K::built_in(s).is_some() => Value::from(s),
-            _ => Value::Ref(yog_data::Ref::new(K::NAME, f.clone())),
+            _ => yog_data::Id::<K>::new(f.clone()).write(),
         }
     }
 }
@@ -130,7 +130,7 @@ fn block_tag(
 
 impl yog_data::with::With<BlockTag> for ToolTag {
     fn shape() -> Shape {
-        Shape::Tag(&[yog_ids::kind::BLOCK])
+        yog_data::TagId::<yog_data::kinds::Block>::shape()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<BlockTag> {
         block_tag(
@@ -144,14 +144,14 @@ impl yog_data::with::With<BlockTag> for ToolTag {
     fn write(f: &BlockTag) -> Value {
         match f.0.strip_prefix(yog_ids::game::MINEABLE) {
             Some(s) if DIGGERS.contains(&s) => Value::from(s),
-            _ => Value::Tag(yog_data::Ref::new(yog_ids::kind::BLOCK, f.0.clone())),
+            _ => yog_data::TagId::<yog_data::kinds::Block>::new(f.0.clone()).write(),
         }
     }
 }
 
 impl yog_data::with::With<String> for LevelRef {
     fn shape() -> Shape {
-        Shape::Ref(&[yog_ids::kind::LEVEL])
+        yog_data::schema::ref_shape::<LevelKind>()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -174,14 +174,14 @@ impl yog_data::with::With<String> for LevelRef {
     fn write(f: &String) -> Value {
         match ToolLadder::game().level(f) {
             Some(l) => Value::from(yog_ids::split(&l.id).1),
-            _ => Value::Ref(yog_data::Ref::new(yog_ids::kind::LEVEL, f.clone())),
+            _ => yog_data::Id::<LevelKind>::new(f.clone()).write(),
         }
     }
 }
 
 impl yog_data::with::With<String> for SoundRef {
     fn shape() -> Shape {
-        Shape::Ref(&[yog_ids::kind::SOUND_GROUP])
+        yog_data::schema::ref_shape::<SoundGroupKind>()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
@@ -200,7 +200,7 @@ impl yog_data::with::With<String> for SoundRef {
     fn write(f: &String) -> Value {
         match yog_ids::game_path(f) {
             Some(s) if yog_registry::SoundGroup::built_in(s).is_some() => Value::from(s),
-            _ => Value::Ref(yog_data::Ref::new(yog_ids::kind::SOUND_GROUP, f.clone())),
+            _ => yog_data::Id::<SoundGroupKind>::new(f.clone()).write(),
         }
     }
 }

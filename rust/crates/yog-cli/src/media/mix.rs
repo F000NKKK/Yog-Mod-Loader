@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn tracks_go_through_their_channels_and_the_muted_are_left_out() {
         let text = r#"{ tracks: [{ gain: 0.5, effects: [{ fx: "high_pass", hz: 900 }] }, { mute: true }],
-            clips: [{ sound: "@S.a" }, { sound: "@S.b", track: 1 }, { sound: "@S.c", track: 2 }], gain: 2 }"#;
+            clips: [{ sound: "@res:S.a" }, { sound: "@res:S.b", track: 1 }, { sound: "@res:S.c", track: 2 }], gain: 2 }"#;
         let g = graph(&yog_data::from_text::<Mix>(text).unwrap().value);
         assert!(
             g.contains(
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn a_mix_is_one_ffmpeg_graph() {
-        let text = r#"{ clips: [{ sound: "@S.a", at: 0.5, to: 1, speed: 2, fade_out: 0.1, effects: [{ fx: "low_pass", hz: 800 }] },
+        let text = r#"{ clips: [{ sound: "@res:S.a", at: 0.5, to: 1, speed: 2, fade_out: 0.1, effects: [{ fx: "low_pass", hz: 800 }] },
             { file: "dig/sand1" }], effects: [{ fx: "echo", delay: 0.2, decay: 0.4 }] }"#;
         let g = graph(&yog_data::from_text::<Mix>(text).unwrap().value);
         assert!(

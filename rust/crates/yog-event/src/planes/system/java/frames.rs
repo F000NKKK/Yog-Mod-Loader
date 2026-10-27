@@ -198,9 +198,8 @@ pub(super) fn missing(shape: &Shape) -> String {
         Shape::Enum(en) if en.tag.is_none() => {
             format!("{:?}", en.variants.first().map_or("", |v| v.name))
         }
-        Shape::Str | Shape::Atom | Shape::Text | Shape::Image | Shape::Color | Shape::Res => {
-            "\"\"".into()
-        }
+        Shape::Str | Shape::Atom => "\"\"".into(),
+        Shape::Named(n) => missing(&n.stored()),
         _ => "null".into(),
     }
 }

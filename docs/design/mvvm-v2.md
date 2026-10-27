@@ -265,7 +265,7 @@ if d.any(<ModListVm>::__R_count_text) {
 }
 ```
 
-`Strings::x()` / `@Strings.x` texts are re-evaluated on `LanguageChanged` (a full pass). Free
+`Strings::x()` / `@res:Strings.x` texts are re-evaluated on `LanguageChanged` (a full pass). Free
 functions in bindings (`percent(v)`) are pure by contract.
 
 **Verification.** In debug builds the host also runs a *shadow pass* every N frames: every
@@ -366,8 +366,8 @@ impl<T, E> Loadable<T, E> {
 ```xml
 <ContentPresenter content="{x:Bind details}">          <!-- details: Loadable<Details> -->
     <DataTemplate x:DataType="Details"> … </DataTemplate>
-    <ContentPresenter.Loading><Label text="@Strings.loading"/></ContentPresenter.Loading>
-    <ContentPresenter.Failed><Label text="{x:Bind error}" color="@Theme.Error"/></ContentPresenter.Failed>
+    <ContentPresenter.Loading><Label text="@res:Strings.loading"/></ContentPresenter.Loading>
+    <ContentPresenter.Failed><Label text="{x:Bind error}" color="@res:Theme.Error"/></ContentPresenter.Failed>
 </ContentPresenter>
 ```
 
@@ -448,7 +448,7 @@ property (§9): `<RowActions delete="{x:Bind vm.remove}" command_parameter="{x:B
             <KeyBinding gesture="Up" command="{x:Bind select_prev()}"/>
         </TextBox.InputBindings>
     </TextBox>
-    <Button text="@Strings.save" gesture="Ctrl+S" command="{x:Bind save()}"/>   <!-- same as a KeyBinding to its command -->
+    <Button text="@res:Strings.save" gesture="Ctrl+S" command="{x:Bind save()}"/>   <!-- same as a KeyBinding to its command -->
     <ListView items="{x:Bind visible()}" activate="{x:Bind open(id)}"/>          <!-- double-click or Enter on a row -->
 </Screen>
 ```
@@ -765,7 +765,7 @@ the first one that matches wins:
 ```xml
 <ListView items="{x:Bind patterns}" item_height="12">
     <DataTemplate x:DataType="PatternView" match="PatternView { pending: true, .. }">
-        <PatternEntry name="@Strings.pattern.pending" signature="{x:Bind signature}" style:Pending="{x:Bind true}"/>
+        <PatternEntry name="@res:Strings.pattern.pending" signature="{x:Bind signature}" style:Pending="{x:Bind true}"/>
     </DataTemplate>
     <DataTemplate x:DataType="PatternView">
         <PatternEntry name="{x:Bind name}" signature="{x:Bind signature}"/>
@@ -822,7 +822,7 @@ Components keep their file format and their role (WPF UserControls). Their imple
 changes:
 
 ```xml
-<Component name="IotaRow" description="@Strings.component.iota_row" design_w="150" design_h="11">
+<Component name="IotaRow" description="@res:Strings.component.iota_row" design_w="150" design_h="11">
     <Property name="kind" type="String" default="Number"/>
     <Property name="value" type="Text" default="1.00"/>
     <Property name="accent" type="Color" default="#FF5555FF" category="Appearance"/>
@@ -1069,7 +1069,7 @@ pub struct CrucibleVm { state: Synced<CrucibleState> }
 There are three ways a screen opens, and none of them needs code:
 
 ```xml
-<Screen id="yog-modlist:mod_list" menu_entry="@Strings.menu_button" …/>        <!-- F8: a button in the vanilla menu -->
+<Screen id="yog-modlist:mod_list" menu_entry="@res:Strings.menu_button" …/>        <!-- F8: a button in the vanilla menu -->
 <Screen id="hexcasting:spellcasting" open_on="protocol::OPEN_GUI" …/>           <!-- the server sends S2C<OpenGui> -->
 <Screen id="mymod:atlas" open_key="key.mymod.atlas" …/>                         <!-- a key binding (registered + translatable) -->
 ```
@@ -1135,7 +1135,7 @@ UI code. In v2, the `.yui` declares both, and yog-cli generates the `InventoryDe
         <Column gap="2">
             <ProgressArrow value="{x:Bind state.progress}"/>
             <Label text="{x:Bind state.heat, Format='{} °'}"/>
-            <Button text="@Strings.vent" command="{x:Bind vent()}"/>
+            <Button text="@res:Strings.vent" command="{x:Bind vent()}"/>
         </Column>
         <Slot name="output" output="true"/>
     </Row>
@@ -1279,7 +1279,7 @@ impl ModListVm {
 ```
 
 ```xml
-<ToggleButton x:Name="filter_yog" style="@Filter" text="@Strings.filter.yog"
+<ToggleButton x:Name="filter_yog" style="@Filter" text="@res:Strings.filter.yog"
               checked="{x:Bind filter == Filter::Yog}" enabled="{x:Bind has(Filter::Yog)}"
               command="{x:Bind set_filter(Filter::Yog)}"/>
 <ListView … items="{x:Bind visible()}" key="{x:Bind id}" selected="{x:Bind selected_id(), BindBack=select}"
@@ -1322,18 +1322,18 @@ impl ModListVm {
 ```
 
 ```xml
-<Screen id="yog-modlist:mod_list" … x:ViewModel="ModListVm" menu_entry="@Strings.menu_button">
+<Screen id="yog-modlist:mod_list" … x:ViewModel="ModListVm" menu_entry="@res:Strings.menu_button">
     <Screen.InputBindings>
         <KeyBinding gesture="Ctrl+F" command="{x:Bind cx.focus(ids::SEARCH)}"/>
     </Screen.InputBindings>
     …
-    <TextBox x:Name="search" text="{x:Bind search, Mode=TwoWay, Delay=150ms}" placeholder="@Strings.search.placeholder">
+    <TextBox x:Name="search" text="{x:Bind search, Mode=TwoWay, Delay=150ms}" placeholder="@res:Strings.search.placeholder">
         <TextBox.InputBindings>
             <KeyBinding gesture="Down" command="{x:Bind select_next()}"/>
             <KeyBinding gesture="Up" command="{x:Bind select_prev()}"/>
         </TextBox.InputBindings>
     </TextBox>
-    <ToggleButton x:Name="filter_yog" text="@Strings.filter.yog"
+    <ToggleButton x:Name="filter_yog" text="@res:Strings.filter.yog"
                   checked="{x:Bind filter == Filter::Yog}" command="{x:Bind set_filter(Filter::Yog)}"/>
     <ListView x:Name="mod_list" items="{x:Bind visible()}" key="{x:Bind id}"
               selected="{x:Bind selected()?.id, BindBack=select}"

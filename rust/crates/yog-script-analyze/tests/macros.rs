@@ -87,7 +87,7 @@ fn include_str_is_the_files_text() {
     let codes: Vec<_> = yog_script_analyze::check_in("A.ys", missing, env)
         .problems
         .into_iter()
-        .filter_map(|d| d.code)
+        .filter_map(|d| d.code.map(yog_data::Code::as_str))
         .collect();
     assert_eq!(codes, [script_problem::MACRO]);
 }

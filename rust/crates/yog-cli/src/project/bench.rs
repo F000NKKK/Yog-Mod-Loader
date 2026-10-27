@@ -61,7 +61,7 @@ pub struct BenchFile {
 
 /// A problem with a benchmark file.
 fn problem(message: impl std::fmt::Display) -> Diagnostic {
-    Diagnostic::error(yog_ids::build_problem::BENCH, message)
+    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::BENCH), message)
 }
 
 /// The mod's benchmark files, by name; none without a `benches/` folder.

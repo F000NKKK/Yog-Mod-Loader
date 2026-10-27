@@ -39,9 +39,9 @@ The same texture can be referenced in five ways that don't agree with each other
 
 | Where | Forms | Notes |
 |---|---|---|
-| `.yblock`/`.yitem` `model.textures` | `@Set.name` (`.yres` image), `path.png` (under `resources/`), `ns:path` / bare `path` (= `minecraft:`), `#slot` | Parsed by `yog-cli/src/content.rs:398-464` (`Ctx::texture`). A sibling `.png.mcmeta` is bundled only for the `path.png` form (content.rs:440-443). |
+| `.yblock`/`.yitem` `model.textures` | `@res:Set.name` (`.yres` image), `path.png` (under `resources/`), `ns:path` / bare `path` (= `minecraft:`), `#slot` | Parsed by `yog-cli/src/content.rs:398-464` (`Ctx::texture`). A sibling `.png.mcmeta` is bundled only for the `path.png` form (content.rs:440-443). |
 | `.yres` `"type": "image"` | a path relative to the `.yres` file | Bundled to `assets/<mod>/textures/<rel>.png` (yres.rs:1059-1072). No `.mcmeta`. Generated as `const fn name() -> &'static str`. No mod uses it today. |
-| `.yui` `<Image source>` | `item:`, `block:`, `sprite:<yog name>`, `mod:<path>`, `<ns>:<path>`, `@Set.name`, plus `stretch`/`uv`/`tint` | Parsed by `yog_gfx::image::ImageSource` (yog-gfx/src/image.rs). `sprite:` is a 26-entry table (`SPRITES`) with 1.20.2+ atlas ids and 1.20.1 regions, plus a `border` used as a nine-slice inset. |
+| `.yui` `<Image source>` | `item:`, `block:`, `sprite:<yog name>`, `mod:<path>`, `<ns>:<path>`, `@res:Set.name`, plus `stretch`/`uv`/`tint` | Parsed by `yog_gfx::image::ImageSource` (yog-gfx/src/image.rs). `sprite:` is a 26-entry table (`SPRITES`) with 1.20.2+ atlas ids and 1.20.1 regions, plus a `border` used as a nine-slice inset. |
 | HexMod hand-written | `assets/hexcasting/textures/**` | Copied as-is by `gather_assets` (main.rs:1892-1928). |
 | IDLE paint save | `resources/{item,block}/<stem>[_<slot>].png` | `ContentEditor.tsx:509-530`, `content.rs:148-181`. |
 
@@ -202,12 +202,12 @@ Every place that takes "something to draw" takes a **paint ref**:
 | `#slot` | another texture slot of the same model | `.yblock`/`.yitem` models |
 | `#RRGGBB` / `#AARRGGBB` | a flat color brush | `.yui` brush attributes, `.ymat` fills |
 | `item:<ns>:<id>` / `block:<ns>:<id>` | the item renderer (3D block items, enchant glint). This is not a texture. | `.yui` `Image`, `ItemSlot` |
-| `@Set.name` | a `.yres` color (brush attributes only) | `.yui` |
+| `@res:Set.name` | a `.yres` color (brush attributes only) | `.yui` |
 
 **Namespaces are always explicit (D10, the user's rule).** This covers every asset reference in `.yblock`, `.yitem`, `.ymat`, `.ytheme`, `.yui`, `.ybook`, `.ysound`, `yog.toml`, code-generated ids and `yog_api` string APIs: `minecraft:block/stone`, `hexcasting:block/slate`, `item:minecraft:diamond`, `mat:minecraft:gui/button`.
 - A bare `block/stone` or `item:diamond` is an **error**. The diagnostic points at the value and offers the candidates that exist: *"`block/stone` has no namespace — did you mean `minecraft:block/stone` (vanilla) or `hexcasting:block/stone` (this mod)?"*. IDLE shows the same as a quick fix.
 - **No short alias for the mod's own namespace.** The old `mod:` prefix is deleted, and no `~:`/`self:` replaces it. A short alias is exactly the implicit reference the user ruled out, and it would read differently when a file is copied into another mod. To keep this cheap: IDLE's completion and pickers always insert the full id, starting with the project's own namespace; New Item templates are written with the project's id filled in; and renaming the mod id is a project-wide refactoring in IDLE (`yog migrate rename-namespace <old> <new>` in the CLI).
-- **Not asset references, and so unchanged:** `#slot` (a model-local name), `@Set.name` (a `.yres` entry of this mod; the set name is the scope), `{x:Bind …}`, and translation keys (`@lang:gui.done`). These are keys, not ids.
+- **Not asset references, and so unchanged:** `#slot` (a model-local name), `@res:Set.name` (a `.yres` entry of this mod; the set name is the scope), `{x:Bind …}`, and translation keys (`@lang:gui.done`). These are keys, not ids.
 - Rust code uses typed handles (`res::…`, `vanilla::…`), which always carry the namespace. `yog_api` functions taking `&str` ids reject a bare id with `Err`/a logged error instead of assuming `minecraft:`. `yog_gfx::image::qualify` is deleted.
 - The format migration (§14) rewrites the bare refs of existing files. Every bare id there meant `minecraft:` under the old rules, so the rewrite is mechanical.
 
@@ -215,7 +215,7 @@ Every place that takes "something to draw" takes a **paint ref**:
 - `sprite:<name>`: it becomes `mat:minecraft:gui/<name>` (§7).
 - `mod:<path>` and every other implicit-namespace form.
 - `path.png` texture paths in content files.
-- `.yres` `image` entries and `@Set.name` as an image.
+- `.yres` `image` entries and `@res:Set.name` as an image.
 - `yog_gfx::image::{SPRITES, Sprite, LegacyRegion, suggest_alias}`: the overlay (§3.3) holds that data now.
 
 ### 2.4 Where each material property applies
@@ -406,7 +406,7 @@ pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = :
 ```jsonc
 // content/blocks/amethyst/citrine_edified_leaves.yblock
 {
-  "name": "@Blocks.citrine_edified_leaves",
+  "name": "@res:Blocks.citrine_edified_leaves",
   "behavior": "minecraft:leaves",                                     // §4.6: decay, distance states, no occlusion
   "block": { "hardness": 0.2, "sound": "grass", "tool": "hoe" },     // render_layer is gone from `block`
   "model": {
@@ -437,7 +437,7 @@ pub mod materials { pub mod gui { pub const RUNE_BUTTON: ::yog_api::Material = :
 **Deleted:**
 - `block.render_layer`.
 - Face `tint` (an integer index). The tint index is now **derived**: the build numbers the distinct tint sources of a model 0..n and writes `tintindex` on the faces whose material has that source.
-- `path.png` and `@Set.name` texture forms.
+- `path.png` and `@res:Set.name` texture forms.
 
 ### 4.2 Compilation (yog-cli `content.rs`)
 
@@ -616,7 +616,7 @@ pub struct Style { pub bg: Brush, /* … */ pub color: TextColor, /* … */ }
 pub enum TextColor { Inherit, Color(u32) }
 ```
 
-- `bg="#AARRGGBB"`, `bg="@Set.color"`, `bg="mat:hexcasting:gui/rune_panel"` and `bg="hexcasting:gui/parchment"` all work, both in `.yui` and as `.bg(…)` in builders.
+- `bg="#AARRGGBB"`, `bg="@res:Set.color"`, `bg="mat:hexcasting:gui/rune_panel"` and `bg="hexcasting:gui/parchment"` all work, both in `.yui` and as `.bg(…)` in builders.
 - `StylePatch.bg` becomes `Option<Brush>`, so `hover:bg="mat:…"` works. A material brush receives the widget's `StateFlags` automatically, so most state attributes become unnecessary.
 - `Image source` takes a paint ref. `stretch`/`uv`/`tint` stay for plain textures. For materials, the material's own `mode`/`region` apply.
 - The only brush attributes in markup are `bg` and `source`. One brush per widget keeps the model simple: decoration that needs more than one layer (a border plus a fill, say) is a material with layers. There are no separate `BorderBrush`/`BorderThickness` attributes.
@@ -653,9 +653,9 @@ pub mod vanilla {
 }
 ```
 
-In `.yui` the same set is the built-in resource set **`Theme`** (already anticipated by `based_on="@Theme.Button"` in yog-kit.md §5):
-- Styles: `@Theme.Button`, `@Theme.Title` (white, shadow, centered), `@Theme.PanelTitle` (#404040, no shadow), `@Theme.Secondary` (#A0A0A0), `@Theme.Error` (§c #FF5555), `@Theme.Success` (§a #55FF55).
-- Materials: `@Theme.Panel`, `@Theme.Inset`, ….
+In `.yui` the same set is the built-in resource set **`Theme`** (already anticipated by `based_on="@res:Theme.Button"` in yog-kit.md §5):
+- Styles: `@res:Theme.Button`, `@res:Theme.Title` (white, shadow, centered), `@res:Theme.PanelTitle` (#404040, no shadow), `@res:Theme.Secondary` (#A0A0A0), `@res:Theme.Error` (§c #FF5555), `@res:Theme.Success` (§a #55FF55).
+- Materials: `@res:Theme.Panel`, `@res:Theme.Inset`, ….
 
 A mod restyles a control for one screen with `<Style target="Button" bg="mat:hexcasting:gui/rune_button"/>` in `<Screen.Resources>`. Mod-wide, per-screen and per-subtree restyles are `.ytheme` files (§6.6).
 
@@ -684,7 +684,7 @@ Sizes are vanilla's defaults. The material column shows what the overlay resolve
 | `ListView background="list"` | `minecraft:gui/list_background` | `textures/gui/menu_list_background.png` tiled, plus `inworld_` variant when in-world † | `textures/gui/options_background.png` tiled, tint #FF404040 (the dirt) | new attribute |
 | `Separator` **new** (`kind="header\|footer"`) | h 2 | `textures/gui/header_separator.png` / `footer_separator.png` † tiled | `frame` top #FF000000 (1.20.1 has none; a thin line) | new |
 | `TabBar`/`Tab` **new** | tabs 130×24 max, text white | `widget/tab`, `_selected`, `_highlighted`, `_selected_highlighted` † | `gui/tab_button.png` regions † | new |
-| `Panel` **new** (Column with `bg=@Theme.Panel`, padding 7) | inherited text #404040, no shadow | `textures/gui/demo_background.png` 248×166 nine-slice, border 4 | same texture | new |
+| `Panel` **new** (Column with `bg=@res:Theme.Panel`, padding 7) | inherited text #404040, no shadow | `textures/gui/demo_background.png` 248×166 nine-slice, border 4 | same texture | new |
 | `Inset` (style) | sunken area for lists/previews in panels | `frame {top/left #FF373737, bottom/right #FFFFFFFF}` + fill #FF8B8B8B (the slot bevel at panel scale) | same | new |
 | `InvSlot`/`ItemSlot` | 18×18 | `minecraft:gui/slot`: `fill #FF8B8B8B` + bevel frame (procedural on both); hover overlay `slot_highlight` `fill #80FFFFFF` over the item; count drawn at full scale like vanilla, white + shadow; hover shows `draw2d_item_tooltip` | same | restyled |
 | `tooltip="…"` attribute **new** on any widget | after the frame, on hover | `draw2d_tooltip` (vanilla draws it: procedural bg #F0100010 + gradient frame #505000FF→#5028007F on 1.20.1/1.21.1, sprites on newer) | same | new |
@@ -737,7 +737,7 @@ A theme is a style sheet: control defaults plus named classes, attachable at any
 | Screen | `<Screen theme="hexcasting:ui/themes/slate; hexcasting:ui/themes/big">` | that screen (a list; later entries win) |
 | Component | `<Component theme="…">` at the component's root | every use of the component |
 | Element subtree | `theme="…"` on any element | that element and its descendants |
-| Class / inline | `class="title hint"`, `style="@Set.Danger"`, explicit attributes | one element |
+| Class / inline | `class="title hint"`, `style="@res:Set.Danger"`, explicit attributes | one element |
 
 **Cascade**, lowest to highest priority:
 1. `minecraft:vanilla` (or whatever the base chain of the nearest theme ends in, e.g. `yog:bare`),
@@ -843,18 +843,18 @@ Every former `sprite:` name (hotbar, hearts, food, armor, air, xp bar, crosshair
 ## 8. `.yui` changes
 
 ```xml
-<Screen id="mymod:settings" width="260" height="180" title="@Strings.settings.title" background="auto"
+<Screen id="mymod:settings" width="260" height="180" title="@res:Strings.settings.title" background="auto"
         theme="mymod:ui/settings" x:ViewModel="crate::ui::SettingsVm">
     <Screen.Resources>
         <Material x:Key="RunePanel" texture="hexcasting:gui/rune_panel" mode="nine_slice" slice="6"
                   text.color="#E0D0FF" text.shadow="false"/>
-        <Style x:Key="Danger" target="Button" based_on="@Theme.Button" color="#FF5555"/>
+        <Style x:Key="Danger" target="Button" based_on="@res:Theme.Button" color="#FF5555"/>
     </Screen.Resources>
     <Panel w="100%" h="100%">
-        <Label text="@Strings.settings.title" class="title"/>        <!-- #404040 via inheritance -->
-        <CheckBox text="@Strings.show_badges" checked="{x:Bind show_badges, Mode=TwoWay}"/>
+        <Label text="@res:Strings.settings.title" class="title"/>        <!-- #404040 via inheritance -->
+        <CheckBox text="@res:Strings.show_badges" checked="{x:Bind show_badges, Mode=TwoWay}"/>
         <Slider w="150" value="{x:Bind volume, Mode=TwoWay}" text="{x:Bind volume_text()}"/>
-        <TextBox w="150" text="{x:Bind name, Mode=TwoWay}" tooltip="@Strings.name.tip"/>
+        <TextBox w="150" text="{x:Bind name, Mode=TwoWay}" tooltip="@res:Strings.name.tip"/>
         <Image source="hexcasting:gui/logo"/>
         <Image source="mat:minecraft:gui/icon/heart"/>
         <Image source="item:minecraft:diamond"/>
@@ -962,8 +962,8 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 
 | Removed | Replacement |
 |---|---|
-| `.yres` `"type": "image"`, its `texture` field, `@Set.name` as an image (yog.toml `icon` too) | a PNG under `content/` + a texture id (`icon = "yog-modlist:icon"`) |
-| content `path.png`, `@Set.name` texture forms | texture ids |
+| `.yres` `"type": "image"`, its `texture` field, `@res:Set.name` as an image (yog.toml `icon` too) | a PNG under `content/` + a texture id (`icon = "yog-modlist:icon"`) |
+| content `path.png`, `@res:Set.name` texture forms | texture ids |
 | `block.render_layer`, face `tint` index | the material's `render_layer` / `tint` |
 | `sprite:*`, `yog_gfx::image::{SPRITES, Sprite, LegacyRegion, suggest_alias}`, `sprite:` code in `yog-runtime/src/images.rs` and IDLE `designer/images.rs` | `mat:minecraft:gui/*`, overlay |
 | `mod:<path>`, bare ids meaning `minecraft:` | full `<ns>:<path>` (D10) |
@@ -986,10 +986,10 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 The new `mod_list.yui` keeps the `x:Name`s used by its test: `search`, `filter_all`, `filter_platform`, `mod_list`, `detail_name`.
 
 ```
-background="auto" title="@Strings.screen.title"    ← dimmed world / panorama, white title at y=15
+background="auto" title="@res:Strings.screen.title"    ← dimmed world / panorama, white title at y=15
 anchor="fill"  (vanilla list screens use the whole window)
 Grid rows="32,*,36" columns="*"
-  row 0: Title (host) + mod_count Label (@Theme.Secondary) right
+  row 0: Title (host) + mod_count Label (@res:Theme.Secondary) right
   row 1: Grid columns="*,8,*"
       left : TextBox search (h20) / TabBar filter_all|filter_yog|filter_platform (vanilla tabs, the
              user's decision) / ListView mod_list background="list"
@@ -1082,7 +1082,7 @@ obj/                    what it makes on the way (git-ignored), as .NET's:
 | `.yblock`, `.yitem` | block / item | file stem, `id` field overrides |
 | `.ymodel` | shared model (parent for several blocks/items) | path |
 | `.yui` | screen / component | `<Screen id>` / component name |
-| `.yres` | strings, colors, numbers, bools only (`image`, `sound`, `file` types are deleted) | `@Set.name` |
+| `.yres` | strings, colors, numbers, bools only (`image`, `sound`, `file` types are deleted) | `@res:Set.name` |
 | `.ybook` | guide book (`docs/design/ybook.md`) | path |
 | `.ogg` + `.ysound` | sound event: variants, subtitle, category | path of the `.ysound` |
 | `.yrecipe`, `.yloot`, `.ytag` | future | path |
@@ -1135,7 +1135,7 @@ New Project creates `yog.toml` (with `format`), `src/lib.rs`, `content/` with a 
 |---|---|
 | 1→2 layout | §13.2 migration (folders, `.yres` split, `.yui` move, `.gitignore`) |
 | 2→3 namespaces | bare ids → `minecraft:`, `mod:` → `<mod id>:` (D10) |
-| 3→4 textures/materials | `path.png`/`@Set.name` textures → ids; `block.render_layer` and face `tint` → slot materials; `sprite:` → `mat:minecraft:gui/*` |
+| 3→4 textures/materials | `path.png`/`@res:Set.name` textures → ids; `block.render_layer` and face `tint` → slot materials; `sprite:` → `mat:minecraft:gui/*` |
 | 4→5 behaviours | blocks with a non-solid layer and no behaviour get `minecraft:transparent` or `minecraft:leaves` (by vanilla parent and name), with a note in the log to review them |
 
 Today's projects have no `format` key and are treated as format 1. After this design, `C` = 5. Steps that land in the same release may still be separate steps: the chain runs them in order.

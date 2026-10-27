@@ -285,7 +285,10 @@ fn names_known(cx: &mut Ctx, file: &DefFile, known: &refs::Known) -> bool {
             ok = false;
         }
     }
-    for f in file.read.tags.iter().filter(|f| !optional(&f.path)) {
+    for f in yog_data::found::tags(&file.read.refs)
+        .iter()
+        .filter(|f| !optional(&f.path))
+    {
         if let Err(e) = known.check_tag(&f.value.kind, &f.value.id) {
             cx.err(file.located.line(&f.path), format!("{}: {e}", f.path));
             ok = false;

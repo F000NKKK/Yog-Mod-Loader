@@ -61,20 +61,20 @@ mod tests {
     #[test]
     fn one_side_keeps_the_proportion_and_sizes_are_even() {
         let src = (161, 91);
-        assert_eq!(shown(&video(r#"{ source: "@V.a" }"#), src), (160, 90));
+        assert_eq!(shown(&video(r#"{ source: "@res:V.a" }"#), src), (160, 90));
         assert_eq!(
-            shown(&video(r#"{ source: "@V.a", width: 64 }"#), src),
+            shown(&video(r#"{ source: "@res:V.a", width: 64 }"#), src),
             (64, 36)
         );
         assert_eq!(
-            shown(&video(r#"{ source: "@V.a", height: 1 }"#), src),
+            shown(&video(r#"{ source: "@res:V.a", height: 1 }"#), src),
             (2, 2)
         );
     }
 
     #[test]
     fn a_small_picture_is_padded_up_to_the_encoders_least() {
-        let v = video(r#"{ source: "@V.a", fps: 12.5 }"#);
+        let v = video(r#"{ source: "@res:V.a", fps: 12.5 }"#);
         assert_eq!(
             filters(&v, (320, 180)),
             format!("fps=12.5,scale=320:180{TO_YUV}")

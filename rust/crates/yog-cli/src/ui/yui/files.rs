@@ -58,7 +58,10 @@ const GENERATED_EXT: &str = ".g.rs";
 /// doesn't rebuild for nothing. Its path, and what to warn of.
 pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<Diagnostic>), Diagnostic> {
     let shown = crate::shown_path(root, yui);
-    let screen = |d: Diagnostic| d.in_file(&shown).or_code(yog_ids::build_problem::SCREEN);
+    let screen = |d: Diagnostic| {
+        d.in_file(&shown)
+            .or_code(yog_data::Atom::new(yog_ids::build_problem::SCREEN))
+    };
     let src = std::fs::read_to_string(yui).map_err(|e| screen(e.to_string().into()))?;
     let name = include_name(root, yui);
     let mod_id = std::fs::read_to_string(root.join(crate::project::manifest::MANIFEST))
@@ -127,7 +130,10 @@ pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
     // Components without a code-behind, for `ui_components!()`.
     let (index, warning) = crate::ui::component::write_index(root)?;
     wanted.push(index);
-    warnings.extend(warning.map(|w| Diagnostic::warning(yog_ids::build_problem::SCREEN, w)));
+    warnings.extend(
+        warning
+            .map(|w| Diagnostic::warning(yog_data::Atom::new(yog_ids::build_problem::SCREEN), w)),
+    );
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);

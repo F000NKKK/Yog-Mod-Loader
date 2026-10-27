@@ -40,7 +40,7 @@ fn texture_id(texture: &str) -> String {
     )
 }
 
-/// The png bytes of a texture as a content file names it: `@Set.name`,
+/// The png bytes of a texture as a content file names it: `@res:Set.name`,
 /// `path.png` (in `resources/`), or a texture id (`ns:block/x`).
 fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, ServiceError> {
     match texture_file(file, texture, "png") {
@@ -176,8 +176,8 @@ fn texture_refs(textures: &Value) -> Value {
         return textures.clone();
     };
     let named = |v: &Value| match v.as_str() {
-        Some(t) if !t.starts_with(yog_formats::content::SLOT_MARK) => Value::Ref(
-            yog_data::Ref::new(yog_ids::kind::TEXTURE, yog_ids::qualify(t)),
+        Some(t) if !t.starts_with(yog_formats::content::SLOT_MARK) => yog_data::Schema::write(
+            &yog_data::Id::<yog_data::kinds::Texture>::new(yog_ids::qualify(t)),
         ),
         _ => v.clone(),
     };

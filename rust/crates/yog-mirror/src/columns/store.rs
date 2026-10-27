@@ -157,7 +157,7 @@ pub struct Store {
 }
 
 fn problem(code: &str, message: impl std::fmt::Display) -> Diagnostic {
-    Diagnostic::error(code, message)
+    Diagnostic::error(yog_data::Atom::new(code), message)
 }
 
 /// The key space a `yog:fact/<space>/…` fact is of; `None` for a mod's own.

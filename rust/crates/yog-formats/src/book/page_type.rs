@@ -154,8 +154,7 @@ pub fn words(v: &Value) -> String {
         Value::Int(n) => n.to_string(),
         Value::Float(f) => f.to_string(),
         Value::Bool(b) => b.to_string(),
-        Value::Ref(r) | Value::Tag(r) => r.id.clone(),
-        Value::Lang(k) => k.clone(),
+        Value::Ref(r) => r.id.as_str().to_owned(),
         v => v.as_str().unwrap_or_default().to_string(),
     }
 }

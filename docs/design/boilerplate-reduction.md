@@ -384,7 +384,7 @@ Most of each file restates the path:
 
 ```json
 // content/items/staff/oak.yitem: the id, name, tooltip and texture all repeat the path
-{ "id": "staff/oak", "name": "@Items.staff.oak", "tooltip": "@Items.staff.oak.desc",
+{ "id": "staff/oak", "name": "@res:Items.staff.oak", "tooltip": "@res:Items.staff.oak.desc",
   "item": { "stack_size": 1 },
   "model": { "parent": "handheld", "textures": { "layer0": "item/staff/oak.png" } } }
 ```
@@ -547,7 +547,7 @@ The scaffolding template (`yog-cli/src/main.rs:462`) shrinks to match.
 
 Screens: the generated `register()` (`yui_vm.rs:1588`) also self-registers through the
 `ctor` registrar, using `Default` for the view model. `register_with(vm)` remains for custom
-construction. A `<Screen menu_entry="@Strings.menu_button">` attribute replaces
+construction. A `<Screen menu_entry="@res:Strings.menu_button">` attribute replaces
 `register_menu_entry` as the default; `registry.register_menu_entry(label, ui_id)` stays for
 entries decided at run time (conditional, computed label, a screen not declared in `.yui`)
 (capability rule). The "initializing / ready" `info!` lines are dropped; the runtime

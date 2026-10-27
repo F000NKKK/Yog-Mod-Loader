@@ -208,7 +208,7 @@ Either attributes for the common case or a material:
 
 ```xml
 <Polyline points="{x:Bind path()}" stroke="#FF55FF55" stroke_width="2" join="round" cap="round"/>
-<Polygon points="0,0 20,0 10,15" fill="#80FFFFFF" stroke="@Colors.edge" stroke_width="1"/>
+<Polygon points="0,0 20,0 10,15" fill="#80FFFFFF" stroke="@res:Colors.edge" stroke_width="1"/>
 <Polyline points="{x:Bind pts()}" material="mat:hexcasting:ui/pattern" param.seed="{x:Bind seed}"/>
 ```
 

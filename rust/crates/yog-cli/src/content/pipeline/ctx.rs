@@ -166,10 +166,10 @@ pub(in crate::content) type Loc<'a> = &'a dyn Fn(&At) -> usize;
 
 /// A content error (`YB0002`), where it is to be said by the caller.
 pub(in crate::content) fn problem(msg: impl std::fmt::Display) -> Diagnostic {
-    Diagnostic::error(yog_ids::build_problem::CONTENT, msg)
+    Diagnostic::error(yog_data::Atom::new(yog_ids::build_problem::CONTENT), msg)
 }
 
 /// A content warning (`YB0002`).
 pub(in crate::content) fn caveat(msg: impl std::fmt::Display) -> Diagnostic {
-    Diagnostic::warning(yog_ids::build_problem::CONTENT, msg)
+    Diagnostic::warning(yog_data::Atom::new(yog_ids::build_problem::CONTENT), msg)
 }

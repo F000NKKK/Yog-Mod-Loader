@@ -15,7 +15,7 @@ type PlacedRef = (String, Option<BTreeSet<String>>);
 /// "#b"]`, one list in the file) count as there when any of them is.
 pub(super) fn recipe_gaps(
     items: &[Found<Ref>],
-    tags: &[Found<Ref>],
+    tags: &[Found<yog_data::found::TagRef>],
 ) -> Vec<(BTreeSet<String>, String)> {
     // Where each reference is (`None`: everywhere), grouped by the list it's in.
     let mut lists: BTreeMap<String, Vec<PlacedRef>> = BTreeMap::new();
@@ -24,7 +24,7 @@ pub(super) fn recipe_gaps(
             lists
                 .entry(list_of(&f.path))
                 .or_default()
-                .push((f.value.id.clone(), on));
+                .push((f.value.id.to_string(), on));
         }
     }
     for f in tags {

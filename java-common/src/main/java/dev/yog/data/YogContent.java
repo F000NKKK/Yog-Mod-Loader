@@ -171,7 +171,6 @@ public final class YogContent {
             for (Map.Entry<?, ?> e : m.entrySet()) o.add(String.valueOf(e.getKey()), toGson(e.getValue()));
             return o;
         }
-        if (v instanceof YogData.Text t) return new com.google.gson.JsonPrimitive(t.text());
         return com.google.gson.JsonParser.parseString(YogData.toJson(v));
     }
 }

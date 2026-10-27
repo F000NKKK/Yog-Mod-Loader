@@ -10,6 +10,9 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
         .ok_or_else(|| format!("usage: yog schema <format> — {}", all()))?;
     let shape =
         yog_formats::shape_of(name).ok_or_else(|| format!("no format `{name}` — {}", all()))?;
-    println!("{}", yog_data::text::to_string_pretty(&shape.describe()));
+    println!(
+        "{}",
+        yog_data::text::to_string_pretty(&yog_data::Schema::write(&shape.describe()))
+    );
     Ok(())
 }

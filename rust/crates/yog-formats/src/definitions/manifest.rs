@@ -7,11 +7,11 @@ use yog_data::{Ordered, Schema, Text, Value};
 pub struct ModSection {
     /// The mod's id — its namespace (`mymod`).
     pub id: String,
-    /// Shown name: text or a `.yres` text (`@Strings.mod_name`).
+    /// Shown name: text or a `.yres` text (`@res:Strings.mod_name`).
     pub name: Option<Text>,
     pub version: Option<String>,
     pub description: Option<Text>,
-    /// An image source or a `.yres` image (`@Icons.logo`).
+    /// An image source or a `.yres` image (`@res:Icons.logo`).
     pub icon: Option<yog_data::Image>,
     #[data(default)]
     pub authors: Vec<String>,

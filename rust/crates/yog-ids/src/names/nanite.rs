@@ -35,7 +35,7 @@ names! {
     /// What a reference to an object the host holds for a mod is
     /// (`yog_data::Ref`'s kind; its id the object's number).
     nanite_ref {
-        OBJECT = crate::concatcp!(crate::ns::YOG, crate::sep::NAMESPACE, "object"),
+        OBJECT = crate::concatcp!(crate::ns::YOG, crate::sep::WORD, "object"),
     }
 
     /// The words nanites' names are made of.

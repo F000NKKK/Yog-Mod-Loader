@@ -280,15 +280,15 @@ mod tests {
         std::fs::create_dir_all(dir.join("resources/block")).unwrap();
         std::fs::write(
             dir.join("resources/block/ruby.ytexture"),
-            r#"{ image: "@Images.block.ruby", atlas: "minecraft:blocks" }"#,
+            r#"{ image: "@res:Images.block.ruby", atlas: "minecraft:blocks" }"#,
         )
         .unwrap();
         std::fs::write(
             dir.join("resources/block/opal.ytexture"),
-            r#"{ image: "@Images.block.opal", atlas: "minecraft:blocks" }"#,
+            r#"{ image: "@res:Images.block.opal", atlas: "minecraft:blocks" }"#,
         )
         .unwrap();
-        std::fs::write(dir.join("resources/block/glow.ytexture"), r#"{ image: "@Images.block.glow", atlas: "minecraft:blocks", animation: { frame_time: 3 } }"#).unwrap();
+        std::fs::write(dir.join("resources/block/glow.ytexture"), r#"{ image: "@res:Images.block.glow", atlas: "minecraft:blocks", animation: { frame_time: 3 } }"#).unwrap();
         let mut refs = Refs::default();
         for (name, h) in [("block.ruby", 16), ("block.opal", 16), ("block.glow", 32)] {
             refs.pictures
@@ -325,7 +325,7 @@ mod tests {
         std::fs::create_dir_all(dir.join("resources/mob_effect")).unwrap();
         std::fs::write(
             dir.join("resources/mob_effect/clarity.ytexture"),
-            r#"{ image: "@Images.mob_effect.clarity", atlas: "minecraft:mob_effects" }"#,
+            r#"{ image: "@res:Images.mob_effect.clarity", atlas: "minecraft:mob_effects" }"#,
         )
         .unwrap();
         refs.pictures

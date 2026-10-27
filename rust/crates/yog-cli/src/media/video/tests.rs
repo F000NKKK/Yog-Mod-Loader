@@ -62,7 +62,7 @@ pub(crate) fn put_source(root: &Path, name: &str) {
 #[test]
 fn a_bad_quality_or_no_source_is_refused_before_ffmpeg_runs() {
     let root = Path::new("/nowhere");
-    let err = render(&video(r#"{ source: "@V.a", quality: 64 }"#), root).unwrap_err();
+    let err = render(&video(r#"{ source: "@res:V.a", quality: 64 }"#), root).unwrap_err();
     assert!(err.contains("quality 64"), "{err}");
     let err = render(&video("{}"), root).unwrap_err();
     assert!(err.contains("montage"), "{err}");
@@ -71,7 +71,7 @@ fn a_bad_quality_or_no_source_is_refused_before_ffmpeg_runs() {
 #[test]
 fn a_video_renders_into_av1_packets_and_a_sound() {
     let root = a_mod("render", &[entry("a", Kind::Video, source())]);
-    let r = render(&video(r#"{ source: "@Media.a", fps: 10 }"#), &root).unwrap();
+    let r = render(&video(r#"{ source: "@res:Media.a", fps: 10 }"#), &root).unwrap();
     assert_eq!((r.width, r.height), (160, 90), "made even");
     assert_eq!((r.fps_num, r.fps_den), (10, 1));
     assert_eq!(r.sizes.len(), 20);
@@ -82,7 +82,7 @@ fn a_video_renders_into_av1_packets_and_a_sound() {
             .is_some_and(|s| s.starts_with(yog_formats::yres::OGG_MAGIC))
     };
     assert!(ogg(&r.sound));
-    let silent = render(&video(r#"{ source: "@Media.a", sound: false }"#), &root).unwrap();
+    let silent = render(&video(r#"{ source: "@res:Media.a", sound: false }"#), &root).unwrap();
     assert!(silent.sound.is_none());
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -135,7 +135,7 @@ fn rendered_packets_decode_from_the_start_and_from_a_keyframe() {
         &["-c:v", "libvpx-vp9"],
     );
     let root = a_mod("decode", &[entry("a", Kind::Video, src)]);
-    let r = render(&video(r#"{ source: "@Media.a" }"#), &root).unwrap();
+    let r = render(&video(r#"{ source: "@res:Media.a" }"#), &root).unwrap();
     assert_eq!(
         r.keyframes.len(),
         2,
@@ -179,8 +179,8 @@ fn a_montage_lays_clips_over_each_other_with_their_sound() {
     );
     let v = video(
         r#"{ width: 64, height: 64, fps: 10, montage: { clips: [
-            { video: "@Media.red" },
-            { image: "@Media.blue", at: 1, to: 0.5, track: 1 } ] } }"#,
+            { video: "@res:Media.red" },
+            { image: "@res:Media.blue", at: 1, to: 0.5, track: 1 } ] } }"#,
     );
     let r = render(&v, &root).unwrap();
     assert_eq!((r.width, r.height), (64, 64));
@@ -211,7 +211,7 @@ fn a_poster_is_the_first_frame_at_the_size_shown() {
     std::fs::create_dir_all(dir.join("cut")).unwrap();
     std::fs::write(
         dir.join("cut/intro.yvideo"),
-        r#"{ source: "@Media.intro", width: 64 }"#,
+        r#"{ source: "@res:Media.intro", width: 64 }"#,
     )
     .unwrap();
     let img = poster(&root, "m:cut.intro").unwrap();

@@ -26,7 +26,7 @@ benchmarks **before** reorganising the APIs further.
 | `.yui` | XAML-like XML | yog-cli `yui*.rs` (codegen), Yog-IDLE `yui.ts` + `markup.rs` (designer) | yog-cli | Rust code (generated) |
 | dimensions | JSON | yog-dimensions (serde), Java host | serde only | JSON string + TSV lines |
 | Yog text | `{b|…}` spans | yog-ui `rich.rs`, Java `YogText.java`, Yog-IDLE `font.rs` | — | inside every string |
-| References | `@Set.key`, `@item:…`, `@@`, `item:`/`sprite:`/`mod:` image sources, `#tag`, `{x:Bind …}` | yog-cli (3 places), yog-book `refs`, yog-gfx `image.rs`, Yog-IDLE (`designResources.ts`, `book.rs`, `imageSources.ts`) | partly | as plain strings |
+| References | `@res:Set.key`, `@item:…`, `@@`, `item:`/`sprite:`/`mod:` image sources, `#tag`, `{x:Bind …}` | yog-cli (3 places), yog-book `refs`, yog-gfx `image.rs`, Yog-IDLE (`designResources.ts`, `book.rs`, `imageSources.ts`) | partly | as plain strings |
 | NBT | SNBT strings | the game | — | SNBT strings (8 ABI calls) |
 | Runtime ↔ host lists | TSV lines | yog-runtime, Java | — | `\t`/`\n`-joined strings |
 | IDE state | JSON (`state.json`, `workspace.json`, publish profiles) | Yog-IDLE | none | — |
@@ -94,7 +94,7 @@ A tree of typed values, like NBT:
 | list, map | `[1, 2]`, `{ "a": 1 }` |
 | **ref** — a typed reference to content | `"@item:minecraft:stick"`, `"@block:minecraft:furnace[facing=north]"` |
 | **tag** — a content tag | `"@tag:item:minecraft:planks"` |
-| **res** — a mod resource | `"@Strings.title"` |
+| **res** — a mod resource | `"@res:Strings.title"` |
 | **text** — Yog text | `"{b|bold} and {#8d6acc|color}"` |
 | **image** — an image source | `"@image:sprite:button"`, `"@image:mymod:gui/logo"` |
 | **lang** — a translation key | `"@lang:gui.done"` |

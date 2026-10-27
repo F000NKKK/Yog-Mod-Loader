@@ -16,7 +16,7 @@ use yog_ids::Format;
 /// One picture of a `.yres` set.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Picture {
-    /// Its set (`Images` for `Images.yres`) and name: `@Images.gui.logo`.
+    /// Its set (`Images` for `Images.yres`) and name: `@res:Images.gui.logo`.
     pub(crate) set: String,
     pub(crate) name: String,
     /// The `.yres` file it's in.
@@ -149,12 +149,12 @@ fn stored(root: &Path, set: &str, name: &str, kind: Kind) -> Option<Vec<u8>> {
         })
 }
 
-/// Every sound of the mod at `root`, as files name them: `@Sounds.abacus1`.
+/// Every sound of the mod at `root`, as files name them: `@res:Sounds.abacus1`.
 pub(crate) fn sounds(root: &Path) -> Vec<String> {
     entries_of(root, Kind::Sound)
 }
 
-/// Every picture of the mod at `root`, as files name them: `@Images.logo`.
+/// Every picture of the mod at `root`, as files name them: `@res:Images.logo`.
 pub(crate) fn images(root: &Path) -> Vec<String> {
     entries_of(root, Kind::Image)
 }

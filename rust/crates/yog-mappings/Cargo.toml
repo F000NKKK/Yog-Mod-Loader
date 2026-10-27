@@ -8,6 +8,8 @@ description = "Minecraft's names: Mojang's mappings joined with a host's run-tim
 
 [dependencies]
 yog-data = { workspace = true, features = ["json"] }
+# What `#[derive(Schema)]` expands to.
+substrate-data = { workspace = true }
 yog-event = { workspace = true }
 yog-home = { workspace = true }
 yog-ids = { workspace = true }

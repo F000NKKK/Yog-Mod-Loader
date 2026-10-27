@@ -66,13 +66,13 @@ fn compiles_an_item_with_resource_refs() {
     let root = project(&[
         (
             "content/items/ruby.yitem",
-            r#"{ "name": "@Items.ruby", "tooltip": "@Strings.ruby_tip",
+            r#"{ "name": "@res:Items.ruby", "tooltip": "@res:Strings.ruby_tip",
              "item": { "stack_size": 16, "food": { "nutrition": 4, "saturation": 0.3 } },
              "model": { "parent": "generated", "textures": { "layer0": "@texture:mymod:item/ruby" } } }"#,
         ),
         (
             "resources/item/ruby.ytexture",
-            r#"{ image: "@Images.item.ruby" }"#,
+            r#"{ image: "@res:Images.item.ruby" }"#,
         ),
     ]);
     let mut refs = pictures(&root, &["item.ruby"]);

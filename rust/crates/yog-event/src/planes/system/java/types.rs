@@ -139,7 +139,7 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
             from_data(&f(), value, depth)
         ),
         Shape::Struct(s) => format!("{TYPES}.{}.fromData({value})", s.name),
-        Shape::Ref(_) => format!("YogData.id({value})"),
+        Shape::Ref { .. } => format!("YogData.id({value})"),
         _ => format!("YogData.str({value}, \"\")"),
     }
 }

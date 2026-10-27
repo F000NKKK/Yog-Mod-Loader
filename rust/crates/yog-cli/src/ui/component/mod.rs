@@ -25,7 +25,7 @@
 //!
 //! The root's designer metadata — `display_name`, `description`, `icon`,
 //! `category`, `design_w`/`design_h`, `toolbox` — goes into the
-//! implementation's constants as written (`@Set.key` references included),
+//! implementation's constants as written (`@res:Set.key` references included),
 //! for Yog-IDLE's designer host.
 
 use std::fmt::Write as _;
@@ -410,7 +410,7 @@ struct Meta<'a> {
     toolbox: bool,
 }
 
-/// What an image source starts with or has, beside a `.yres` image (`@Icons.name`).
+/// What an image source starts with or has, beside a `.yres` image (`@res:Icons.name`).
 const RES_MARK: char = '@';
 
 impl<'a> Meta<'a> {
@@ -441,7 +441,7 @@ impl<'a> Meta<'a> {
             return err(
                 root,
                 format_args!(
-                    "icon=\"{icon}\": expected an image source (item:apple, sprite:button, mod:gui/logo) or @Icons.name"
+                    "icon=\"{icon}\": expected an image source (item:apple, sprite:button, mod:gui/logo) or @res:Icons.name"
                 ),
             );
         }

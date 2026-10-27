@@ -1,5 +1,5 @@
 //! `.ytexture` — a texture: how one of the mod's pictures works in the game.
-//! The picture itself is a `.yres` image (`image: @Images.block.ruby`) the
+//! The picture itself is a `.yres` image (`image: @res:Images.block.ruby`) the
 //! IDE shows as it is; this says how the build turns it into what the game
 //! draws — which atlas it's packed into, how it animates and filters. Its
 //! id is its path under `resources/` without the extension

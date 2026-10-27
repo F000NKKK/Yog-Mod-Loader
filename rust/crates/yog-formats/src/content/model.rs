@@ -17,48 +17,25 @@ pub const SLOT_MARK: char = '#';
 
 impl Schema for Texture {
     fn shape() -> Shape {
-        Shape::Ref(&[yog_ids::kind::TEXTURE])
+        yog_data::schema::ref_shape::<yog_data::kinds::Texture>()
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
-        match v {
-            ValueRef::Str(s) if s.starts_with(SLOT_MARK) => {
-                if s.len() == SLOT_MARK.len_utf8() {
-                    cx.problem("`#` needs a slot name");
-                    return None;
-                }
-                Some(Texture::Slot(s[SLOT_MARK.len_utf8()..].to_string()))
+        if let ValueRef::Str(s) = v
+            && let Some(slot) = s.strip_prefix(SLOT_MARK)
+        {
+            if slot.is_empty() {
+                cx.problem("`#` needs a slot name");
+                return None;
             }
-            ValueRef::Ref { kind, id } if *kind == yog_ids::kind::TEXTURE => {
-                Some(Texture::Ref(yog_ids::qualify(id)))
-            }
-            ValueRef::Str(s) if s.starts_with(yog_ids::sep::TYPED) => {
-                match yog_data::typed::classify(s) {
-                    Ok(Value::Ref(r)) if r.kind == yog_ids::kind::TEXTURE => {
-                        Some(Texture::Ref(yog_ids::qualify(&r.id)))
-                    }
-                    Ok(_) => {
-                        cx.problem(format!("`{s}`: a texture is `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)"));
-                        None
-                    }
-                    Err(e) => {
-                        cx.problem(e);
-                        None
-                    }
-                }
-            }
-            other => {
-                cx.expected(
-                    "a texture: `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)",
-                    other,
-                );
-                None
-            }
+            return Some(Texture::Slot(slot.to_string()));
         }
+        let id = yog_data::Id::<yog_data::kinds::Texture>::read(v, cx)?;
+        Some(Texture::Ref(yog_ids::qualify(&id.id)))
     }
     fn write(&self) -> Value {
         match self {
             Texture::Slot(s) => Value::Str(format!("{SLOT_MARK}{s}")),
-            Texture::Ref(id) => Value::Ref(yog_data::Ref::new(yog_ids::kind::TEXTURE, id.clone())),
+            Texture::Ref(id) => yog_data::Id::<yog_data::kinds::Texture>::new(id.clone()).write(),
         }
     }
 }

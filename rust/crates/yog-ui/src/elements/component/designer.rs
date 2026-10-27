@@ -64,16 +64,16 @@ pub type Reply = Result<Answer, String>;
 #[derive(Debug, Clone, PartialEq, Schema)]
 pub struct ComponentInfo {
     pub name: String,
-    /// Toolbox tooltip and property grid header (may be `@Set.key`).
+    /// Toolbox tooltip and property grid header (may be `@res:Set.key`).
     #[data(default)]
     pub description: String,
-    /// The toolbox label (empty: `name`; may be `@Set.key`).
+    /// The toolbox label (empty: `name`; may be `@res:Set.key`).
     #[data(default)]
     pub display_name: String,
-    /// The toolbox icon — a Yog image source or `@Icons.x` (empty: a glyph).
+    /// The toolbox icon — a Yog image source or `@res:Icons.x` (empty: a glyph).
     #[data(default)]
     pub icon: String,
-    /// The toolbox category (empty: "<mod> Components"; may be `@Set.key`).
+    /// The toolbox category (empty: "<mod> Components"; may be `@res:Set.key`).
     #[data(default)]
     pub category: String,
     /// The canvas size for editing it, and an instance's size when dropped (0: unset).

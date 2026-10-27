@@ -47,7 +47,7 @@ pub fn build_jar(
     let classes = b.work.join("classes");
     let fail = |e: std::io::Error| {
         vec![Diagnostic::error(
-            script_problem::NOT_COMPILED,
+            yog_data::Atom::new(script_problem::NOT_COMPILED),
             e.to_string(),
         )]
     };
@@ -118,7 +118,7 @@ fn project_but(
 fn javac(b: &JvmBuild<'_>, files: &[PathBuf], classes: &Path) -> Result<(), Vec<Diagnostic>> {
     let classpath = std::env::join_paths(b.classpath).map_err(|e| {
         vec![Diagnostic::error(
-            script_problem::NOT_COMPILED,
+            yog_data::Atom::new(script_problem::NOT_COMPILED),
             e.to_string(),
         )]
     })?;
@@ -135,7 +135,7 @@ fn javac(b: &JvmBuild<'_>, files: &[PathBuf], classes: &Path) -> Result<(), Vec<
         .output()
         .map_err(|e| {
             vec![Diagnostic::error(
-                script_problem::NOT_COMPILED,
+                yog_data::Atom::new(script_problem::NOT_COMPILED),
                 format!("javac: {e}"),
             )]
         })?;
@@ -144,7 +144,7 @@ fn javac(b: &JvmBuild<'_>, files: &[PathBuf], classes: &Path) -> Result<(), Vec<
     }
     let said = String::from_utf8_lossy(&out.stderr).to_string();
     Err(vec![Diagnostic::error(
-        script_problem::NOT_COMPILED,
+        yog_data::Atom::new(script_problem::NOT_COMPILED),
         format!("javac rejected the compiled code (a compiler bug):\n{said}"),
     )])
 }

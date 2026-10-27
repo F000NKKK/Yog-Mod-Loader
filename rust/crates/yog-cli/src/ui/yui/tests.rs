@@ -377,7 +377,7 @@ fn text_starting_with_at_is_a_translation_key() {
             .contains("`@lang:gui.done`")
     );
     assert!(
-        text_expr("@Strings.nope")
+        text_expr("@res:Strings.nope")
             .unwrap_err()
             .message
             .contains("no text `Strings.nope`")
@@ -395,7 +395,7 @@ fn text_starting_with_at_is_a_translation_key() {
     );
     set_resource_refs(&refs);
     assert_eq!(
-        text_expr("@Strings.title").unwrap(),
+        text_expr("@res:Strings.title").unwrap(),
         "::yog_api::tr(\"mymod.title\")"
     );
     set_resource_refs(&crate::yres::Refs::default());
@@ -417,11 +417,11 @@ fn color_attributes_resolve_yres_colors() {
     refs.colors.insert("Colors.text".into(), 0xFF12_3456);
     set_resource_refs(&refs);
     let code = generate(
-        r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@Colors.text"/></Screen>"#,
+        r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@res:Colors.text"/></Screen>"#,
         "s.yui",
     );
     let missing = generate(
-        r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@Colors.nope"/></Screen>"#,
+        r#"<Screen id="m:s" width="10" height="10"><Label text="x" color="@res:Colors.nope"/></Screen>"#,
         "s.yui",
     );
     set_resource_refs(&crate::yres::Refs::default());
