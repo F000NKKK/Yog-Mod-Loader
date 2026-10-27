@@ -93,7 +93,7 @@ let tier = tool.Tier switch {
 | Kind | Examples |
 |---|---|
 | Numbers | `i32` (32-bit), `i64`, `f32`, `f64`, `u8` |
-| Text, truth | `string`, `char`, `bool`, `Text` (translatable: `t"charge.tooltip"`) |
+| Text, truth | `string`, `char`, `bool`, `Text` (translatable: `Text.Of("charge.tooltip")`) |
 | Units | `Ticks` (`20t`), `Seconds` (`5s`, convertible to ticks), `Blocks` (`3b`), `Energy` (a mod declares its own units) |
 | Bounded | `i32 Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
 | Content | `ItemId` (`new ItemId("minecraft:stick")`), `BlockId`, … — each kind's id, all a `ContentId<TSelf>`; `TagId<ItemId>` (`new TagId<ItemId>("c:ingots")`) — checked against the registries the mod targets |
@@ -476,7 +476,7 @@ packet, its codec and both handlers.
 
 ```ys
 client void ShowCharge(i32 level) {
-    Toast(t"charge.level"(level));
+    Toast(Text.Of("charge.level").With(level));
 }
 
 server void OnCharged(Player player, i32 level) {

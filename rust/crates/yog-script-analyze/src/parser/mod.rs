@@ -242,7 +242,7 @@ fn describe(tok: &Tok) -> String {
         Tok::Punct(p) => format!("`{}`", p.text()),
         Tok::Int(_) | Tok::Float(_) | Tok::Unit(..) => "a number".into(),
         Tok::Version(v) => format!("the version `{v}`"),
-        Tok::Str(_) | Tok::RawStr(_) | Tok::Text(_) => "a string".into(),
+        Tok::Str(_) | Tok::RawStr(_) => "a string".into(),
         Tok::Char(_) => "a character".into(),
         Tok::Lifetime(name) => format!("the lifetime `'{name}`"),
         Tok::Doc(_) => "a doc comment".into(),

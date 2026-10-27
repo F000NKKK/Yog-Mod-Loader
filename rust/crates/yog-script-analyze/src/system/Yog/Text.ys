@@ -1,17 +1,17 @@
 namespace Yog;
 
 /// What a player reads: words to translate into each player's language,
-/// by a key of the mod's lang files (`t"charge.title"`), its arguments
-/// filled in (`t"charge.full"(energy)`); or plain words (a `string` is
+/// by a key of the mod's lang files (`Text.Of("charge.title")`), its
+/// arguments filled in (`.With(energy)`); or plain words (a `string` is
 /// one). The game translates it as it shows it to each player.
 [Intrinsic]
 public sealed class Text {
-    /// The text of translation key `key`: what `t"key"` is.
+    /// The text of translation key `key`.
     public static Text Of(string key);
     /// Plain words, shown as they are.
     public static Text Plain(string words);
-    /// This text with `args` in its placeholders: what `t"key"(a, b)` is.
-    public Text With(object[] args);
+    /// This text with `args` in its placeholders.
+    public Text With(params object[] args);
     /// Its translation key; a plain text's words.
     public string Key { get; }
     /// Whether it's plain words, not translated.

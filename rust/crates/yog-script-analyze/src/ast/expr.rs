@@ -20,7 +20,6 @@ pub enum ExprKind {
     Str(Vec<StrSeg>),
     RawStr(String),
     Char(char),
-    Text(String),
     Bool(bool),
     Null,
     Ident(String),

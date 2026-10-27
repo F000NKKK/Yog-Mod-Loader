@@ -13,14 +13,6 @@ use crate::source::token::Span;
 impl Checker<'_, '_, '_> {
     /// A call: its arguments checked against the callee's parameters; its result.
     pub(super) fn call(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> Type {
-        // `t"key"(a, b)`: the text with its arguments (`Text.With`), any.
-        if let ExprKind::Text(_) = &callee.kind {
-            let text = self.expr(callee);
-            for a in args {
-                self.expr(&a.value);
-            }
-            return text;
-        }
         if let Some(t) = self.message_call(e, callee, args) {
             return t;
         }

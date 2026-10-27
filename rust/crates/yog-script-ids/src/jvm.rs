@@ -53,10 +53,8 @@ pub const OBJECTS: &str = concat!(java_util!(), sep!(), "Objects");
 /// What a `T?`'s `Value` reads its box through: it, or a failure when `null`.
 pub const REQUIRE_NON_NULL: &str = "requireNonNull";
 pub const MAP: &str = concat!(java_util!(), sep!(), "Map");
-/// `Yog.Text`'s text of a key (`t"key"`), and a text with its
-/// arguments (`t"key"(a, b)`).
+/// `Yog.Text`'s text of a key (`Text.Of("key")`).
 pub const TEXT_OF: &str = "Of";
-pub const TEXT_WITH: &str = "With";
 /// What runs a block of code in place of an expression (`java.lang`'s).
 pub const RUNNABLE: &str = "Runnable";
 pub const SUPPLIER: &str = concat!(java_util!(), sep!(), "function", sep!(), "Supplier");

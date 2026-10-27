@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 
 use yog_codegen::{Blocks, Comments, Identifiers, Literals};
 use yog_script_analyze::spelling::{
-    CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, TEXT_PREFIX, UNICODE_OPEN, VERBATIM, is_keyword,
+    CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, UNICODE_OPEN, VERBATIM, is_keyword,
 };
 use yog_script_analyze::words::{class, r#const, public, r#static, string};
 
@@ -41,17 +41,17 @@ impl Ys {
         )
     }
 
-    /// `public static Text Name => t"key";`: a translatable text, by its
-    /// key (Yog's `Text`).
+    /// `public static Text Name => Text.Of("key");`: a translatable text,
+    /// by its key (Yog's `Text`).
     pub fn text_getter(name: &str, key: &str) -> String {
-        let quoted = Self::string(key);
-        let unquoted = quoted.strip_prefix(QUOTE).unwrap_or(&quoted);
+        let text = yog_script_ids::system::TEXT_TYPE;
         format!(
-            "{} {} {} {} => {TEXT_PREFIX}{unquoted};",
+            "{} {} {text} {} => {text}.{}({});",
             public::WORD.text,
             r#static::WORD.text,
-            yog_script_ids::system::TEXT_TYPE,
-            Self::ident(name)
+            Self::ident(name),
+            yog_script_ids::jvm::TEXT_OF,
+            Self::string(key)
         )
     }
 }

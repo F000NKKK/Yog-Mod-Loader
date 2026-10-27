@@ -500,7 +500,6 @@ fn literal(kind: &ExprKind) -> Option<Type> {
         ExprKind::RawStr(_) => Type::String,
         ExprKind::Char(_) => Type::Char,
         // `t"key"`: Yog's.
-        ExprKind::Text(_) => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
         ExprKind::Null => Type::Null,
         _ => return None,
     };

@@ -27,6 +27,6 @@ fn values_and_texts() {
     );
     assert_eq!(
         Ys::text_getter("Title", "charge.title"),
-        "public static Text Title => t\"charge.title\";"
+        "public static Text Title => Text.Of(\"charge.title\");"
     );
 }

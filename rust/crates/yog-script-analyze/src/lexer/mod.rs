@@ -36,8 +36,9 @@ const DOC_COMMENT: &str = "///";
 const BLOCK_OPEN: &str = "/*";
 const BLOCK_CLOSE: &str = "*/";
 const RAW_QUOTES: &str = "\"\"\"";
-/// Before a translatable text's key (`t"charge.title"`).
-pub const TEXT_PREFIX: &str = "t\"";
+/// Before a translatable text's key in Yog Script's old literal
+/// (`t"charge.title"`): now `Text.Of("charge.title")`.
+const TEXT_PREFIX: &str = "t\"";
 use crate::source::token::QUOTE as CHAR_QUOTE;
 /// Before a name: the name even when it's a keyword (`@this`).
 pub const VERBATIM: char = '@';
@@ -110,9 +111,7 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             }
             CHAR_QUOTE if self.lifetime_follows() => self.lifetime(start),
             CHAR_QUOTE => self.char_literal(start),
-            't' if self.rest().starts_with(TEXT_PREFIX) => {
-                self.raw(start, TEXT_PREFIX.len(), Tok::Text)
-            }
+            't' if self.rest().starts_with(TEXT_PREFIX) => self.old_text(start),
             c if is_ident_start(c) => self.ident(start),
             VERBATIM if self.verbatim_name_follows() => self.verbatim(start),
             VERBATIM => self.content(start),
@@ -219,6 +218,25 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             format!("content is named by a typed id: `new {typed}(\"{id}\")`; `@` starts a verbatim string or name"),
         );
         self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id.to_string())]), start);
+    }
+
+    /// `t"key"`, Yog Script's old translatable text: said to be `Text.Of`
+    /// now, read as its key.
+    fn old_text(&mut self, start: usize) {
+        self.raw(start, TEXT_PREFIX.len(), |key| Tok::Str(vec![crate::source::token::StrPart::Text(key)]));
+        let Some(Tok::Str(parts)) = self.out.last().map(|t| &t.tok) else {
+            return;
+        };
+        let key = match parts.as_slice() {
+            [crate::source::token::StrPart::Text(k)] => k.clone(),
+            _ => String::new(),
+        };
+        let (text, of) = (yog_script_ids::system::TEXT_TYPE, yog_script_ids::jvm::TEXT_OF);
+        self.report.error(
+            script_problem::EXPECTED,
+            Span::new(start, self.pos),
+            format!("a translatable text is `{text}.{of}(\"{key}\")` (`.With(args)` its arguments)"),
+        );
     }
 
     /// `#namespace:path`, Yog Script's old tag: said to be a typed id now

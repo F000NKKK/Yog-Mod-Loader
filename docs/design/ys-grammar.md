@@ -38,7 +38,6 @@ RAW_STRING = '"""' char* '"""' ;                    (* as written, lines include
 VERBATIM   = '@"' (char | '""' | '{' expr '}')* '"' ;  (* C#'s $@: no escapes, "" a quote, lines included *)
 CHAR       = "'" (char | '\' escape) "'" ;
 LIFETIME   = "'" IDENT ;                              (* 'a, 'static: no closing quote, unlike a CHAR *)
-TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
 res_id     = (namespace ':')? path ;
 kind       = IDENT ;                                 (* the content kinds of yog-ids, open: a mod's own kinds too *)
 ```
@@ -408,7 +407,7 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 expr        = lambda | conditional ;
 primary     = literal | macro_call | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
             | '(' expr ')' | tuple | collection | new_expr | block_lambda ;
-literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | VERBATIM | CHAR | TEXT | 'true' | 'false' ;
+literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | VERBATIM | CHAR | 'true' | 'false' ;
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
 collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
 element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)
@@ -653,7 +652,7 @@ recipe Battery : Shaped {
 }
 
 client void Welcome(i32 times) {
-    Toast(t"charge.welcome"(times));
+    Toast(Text.Of("charge.welcome").With(times));
 }
 
 server void Welcomed(Player.JoinArgs e) {

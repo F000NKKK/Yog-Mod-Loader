@@ -741,17 +741,18 @@ fn bits_steps_and_assignments_use_a_types_operators() {
     );
 }
 
-/// `Text` is Yog's: written by its name, `t"key"` one, `t"key"(a)`
-/// one with its arguments, a `string` one by its implicit conversion; it
-/// isn't a `string`.
+/// `Text` is Yog's: written by its name, `Text.Of("key")` one,
+/// `.With(a)` one with its arguments, a `string` one by its implicit
+/// conversion; it isn't a `string`. `t"key"` is no literal.
 #[test]
 fn text_is_yogs() {
-    let ok = "Text Title() => t\"m.title\";\nText Full(i32 n) => t\"m.full\"(n, \"x\");\nText Words() => \"plain\";\n";
+    let ok = "Text Title() => Text.Of(\"m.title\");\nText Full(i32 n) => Text.Of(\"m.full\").With(n, \"x\");\nText Words() => \"plain\";\n";
     assert!(codes(ok).is_empty(), "{:?}", codes(ok));
     assert_eq!(
-        codes("string S() => t\"m.title\";\n"),
+        codes("string S() => Text.Of(\"m.title\");\n"),
         [script_problem::TYPE_MISMATCH]
     );
+    assert_eq!(codes("Text T() => t\"m.title\";\n"), [script_problem::EXPECTED]);
 }
 
 /// `params T[] rest`, as C#'s: the arguments past the others go in it,

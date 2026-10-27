@@ -229,7 +229,7 @@ fn literal(kind: &ExprKind) -> Option<Value> {
             .map(Value::Int)
             .or_else(|_| value.parse::<f64>().map(Value::Float))
             .ok()?,
-        ExprKind::RawStr(s) | ExprKind::Text(s) => Value::str(s),
+        ExprKind::RawStr(s) => Value::str(s),
         ExprKind::Char(c) => Value::Char(*c),
         ExprKind::Bool(b) => Value::Bool(*b),
         ExprKind::Null => Value::Null,

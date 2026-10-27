@@ -6,10 +6,10 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, Stmt, StrSeg, UnOp};
 
 use yog_script_ids::java::{
-    BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NEW, NULL, RETURN, ZERO, ZERO_CHAR,
+    BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, RETURN, ZERO, ZERO_CHAR,
 };
 use yog_script_ids::jvm::{
-    COPY, EQUALS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE, TEXT_OF, TEXT_WITH,
+    COPY, EQUALS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
 };
 use yog_script_ids::members::TO_STRING;
 use yog_script_ids::units::SECOND_SUFFIXES;
@@ -62,12 +62,6 @@ impl Gen<'_> {
             ExprKind::Null => NULL.into(),
             ExprKind::Char(c) => java_char(*c, &self.code.str(&c.to_string())),
             ExprKind::RawStr(s) => self.code.str(s),
-            // `t"key"`: Yog's `Text` of the key.
-            ExprKind::Text(key) => format!(
-                "{}.{TEXT_OF}({})",
-                self.index.place(yog_script_ids::system::TEXT_TYPE, 0),
-                self.code.str(key)
-            ),
             ExprKind::Str(segs) => self.string(e, segs),
             ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
             ExprKind::Ident(name) if self.cells.contains(name) => {
@@ -99,12 +93,6 @@ impl Gen<'_> {
             ExprKind::Member { expr, name, safe } => self.member(e, expr, &name.text, *safe),
             ExprKind::Call { callee, args } if let Some(m) = self.types.message(e).cloned() => {
                 self.message_sent(e, (callee, args), &m)
-            }
-            // `t"key"(a, b)`: `Text.With`, its arguments as objects.
-            ExprKind::Call { callee, args } if matches!(callee.kind, ExprKind::Text(_)) => {
-                let text = self.expr(callee);
-                let a = self.args(args);
-                format!("{text}.{TEXT_WITH}({NEW} {OBJECT}[] {{ {a} }})")
             }
             ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
             ExprKind::New { .. } => self.giving_back(e, |g| g.new_expr(e)),

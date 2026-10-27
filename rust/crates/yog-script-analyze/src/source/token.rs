@@ -40,8 +40,6 @@ pub enum Tok {
     Char(char),
     /// `'a`: a lifetime, by its name.
     Lifetime(String),
-    /// A translatable text by key: `t"charge.tooltip"`.
-    Text(String),
     /// `/// …`: a declaration's documentation line.
     Doc(String),
     Punct(Punct),

@@ -13,7 +13,6 @@ impl Parser<'_, '_, '_> {
             Tok::Unit(value, unit) => ExprKind::Unit { value, unit },
             Tok::RawStr(s) => ExprKind::RawStr(s),
             Tok::Char(c) => ExprKind::Char(c),
-            Tok::Text(key) => ExprKind::Text(key),
             Tok::Ident(_) if self.macro_ahead() => return self.macro_call(),
             Tok::Ident(name) => ExprKind::Ident(name),
             // `i32.Parse(…)`, `char.IsDigit(c)`: a built-in type's statics, C#'s `int.Parse`.

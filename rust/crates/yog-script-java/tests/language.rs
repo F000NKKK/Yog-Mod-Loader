@@ -236,11 +236,11 @@ fn commands_are_ways_of_running() {
     }
 }
 
-/// `t"key"` is Yog's `Text` of the key; its arguments go in `With`;
-/// a `string` becomes one by `Text`'s implicit conversion.
+/// `Text.Of("key")` is Yog's `Text` of the key; its arguments go in
+/// `With`; a `string` becomes one by `Text`'s implicit conversion.
 #[test]
 fn texts_are_yogs_text() {
-    let src = "Text Full(i32 n) => t\"m.full\"(n);\nText Words() => \"plain\";\n";
+    let src = "Text Full(i32 n) => Text.Of(\"m.full\").With(n);\nText Words() => \"plain\";\n";
     let checked = yog_script_analyze::check("T.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let java = yog_script_java::compile("T.ys", src, &checked, "p")

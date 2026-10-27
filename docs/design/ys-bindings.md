@@ -153,7 +153,7 @@ becomes a class nested in `Res`, and each entry becomes a member named by
 its accessor in PascalCase (`screen.title` gives `ScreenTitle`). The kinds
 map as follows:
 
-- A text is `public static string Title => t"m.title";`. The source
+- A text is `public static Text Title => Text.Of("m.title");`. The source
   can't yet write the type `Text`, and a text's parameters are formatted
   where it's shown.
 - An image, sound, file or video is its id, as a `const string`.
