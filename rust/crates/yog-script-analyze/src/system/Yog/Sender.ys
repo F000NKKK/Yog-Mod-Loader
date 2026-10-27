@@ -11,6 +11,11 @@ public sealed class Sender {
     public Player? Player { get; }
     /// The world it ran in (`minecraft:overworld`); `""` for the console.
     public string Dimension { get; }
+    /// Its permission level, as the game has it: 0 anyone … 4 the
+    /// server's owners (the console all of them).
+    public i32 PermissionLevel { get; }
+    /// It's an operator: it may run the game's operators' commands.
+    public bool IsOp { get; }
 
     /// What it's told once the command's run (the last said).
     public void Reply(string text);

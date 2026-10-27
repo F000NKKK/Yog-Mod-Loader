@@ -14,6 +14,8 @@ public final class SenderCompanion {
         d.Property("IsConsole", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.yog.Sender) o).IsConsole(), null);
         d.Property("Player", 0, dev.yog.script.Type.Of(String.class), o -> ((dev.yog.script.yog.Sender) o).Player(), null);
         d.Property("Dimension", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.yog.Sender) o).Dimension(), null);
+        d.Property("PermissionLevel", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.yog.Sender) o).PermissionLevel(), null);
+        d.Property("IsOp", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.yog.Sender) o).IsOp(), null);
         d.Method("Reply", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.yog.Sender) o).Reply((String) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("text", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
 }

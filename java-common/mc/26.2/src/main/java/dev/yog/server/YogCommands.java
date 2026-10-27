@@ -126,12 +126,35 @@ public final class YogCommands {
         }
     }
 
+    /** {@code src}'s permission level, the game's: its highest one it has. */
+    private static int permissionLevel(CommandSourceStack src) {
+        net.minecraft.server.permissions.PermissionSet p = src.permissions();
+        if (p.hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_OWNER)) {
+            return net.minecraft.server.permissions.PermissionLevel.OWNERS.id();
+        }
+        if (p.hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_ADMIN)) {
+            return net.minecraft.server.permissions.PermissionLevel.ADMINS.id();
+        }
+        if (p.hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) {
+            return net.minecraft.server.permissions.PermissionLevel.GAMEMASTERS.id();
+        }
+        if (p.hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_MODERATOR)) {
+            return net.minecraft.server.permissions.PermissionLevel.MODERATORS.id();
+        }
+        return net.minecraft.server.permissions.PermissionLevel.ALL.id();
+    }
+
+    /** Whether {@code src} is an operator: it has the game's operators' commands. */
+    private static boolean isOp(CommandSourceStack src) {
+        return src.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
+    }
+
     private static int runCommand(String name, java.util.List<String> args, CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         net.minecraft.world.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
         String dim = src.getLevel().dimension().identifier().toString();
-        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, null).emitChanged().reply();
+        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, permissionLevel(src), isOp(src), null).emitChanged().reply();
         if (reply != null && !reply.isEmpty()) {
             src.sendSuccess(() -> Component.literal(reply), false);
         }

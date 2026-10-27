@@ -126,12 +126,27 @@ public final class YogCommands {
         }
     }
 
+    /** {@code src}'s permission level, the game's: its highest one it has. */
+    private static int permissionLevel(CommandSourceStack src) {
+        for (int level = net.minecraft.commands.Commands.LEVEL_OWNERS; level > net.minecraft.commands.Commands.LEVEL_ALL; level--) {
+            if (src.hasPermission(level)) {
+                return level;
+            }
+        }
+        return net.minecraft.commands.Commands.LEVEL_ALL;
+    }
+
+    /** Whether {@code src} is an operator: it has the game's operators' commands' level. */
+    private static boolean isOp(CommandSourceStack src) {
+        return src.hasPermission(net.minecraft.commands.Commands.LEVEL_GAMEMASTERS);
+    }
+
     private static int runCommand(String name, java.util.List<String> args, CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         net.minecraft.world.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
         String dim = src.getLevel().dimension().location().toString();
-        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, null).emitChanged().reply();
+        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, permissionLevel(src), isOp(src), null).emitChanged().reply();
         if (reply != null && !reply.isEmpty()) {
             src.sendSuccess(Component.literal(reply), false);
         }

@@ -4874,7 +4874,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Command() {}
 
             /** A mod's command run; keyed by its name. Its handlers (subcommands of different shapes) are tried in order — the first to answer sets `reply`, what the source is told. */
-            public record Run(String name, java.util.List<String> args, String source, String uuid, String dimension, String reply) {
+            public record Run(String name, java.util.List<String> args, String source, String uuid, String dimension, int permission, boolean op, String reply) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("name", name);
@@ -4882,13 +4882,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     m.put("source", source);
                     m.put("uuid", uuid);
                     m.put("dimension", dimension);
+                    m.put("permission", permission);
+                    m.put("op", op);
                     if (reply != null) m.put("reply", reply);
                     return m;
                 }
 
                 public static Run fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Run(YogData.str(m.get("name"), ""), YogData.list(m.get("args")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
+                    return new Run(YogData.str(m.get("name"), ""), YogData.list(m.get("args")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (int) YogData.integer(m.get("permission"), 0), YogData.bool(m.get("op"), false), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
                 }
 
                 public static Run fromBytes(byte[] bytes) {
@@ -4902,6 +4904,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     p.putStr(this.source);
                     p.putStr(this.uuid);
                     p.putStr(this.dimension);
+                    p.putI(this.permission);
+                    p.putBool(this.op);
                     p.putBool(this.reply != null); if (this.reply != null) { p.putStr(this.reply); }
                     p.end(at);
                 }
@@ -4913,9 +4917,11 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     String f_source = u.more(end) ? u.getStr() : "";
                     String f_uuid = u.more(end) ? u.getStr() : "";
                     String f_dimension = u.more(end) ? u.getStr() : "";
+                    int f_permission = u.more(end) ? (int) u.getI() : 0;
+                    boolean f_op = u.more(end) ? u.getBool() : false;
                     String f_reply = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
                     u.leave(end);
-                    return new Run(f_name, f_args, f_source, f_uuid, f_dimension, f_reply);
+                    return new Run(f_name, f_args, f_source, f_uuid, f_dimension, f_permission, f_op, f_reply);
                 }
 
                 public byte[] toFrame() {
@@ -4955,6 +4961,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     private final int o3;
                     private final int o4;
                     private final int o5;
+                    private final int o6;
+                    private final int o7;
 
                     public View(YogFrame.Unpacker u) {
                         this.u = u;
@@ -4964,7 +4972,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
                         if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
                         if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
-                        if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.getU(); } } else { o5 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); u.skip(1); } else { o6 = -1; }
+                        if (u.more(end)) { o7 = u.position(); if (u.getBool()) { u.getU(); } } else { o7 = -1; }
                         u.leave(end);
                     }
 
@@ -4998,9 +5008,21 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return u.getStr();
                     }
 
-                    public String reply() {
-                        if (o5 < 0) return null;
+                    public int permission() {
+                        if (o5 < 0) return 0;
                         u.seek(o5);
+                        return (int) u.getI();
+                    }
+
+                    public boolean op() {
+                        if (o6 < 0) return false;
+                        u.seek(o6);
+                        return u.getBool();
+                    }
+
+                    public String reply() {
+                        if (o7 < 0) return null;
+                        u.seek(o7);
                         return (u.getBool() ? u.getStr() : null);
                     }
                 }

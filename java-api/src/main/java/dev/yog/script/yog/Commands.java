@@ -38,7 +38,7 @@ public final class Commands {
             if (!fits) {
                 return null;
             }
-            Sender s = new Sender(r.source(), r.uuid(), r.dimension());
+            Sender s = new Sender(r.source(), r.uuid(), r.dimension(), r.permission(), r.op());
             try {
                 if (!run.test(s, args.subList(1, args.size()))) {
                     s.Reply(REFUSED);
@@ -47,7 +47,7 @@ public final class Commands {
                 YogLog.error("Yog Script: /" + name + " " + way + " panicked: " + e.getMessage());
                 s.Reply(e.getMessage());
             }
-            return new YogEvents.Server.Command.Run(r.name(), r.args(), r.source(), r.uuid(), r.dimension(), s.reply());
+            return new YogEvents.Server.Command.Run(r.name(), r.args(), r.source(), r.uuid(), r.dimension(), r.permission(), r.op(), s.reply());
         });
     }
 }

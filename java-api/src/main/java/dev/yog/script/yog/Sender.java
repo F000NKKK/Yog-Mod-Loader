@@ -5,17 +5,33 @@ public final class Sender {
     private final String name;
     private final String uuid;
     private final String dimension;
+    /** Its permission level, as the game has it. */
+    private final int permission;
+    private final boolean op;
     private String reply;
 
-    Sender(String name, String uuid, String dimension) {
+    Sender(String name, String uuid, String dimension, int permission, boolean op) {
         this.name = name;
         this.uuid = uuid;
         this.dimension = dimension;
+        this.permission = permission;
+        this.op = op;
     }
 
-    /** Player {@code name}, who sent a message (its world not known here). */
+    /**
+     * Player {@code name}, who sent a message (its world and permission not
+     * known here: none).
+     */
     public static Sender of(String name) {
-        return new Sender(name, name, "");
+        return new Sender(name, name, "", 0, false);
+    }
+
+    public int PermissionLevel() {
+        return permission;
+    }
+
+    public boolean IsOp() {
+        return op;
     }
 
     public String Name() {
