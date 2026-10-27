@@ -154,6 +154,20 @@ impl Parser<'_, '_, '_> {
         })
     }
 
+    /// What follows `=>`: an expression, or an assignment (C#'s expression
+    /// of one: `set => _x = value`) as a block of it.
+    pub(crate) fn arrow_body(&mut self) -> PResult<Result<Expr, Block>> {
+        let start = self.span();
+        let expr = self.expr()?;
+        Ok(match self.assign_or(expr)? {
+            Stmt::Expr(e) => Ok(e),
+            assign => Err(Block {
+                stmts: vec![assign],
+                span: start.to(self.prev()),
+            }),
+        })
+    }
+
     /// An expression, or an assignment to it when one follows; no `;`.
     pub(crate) fn assign_or(&mut self, expr: Expr) -> PResult<Stmt> {
         // `>>=`: `>` and `>=` side by side.

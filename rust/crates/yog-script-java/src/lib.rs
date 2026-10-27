@@ -240,6 +240,8 @@ pub(crate) struct Gen<'c> {
     /// The local functions in reach, innermost last: each name and the
     /// object of the local class it's called on (`local_fns.rs`).
     local_fns: Vec<(String, String)>,
+    /// What an index's `^n` counts back from (the indexed value, held).
+    counted: Option<String>,
     /// The code being written is a `$Statics`' (`statics.rs`): its type's
     /// static fields are its own.
     in_statics: bool,
@@ -277,6 +279,7 @@ impl<'c> Gen<'c> {
             has_load: false,
             inner_type: false,
             local_fns: Vec::new(),
+            counted: None,
             in_statics: false,
             mod_id: None,
             in_command: false,

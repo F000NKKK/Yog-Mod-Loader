@@ -15,6 +15,10 @@ impl<'p> Interp<'p> {
             (UnOp::Neg, Value::Float(x)) => Ok(Value::Float(-x)),
             (UnOp::Not, Value::Bool(b)) => Ok(Value::Bool(!b)),
             (UnOp::Try, v) => self.try_value(v, at),
+            (UnOp::FromEnd, Value::Int(n)) => match self.counted {
+                Some(length) => Ok(Value::Int(length - n)),
+                None => self.panic("`^n` counts back in an index only", at),
+            },
             // A task is done when it's had (the interpreter has no waiting).
             (UnOp::Await, Value::Done(v)) => Ok((*v).clone()),
             (UnOp::Await, v) => Ok(v),

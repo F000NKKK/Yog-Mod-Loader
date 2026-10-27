@@ -108,7 +108,7 @@ impl Gen<'_> {
                 let n = Self::ident(&name.text);
                 Some((format!("{first}.{n}"), format!("{then}.{n}")))
             }
-            ExprKind::Index { expr, args }
+            ExprKind::Index { expr, args, .. }
                 if matches!(
                     self.types.of(expr).map(Type::non_null),
                     Some(Type::Array(..))

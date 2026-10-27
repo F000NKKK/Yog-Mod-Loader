@@ -70,7 +70,7 @@ impl Gen<'_> {
                 let to = self.type_value(ty, &|_| None)?;
                 self.cast_node(e, (&operand, &to), expr)?
             }
-            ExprKind::Index { expr, args }
+            ExprKind::Index { expr, args, .. }
                 if args.len() == 1
                     && matches!(
                         self.types.of(expr).map(Type::non_null),

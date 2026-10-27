@@ -9,7 +9,7 @@ use yog_script_ids::java::{
     BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NEW, NULL, RETURN, ZERO, ZERO_CHAR,
 };
 use yog_script_ids::jvm::{
-    COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE, TEXT_OF, TEXT_WITH,
+    COPY, EQUALS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE, TEXT_OF, TEXT_WITH,
 };
 use yog_script_ids::members::TO_STRING;
 use yog_script_ids::units::SECOND_SUFFIXES;
@@ -139,24 +139,7 @@ impl Gen<'_> {
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
-            ExprKind::Index { expr, args } => {
-                let on = self.expr(expr);
-                let at: Vec<String> = args.iter().map(|a| self.expr(a)).collect();
-                if let Some(Type::Array(..)) = self.types.of(expr).map(Type::non_null) {
-                    return Self::array_slot(&on, &at);
-                }
-                if self.has_indexer(expr) {
-                    return Self::index_read(&on, &at.join(", "));
-                }
-                if let Some(host) = self.types.of(expr).and_then(|t| self.index.host(t)) {
-                    return Self::index_read(
-                        &host,
-                        &[on].into_iter().chain(at).collect::<Vec<_>>().join(", "),
-                    );
-                }
-                let at = at.join(", ");
-                format!("{RUNTIME}.{HELPERS}.at({on}, {at}, {})", self.at(e.span))
-            }
+            ExprKind::Index { expr, args, safe } => self.index_expr(e, expr, args, *safe),
             ExprKind::NewArray { sizes, init, .. } => self.new_array(e, sizes, init.as_deref()),
             ExprKind::Collection(items) => self.collection(e, items),
             ExprKind::Tuple { items, .. } => self.tuple(items),
@@ -276,6 +259,7 @@ impl Gen<'_> {
                 Self::decimal_negated(&self.expr(expr))
             }
             UnOp::Neg => format!("(-{})", self.expr(expr)),
+            UnOp::FromEnd => self.counted_back(expr),
             UnOp::Not => format!("(!{})", self.expr(expr)),
             UnOp::BitNot => format!("(~{})", self.expr(expr)),
             // Steps bind tightest: bare, so one stands as a statement.

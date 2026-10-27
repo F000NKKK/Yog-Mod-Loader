@@ -55,7 +55,11 @@ impl OperatorKind {
                 UnOp::BitNot => clr::OP_ONES_COMPLEMENT,
                 UnOp::Increment => clr::OP_INCREMENT,
                 UnOp::Decrement => clr::OP_DECREMENT,
-                UnOp::PostIncrement | UnOp::PostDecrement | UnOp::Try | UnOp::Await => {
+                UnOp::PostIncrement
+                | UnOp::PostDecrement
+                | UnOp::Try
+                | UnOp::Await
+                | UnOp::FromEnd => {
                     return None;
                 }
             },

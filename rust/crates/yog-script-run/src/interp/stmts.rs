@@ -193,7 +193,7 @@ impl<'p> Interp<'p> {
                 }
                 self.set_field(Some(&on), &name.text, v, place.span)
             }
-            ExprKind::Index { expr, args } => {
+            ExprKind::Index { expr, args, .. } => {
                 let Some((last, rows)) = args.split_last() else {
                     return self.panic("an index is wanted", place.span);
                 };

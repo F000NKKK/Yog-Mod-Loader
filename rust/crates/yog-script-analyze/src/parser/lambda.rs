@@ -56,7 +56,10 @@ impl Parser<'_, '_, '_> {
             self.need(Punct::LBrace)?;
             LambdaBody::Block(self.braces(|p| p.stmts(true))?)
         } else {
-            LambdaBody::Expr(Box::new(self.expr()?))
+            match self.arrow_body()? {
+                Ok(e) => LambdaBody::Expr(Box::new(e)),
+                Err(b) => LambdaBody::Block(b.stmts),
+            }
         };
         Ok(Expr {
             kind: ExprKind::Lambda {

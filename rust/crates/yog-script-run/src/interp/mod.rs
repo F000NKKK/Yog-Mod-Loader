@@ -57,6 +57,8 @@ pub struct Interp<'p> {
     class: Option<&'p str>,
     /// The local functions in reach, innermost last.
     local_fns: Vec<std::rc::Rc<Decl>>,
+    /// The length of what's being indexed: what `^n` counts back from.
+    counted: Option<i64>,
 }
 
 /// How many items an iterator gives the interpreter before it's taken for
@@ -82,6 +84,7 @@ impl<'p> Interp<'p> {
             statics: HashMap::new(),
             class: None,
             local_fns: Vec::new(),
+            counted: None,
         }
     }
 

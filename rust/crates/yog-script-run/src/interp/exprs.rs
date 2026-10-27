@@ -100,8 +100,11 @@ impl<'p> Interp<'p> {
                 let v = self.eval(expr)?;
                 Ok(self.cast(v, ty))
             }
-            ExprKind::Index { expr, args } => {
+            ExprKind::Index { expr, args, safe } => {
                 let on = self.eval(expr)?;
+                if *safe && on == Value::Null {
+                    return Ok(Value::Null);
+                }
                 args.iter().try_fold(on, |on, i| self.index(on, i, expr))
             }
             ExprKind::NewArray {
@@ -141,7 +144,36 @@ impl<'p> Interp<'p> {
     /// `on[index]` (`expr` is `on`, as written); a rank's next index reads
     /// the row the last gave.
     pub(super) fn index(&mut self, on: Value, index: &Expr, expr: &Expr) -> Run<Value> {
-        let at = self.eval(index)?;
+        let length = match &on {
+            Value::List(items) => Some(items.borrow().len() as i64),
+            Value::Str(s) => Some(s.chars().count() as i64),
+            _ => None,
+        };
+        let outer = std::mem::replace(&mut self.counted, length);
+        let at = self.eval(index);
+        self.counted = outer;
+        let at = at?;
+        // `xs[a..b]`: its slice.
+        if let Value::Range(a, b, inclusive) = at {
+            let end = if inclusive { b + 1 } else { b };
+            let (from, to) = (
+                usize::try_from(a).unwrap_or(0),
+                usize::try_from(end).unwrap_or(0),
+            );
+            return match &on {
+                Value::List(items) => match items.borrow().get(from..to) {
+                    Some(part) => Ok(Value::list(part.to_vec())),
+                    None => self.panic(format!("range {a}..{b} out of range"), index.span),
+                },
+                Value::Str(s) => Ok(Value::str(
+                    &s.chars()
+                        .skip(from)
+                        .take(to.saturating_sub(from))
+                        .collect::<String>(),
+                )),
+                _ => self.panic(format!("`{on}` isn't sliced"), expr.span),
+            };
+        }
         match (&on, at) {
             (Value::List(items), Value::Int(k)) => match usize::try_from(k)
                 .ok()

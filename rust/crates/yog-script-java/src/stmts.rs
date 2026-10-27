@@ -282,7 +282,7 @@ impl Gen<'_> {
             return self.listen(&event, value);
         }
         let v = self.handed_expr(value);
-        if let ExprKind::Index { expr, args } = &place.kind {
+        if let ExprKind::Index { expr, args, .. } = &place.kind {
             let list = self.expr(expr);
             let at: Vec<String> = args.iter().map(|a| self.expr(a)).collect();
             if !matches!(

@@ -138,6 +138,8 @@ pub enum ExprKind {
     Index {
         expr: Box<Expr>,
         args: Vec<Expr>,
+        /// `a?[i]`: `null` when `a` is.
+        safe: bool,
     },
     /// `f<T, U>` before a call: the type arguments.
     TypeArgs {
@@ -240,6 +242,8 @@ pub enum UnOp {
     PostDecrement,
     Try,
     Await,
+    /// `^n` in an index (C#'s): the `n`th item from the end.
+    FromEnd,
 }
 
 impl UnOp {

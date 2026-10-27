@@ -693,3 +693,24 @@ fn switch_statements() {
     };
     assert_eq!(out, "one few long abc short x other 123!5");
 }
+
+/// Indexes from the end (`^1`), slices (`xs[1..2]`, `xs[1..<^1]`) of
+/// arrays, strings and lists, and `?[`.
+#[test]
+fn ends_slices_and_safe_indexes() {
+    let src = "public static class E {\n\
+                   public static string Run() {\n\
+                       let xs = new i32[] { 10, 20, 30, 40 };\n\
+                       let s = \"hello\";\n\
+                       let mut l = new List<i32> { 1, 2, 3 };\n\
+                       i32[]? none = null;\n\
+                       let mid = xs[1..2];\n\
+                       let inner = xs[1..<^1];\n\
+                       return xs[^1] + \" \" + s[^2] + \" \" + mid.Length + mid[1] + \" \" + inner.Length + \" \" + s[1..3] + \" \" + l[0..1].Count + \" \" + (none?[0] ?? -1) + \" \" + (xs?[0] ?? -1);\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("e.ys", src)], "t.EScript.E.Run()") else {
+        return;
+    };
+    assert_eq!(out, "40 l 230 2 ell 2 -1 10");
+}

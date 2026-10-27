@@ -128,6 +128,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     /// The local functions in reach, each with how many scopes deep its
     /// block is (`stmts.rs`).
     local_fns: Vec<(usize, crate::ast::Method)>,
+    /// An index's arguments are being checked: `^n` counts from the end.
+    indexing: bool,
 }
 
 /// What a source may reach: the game's classes (a `.yns`), sending to the
@@ -199,6 +201,7 @@ pub(crate) fn check<'d>(
         meeting: false,
         non_null: Vec::new(),
         local_fns: Vec::new(),
+        indexing: false,
     };
     c.type_bases();
     c.type_delegates();

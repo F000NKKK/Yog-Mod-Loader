@@ -225,9 +225,12 @@ impl Parser<'_, '_, '_> {
     /// `{ … }`, `=> expr;`, or `;` (none).
     pub(crate) fn method_body(&mut self) -> PResult<Option<MethodBody>> {
         if self.eat(Punct::FatArrow) {
-            let e = self.expr()?;
+            let body = match self.arrow_body()? {
+                Ok(e) => MethodBody::Expr(e),
+                Err(b) => MethodBody::Block(b),
+            };
             self.end()?;
-            return Ok(Some(MethodBody::Expr(e)));
+            return Ok(Some(body));
         }
         if self.at(Punct::LBrace) {
             return Ok(Some(MethodBody::Block(self.block()?)));

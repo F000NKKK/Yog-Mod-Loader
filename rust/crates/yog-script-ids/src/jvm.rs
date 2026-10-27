@@ -96,6 +96,9 @@ pub const TEMP: &str = "$t";
 
 /// The runtime's helpers compiled code calls (`Ys.at`, `Ys.noArm`).
 pub const HELPERS: &str = "Ys";
+/// The helpers an index's `^n` and a slice (`xs[a..b]`) are written by.
+pub const LENGTH_OF: &str = "lengthOf";
+pub const SLICE: &str = "slice";
 
 /// The helper giving a value with another evaluated after it: a type's own
 /// `x++`'s old value (`Ys.before(x, x = …)`), a number's `GetType()`.

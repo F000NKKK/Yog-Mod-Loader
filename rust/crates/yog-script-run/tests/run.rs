@@ -156,3 +156,9 @@ fn switch_statements_pick_a_section() {
     let src = "i32 Run() { let mut t = 0; foreach (let i in 0..4) { switch (i) { case 0: continue; case 1: case 2: t += 10; break; default: t += i; break; } } return t; }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(27)));
 }
+
+#[test]
+fn ends_and_slices() {
+    let src = "i32 Run() { let xs = [1, 2, 3, 4]; let part = xs[1..2]; return xs[^1] * 100 + part[0] * 10 + part.Count; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(422)));
+}

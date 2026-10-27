@@ -69,18 +69,17 @@ impl Checker<'_, '_, '_> {
                 self.expr(expr);
                 self.type_of(ty).nullable()
             }
-            ExprKind::New {
-                ty,
-                args,
-                init,
-                items,
-            } => self.new_with_items(e, (ty.as_ref(), args.as_deref()), init, items),
+            ExprKind::New { .. } => self.new_with_items(e),
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Collection(items) => self.collection(items),
             ExprKind::Tuple { items, names } => self.tuple(items, names, e.span),
             ExprKind::TypeArgs { expr, args } => self.type_args_expr(expr, args),
-            ExprKind::Index { expr, args } => {
+            ExprKind::Index { expr, args, safe } => {
                 let on = self.expr(expr);
+                // `a?[i]`: of `a`'s value, `null` when it's `null`.
+                if *safe {
+                    return self.indexed(on.non_null().clone(), args, e.span).nullable();
+                }
                 self.indexed(on, args, e.span)
             }
             ExprKind::NewArray {
@@ -183,6 +182,19 @@ impl Checker<'_, '_, '_> {
         self.imported(name, at)
     }
 
+    /// `^n` (`n` a `t`): an index's, counted from the end.
+    fn counted_back(&mut self, t: &Type, at: Span) -> Type {
+        if !self.indexing {
+            self.report.error(
+                script_problem::EXPECTED,
+                at,
+                "`^n` counts from the end in an index (`xs[^1]`, `xs[1..^1]`)",
+            );
+        }
+        self.want(t, &Type::I32, at);
+        Type::I32
+    }
+
     fn unary(&mut self, e: &Expr, op: UnOp, expr: &Expr) -> Type {
         let t = self.expr(expr);
         if op.steps() {
@@ -198,6 +210,7 @@ impl Checker<'_, '_, '_> {
             }
             UnOp::Neg => t,
             UnOp::BitNot => self.flipped(&t, expr.span),
+            UnOp::FromEnd => self.counted_back(&t, expr.span),
             UnOp::Increment | UnOp::Decrement | UnOp::PostIncrement | UnOp::PostDecrement => {
                 self.stepped(&t, expr.span)
             }
@@ -372,14 +385,17 @@ impl Checker<'_, '_, '_> {
 
     /// `new T(args) { init }`: its collection items checked as statements
     /// on the object made (`members::MADE`).
-    fn new_with_items(
-        &mut self,
-        e: &Expr,
-        (ty, args): (Option<&crate::ast::Type>, Option<&[crate::ast::Arg]>),
-        init: &[(crate::ast::Name, Expr)],
-        items: &[crate::ast::Stmt],
-    ) -> Type {
-        let t = self.new_object(e, ty, args, init);
+    fn new_with_items(&mut self, e: &Expr) -> Type {
+        let ExprKind::New {
+            ty,
+            args,
+            init,
+            items,
+        } = &e.kind
+        else {
+            return Type::Unknown;
+        };
+        let t = self.new_object(e, ty.as_ref(), args.as_deref(), init);
         self.scoped(|c| {
             c.bind_as(yog_script_ids::members::MADE, t.clone(), false);
             c.stmts(items);

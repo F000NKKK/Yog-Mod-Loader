@@ -12,7 +12,12 @@ impl Parser<'_, '_, '_> {
             expr = match self.tok() {
                 Tok::Punct(Punct::LParen) => self.call(expr)?,
                 Tok::Punct(Punct::LBrace) if !self.no_brace => self.trailing_lambda(expr)?,
-                Tok::Punct(Punct::LBracket) => self.index(expr)?,
+                Tok::Punct(Punct::LBracket) => self.index(expr, false)?,
+                // `a?[i]`: `?` then `[` (not a conditional's `?`).
+                Tok::Punct(Punct::Question) if self.nth_is(1, Punct::LBracket) => {
+                    self.bump();
+                    self.index(expr, true)?
+                }
                 Tok::Punct(Punct::Bang) => {
                     let span = expr.span.to(self.bump().span);
                     Expr {
@@ -101,7 +106,7 @@ impl Parser<'_, '_, '_> {
     }
 
     /// `a[i]`, `grid[x, y]`.
-    fn index(&mut self, expr: Expr) -> PResult<Expr> {
+    fn index(&mut self, expr: Expr, safe: bool) -> PResult<Expr> {
         self.bump();
         let args = self.braces(|p| p.list(Punct::RBracket, Self::expr))?;
         let span = expr.span.to(self.prev());
@@ -109,6 +114,7 @@ impl Parser<'_, '_, '_> {
             kind: ExprKind::Index {
                 expr: Box::new(expr),
                 args,
+                safe,
             },
             span,
         })

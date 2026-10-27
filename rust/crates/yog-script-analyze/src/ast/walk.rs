@@ -39,7 +39,7 @@ impl Expr {
                 f(from);
                 f(to);
             }
-            ExprKind::Index { expr, args } => {
+            ExprKind::Index { expr, args, .. } => {
                 f(expr);
                 args.iter().for_each(f);
             }

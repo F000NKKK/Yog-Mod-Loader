@@ -59,6 +59,7 @@ const PREFIXES: &[(Punct, UnOp)] = &[
     (Punct::Minus, UnOp::Neg),
     (Punct::Bang, UnOp::Not),
     (Punct::Tilde, UnOp::BitNot),
+    (Punct::Caret, UnOp::FromEnd),
     (Punct::PlusPlus, UnOp::Increment),
     (Punct::MinusMinus, UnOp::Decrement),
 ];

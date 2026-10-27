@@ -6,12 +6,29 @@ use yog_ids::script_problem;
 use super::Checker;
 use super::members::Callee;
 use super::model::Type;
-use crate::ast::{Arg, Expr};
+use crate::ast::{Arg, Expr, ExprKind};
 use crate::source::token::Span;
 
 impl Checker<'_, '_, '_> {
     /// `on[args]`: an array's item, or what the indexer gives.
     pub(super) fn indexed(&mut self, on: Type, index: &[Expr], at: Span) -> Type {
+        let outer = std::mem::replace(&mut self.indexing, true);
+        let t = self.indexed_in(on, index, at);
+        self.indexing = outer;
+        t
+    }
+
+    fn indexed_in(&mut self, on: Type, index: &[Expr], at: Span) -> Type {
+        // `xs[a..b]`: a slice, of `xs`'s own kind.
+        if let [
+            range @ Expr {
+                kind: ExprKind::Range { .. },
+                ..
+            },
+        ] = index
+        {
+            return self.sliced(on, range, at);
+        }
         if let Type::Array(item, rank) = on {
             self.array_index(index, rank, at);
             return *item;
@@ -33,6 +50,30 @@ impl Checker<'_, '_, '_> {
             })
             .collect();
         self.called(callee, &given, &args, at).0
+    }
+
+    /// `on[range]`: an array's, a string's or a list's items in it, of its kind.
+    fn sliced(&mut self, on: Type, range: &Expr, at: Span) -> Type {
+        let ExprKind::Range { from, to, .. } = &range.kind else {
+            return Type::Unknown;
+        };
+        for end in [from, to] {
+            let t = self.expr(end);
+            self.want(&t, &Type::I32, end.span);
+        }
+        let sliceable = match on.non_null() {
+            Type::Array(_, 1) | Type::String => true,
+            Type::Own(name, args) => name == yog_script_ids::system::LIST && args.len() == 1,
+            _ => !on.known(),
+        };
+        if !sliceable {
+            self.report.error(
+                script_problem::TYPE_MISMATCH,
+                at,
+                format!("a `{on}` isn't sliced: an array, a string or a `List<T>` is"),
+            );
+        }
+        on.non_null().clone()
     }
 
     /// `on[…] = v` where `on`'s indexers are all `get`-only: said so.

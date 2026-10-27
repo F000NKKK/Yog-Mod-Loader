@@ -100,7 +100,7 @@ fn item(p: &mut Parser) -> PResult<Stmt> {
         let args = p.braces(|p| p.list(Punct::RBracket, Parser::expr))?;
         p.need(Punct::Eq)?;
         let value = p.expr()?;
-        let place = Expr { kind: ExprKind::Index { expr: Box::new(made), args }, span: at.to(p.prev()) };
+        let place = Expr { kind: ExprKind::Index { expr: Box::new(made), args, safe: false }, span: at.to(p.prev()) };
         return Ok(Stmt::Assign { place, op: None, value });
     }
     let values = if p.eat(Punct::LBrace) {

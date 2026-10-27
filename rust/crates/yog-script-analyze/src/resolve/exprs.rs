@@ -159,7 +159,7 @@ impl Resolver<'_, '_> {
                 self.expr(callee);
                 args.iter().for_each(|a| self.arg(a));
             }
-            ExprKind::Index { expr, args } => {
+            ExprKind::Index { expr, args, .. } => {
                 self.expr(expr);
                 args.iter().for_each(|a| self.expr(a));
             }
