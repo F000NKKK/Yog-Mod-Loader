@@ -112,3 +112,21 @@ fn saved_item_members() {
         assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
     }
 }
+
+/// A block's and an entity's `synced` members: their objects implement
+/// `SyncedState.Synced` (BlockObject and EntityObject send and take rows).
+#[test]
+fn synced_block_and_entity_members() {
+    let src = "block Lamp {\n    public synced i32 Glow = 0;\n}\nentity Golem {\n    public saved synced i32 Hits = 0;\n}\n";
+    let checked = yog_script_analyze::check("A.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static class Lamp extends dev.yog.script.yog.BlockObject implements dev.yog.script.yog.SyncedState.Synced {",
+        "public static class Golem extends dev.yog.script.yog.EntityObject implements dev.yog.script.yog.State.Saved, dev.yog.script.yog.SyncedState.Synced {",
+        "out.accept(\"Lamp.Glow\"",
+    ] {
+        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+    }
+}

@@ -22,7 +22,22 @@ public abstract class BlockObject {
         static At of(String dimension, YogTypes.BlockPos pos) {
             return new At(dimension, pos.x(), pos.y(), pos.z());
         }
+
+        /** As its synced rows name their owner: the world, then the place. */
+        String key() {
+            return dimension + OWNER_SEP + x + OWNER_SEP + y + OWNER_SEP + z;
+        }
+
+        static At parse(String key) {
+            String[] p = key.split(OWNER_SEP);
+            return new At(p[0], Integer.parseInt(p[1]), Integer.parseInt(p[2]), Integer.parseInt(p[3]));
+        }
     }
+
+    /** What a block's synced rows say they're of, before its id. */
+    private static final String SYNCED_KIND = dev.yog.YogNames.Kind.BLOCK + dev.yog.YogNames.Sep.NAMESPACE;
+    /** Between a place's parts in its key (never in an id or a number). */
+    private static final String OWNER_SEP = " ";
 
     /** Each declared block's maker, by its id. */
     private static final Map<String, Supplier<? extends BlockObject>> MAKERS = new ConcurrentHashMap<>();
@@ -56,6 +71,8 @@ public abstract class BlockObject {
     public static void register(String id, Supplier<? extends BlockObject> make) {
         boolean first = MAKERS.isEmpty();
         MAKERS.put(id, make);
+        // A client's object at a place: what its synced rows go to.
+        SyncedState.owners(SYNCED_KIND + id, owner -> found(id, At.parse(owner)) instanceof SyncedState.Synced s ? s : null);
         if (first) {
             listen();
         }
@@ -76,7 +93,9 @@ public abstract class BlockObject {
         YogEvents.Block.Break.on(0, e -> {
             At at = At.of(e.dimension(), e.pos());
             raised(found(e.blockId(), at), o -> o.Break, e.playerName());
-            MADE.remove(at);
+            if (MADE.remove(at) instanceof SyncedState.Synced s) {
+                SyncedState.forget(s);
+            }
             gone(e.blockId(), at);
             return null;
         });
@@ -95,6 +114,9 @@ public abstract class BlockObject {
                 // Its `saved` members: read in from its chunk's store.
                 if (o instanceof State.Saved s) {
                     State.block(s, namespace(id), p.dimension(), p.x(), p.y(), p.z());
+                }
+                if (o instanceof SyncedState.Synced s) {
+                    SyncedState.toAll(s, SYNCED_KIND + id, p.key());
                 }
                 return o;
             } finally {

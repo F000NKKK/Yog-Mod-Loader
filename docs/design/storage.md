@@ -148,8 +148,12 @@ For each type with `synced` members, the build generates a mirror spec
    saved members' codec) on `yog:synced` — each tick the changed ones, a
    joining player every one; a player's `extend` to that player, the
    world's and the mod's to all. A client's object of the owner (by its
-   kind's `$of`) takes the row, its reads plain field reads. Blocks and
-   entities next; then the analyzer's client-write check.
+   kind's `$of`) takes the row, its reads plain field reads. ✅ Blocks and
+   entities: their objects' rows (`block:<id>` at a place, `entity:<id>`
+   by uuid) go to every player for now (not yet only those tracking the
+   owner); an item's stack has no live object, its `synced` members said
+   not compiled. ✅ The analyzer's check: a client's write of a synced
+   member is WRONG_SIDE.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
 7. The Rust API's parity: `#[saved]` and `#[synced]` on a component
    struct, made from the same model.

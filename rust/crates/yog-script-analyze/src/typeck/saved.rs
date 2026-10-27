@@ -9,7 +9,8 @@ use yog_ids::script_problem;
 
 use super::Checker;
 use super::model::Type;
-use crate::ast::{Decl, DeclKind, Modifier};
+use crate::ast::{Decl, DeclKind, Expr, ExprKind, Modifier};
+use crate::index::Side;
 use yog_script_ids::system::{DICTIONARY, LIST, TEXT_TYPE};
 
 impl Checker<'_, '_, '_> {
@@ -92,5 +93,36 @@ impl Checker<'_, '_, '_> {
             let t = self.quietly(|c| c.type_of(f));
             self.data_able(&t, seen)
         })
+    }
+
+    /// `place` written: a `synced` member is the server's — client code
+    /// reads it, never changes it (storage.md §4).
+    pub(super) fn synced_written(&mut self, place: &Expr) {
+        if self.side != Side::Client {
+            return;
+        }
+        let (owner, name) = match &place.kind {
+            ExprKind::Member { expr, name, .. } => (self.types.of(expr).cloned(), name.text.as_str()),
+            ExprKind::Ident(name) if self.local(name).is_none() => (self.this.clone(), name.as_str()),
+            _ => return,
+        };
+        if owner.is_some_and(|t| self.is_synced(&t, name)) {
+            self.report.error(
+                script_problem::WRONG_SIDE,
+                place.span,
+                format!("`{name}` is synced: the server changes it, a client reads it"),
+            );
+        }
+    }
+
+    /// Whether member `name` of a `t` is `synced` (its own type's, or an
+    /// `extend`'s of the game's object).
+    fn is_synced(&self, t: &Type, name: &str) -> bool {
+        let own = match t.non_null() {
+            Type::Own(n, args) => self.own.get(n, args.len()),
+            Type::Yog(n) | Type::Game(n) => self.own.extended.get(crate::index::simple_name(n)),
+            _ => None,
+        };
+        own.is_some_and(|o| o.synced.iter().any(|s| s == name))
     }
 }

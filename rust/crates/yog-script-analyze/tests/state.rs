@@ -30,3 +30,13 @@ fn saved_state_is_yog_data_on_an_owner() {
     let no_owner = "public class Plain {\n    public saved i32 Count = 0;\n}\n";
     assert_eq!(codes(no_owner), [script_problem::STATE_OWNER]);
 }
+
+/// A `synced` member is the server's: client code reads it, never writes it.
+#[test]
+fn synced_state_is_written_by_the_server() {
+    let types = "extend Player {\n    public synced i32 Charge = 0;\n}\n";
+    let fine = format!("{types}server void Fill(Player p) {{ p.Charge += 1; }}\nclient i32 Read(Player p) => p.Charge;\n");
+    assert!(codes(&fine).is_empty(), "{:?}", check("A.ys", &fine).problems);
+    let written = format!("{types}client void Bump(Player p) {{ p.Charge += 1; }}\n");
+    assert_eq!(codes(&written), [script_problem::WRONG_SIDE]);
+}

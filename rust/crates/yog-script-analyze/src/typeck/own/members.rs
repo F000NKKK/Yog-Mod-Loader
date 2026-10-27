@@ -9,12 +9,8 @@ use yog_script_ids::system::SETS_REQUIRED_MEMBERS;
 pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
     for d in body {
         match &d.kind {
-            DeclKind::Field(f) if d.has(ast::Modifier::Required) => {
-                t.required.push(f.name.text.clone());
-                t.values.insert(f.name.text.clone(), f.ty.clone());
-                threads::field(t, d, &f.name.text);
-            }
             DeclKind::Field(f) => {
+                marked(t, d, &f.name.text);
                 t.values.insert(f.name.text.clone(), f.ty.clone());
                 threads::field(t, d, &f.name.text);
             }
@@ -24,9 +20,7 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 explicit: None,
                 ..
             } => {
-                if d.has(ast::Modifier::Required) {
-                    t.required.push(name.text.clone());
-                }
+                marked(t, d, &name.text);
                 t.values.insert(name.text.clone(), ty.clone());
                 if crate::ast::stores_value(d) {
                     threads::field(t, d, &name.text);
@@ -75,5 +69,15 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
             }
             _ => {}
         }
+    }
+}
+
+/// Member `name` (`d`) noted `required` and `synced` when it's marked so.
+fn marked(t: &mut OwnType, d: &Decl, name: &str) {
+    if d.has(ast::Modifier::Required) {
+        t.required.push(name.to_string());
+    }
+    if d.has(ast::Modifier::Synced) {
+        t.synced.push(name.to_string());
     }
 }

@@ -119,6 +119,8 @@ pub(crate) struct OwnType {
     pub ctor_crossings: Vec<Vec<(String, String)>>,
     /// Its `required` fields and properties, by name.
     pub required: Vec<String>,
+    /// Its `synced` fields and properties, by name: the server's to change.
+    pub synced: Vec<String>,
     /// Whether each of its constructors (as `ctors`) is `[SetsRequiredMembers]`.
     pub ctor_sets_required: Vec<bool>,
 }

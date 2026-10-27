@@ -15,6 +15,7 @@ impl Checker<'_, '_, '_> {
     /// `place = …` / `place += …` on a member or an element: what holds it
     /// may change.
     pub(super) fn written(&mut self, place: &Expr) {
+        self.synced_written(place);
         if let ExprKind::Index { expr, .. } = &place.kind {
             self.index_written(expr, place.span);
         }

@@ -18,6 +18,9 @@ import java.util.function.Supplier;
  * logged: the game goes on.
  */
 public abstract class EntityObject {
+    /** What an entity's synced rows say they're of, before its id. */
+    private static final String SYNCED_KIND = dev.yog.YogNames.Kind.ENTITY + dev.yog.YogNames.Sep.NAMESPACE;
+
     /** Each declared entity's maker, by its id. */
     private static final Map<String, Supplier<? extends EntityObject>> MAKERS = new ConcurrentHashMap<>();
     /** The objects made so far, by their entities' uuids. */
@@ -50,6 +53,8 @@ public abstract class EntityObject {
     public static void register(String id, Supplier<? extends EntityObject> make) {
         boolean first = MAKERS.isEmpty();
         MAKERS.put(id, make);
+        // A client's object of an entity: what its synced rows go to.
+        SyncedState.owners(SYNCED_KIND + id, uuid -> found(id, uuid, "") instanceof SyncedState.Synced s ? s : null);
         if (first) {
             listen();
         }
@@ -66,7 +71,9 @@ public abstract class EntityObject {
         });
         YogEvents.Entity.Life.Death.on(0, e -> {
             raised(found(e.entityType(), e.uuid(), e.dimension()), o -> o.Death.handlers().forEach(Action::Invoke));
-            MADE.remove(e.uuid());
+            if (MADE.remove(e.uuid()) instanceof SyncedState.Synced s) {
+                SyncedState.forget(s);
+            }
             if (MAKERS.containsKey(e.entityType())) {
                 State.entityGone(namespace(e.entityType()), e.uuid());
             }
@@ -87,6 +94,9 @@ public abstract class EntityObject {
                 // Its `saved` members: read in from its own store.
                 if (o instanceof State.Saved s) {
                     State.entity(s, namespace(id), u);
+                }
+                if (o instanceof SyncedState.Synced s) {
+                    SyncedState.toAll(s, SYNCED_KIND + id, u);
                 }
                 return o;
             } finally {
