@@ -530,4 +530,17 @@ pub mod state {
     pub const ADD_ALL: &str = "addAll";
     pub const ENUM_VALUE: &str = "value";
     pub const ENUM_OF: &str = "of";
+    /// A `Dictionary<K, V>` as a list of its entries: each a record of
+    /// these (`$GridEntry(K key, V value)`), read back by its setter.
+    pub const ENTRY_SUFFIX: &str = "Entry";
+    pub const ENTRY_KEY: &str = "key";
+    pub const ENTRY_VALUE: &str = "value";
+    pub const ENTRIES: &str = "entrySet().stream()";
+    pub const GET_KEY: &str = "getKey";
+    pub const GET_VALUE: &str = "getValue";
+    pub const MAP: &str = "map";
+    pub const TO_LIST: &str = "toList";
+    pub const SET_ITEM: &str = "set_Item";
+    /// The entry being written or read (`$`: never a Yog Script name).
+    pub const ENTRY_VAR: &str = "$e";
 }

@@ -4,16 +4,18 @@
 //! `Owner.Member` in its owner's store; `$load` reads them in as the object
 //! is made live, `$save` writes them out as the world saves. What the codec
 //! doesn't keep as it is goes as what it does: a `T?` an `Optional<T>`, a
-//! `List<T>` Java's list (read back into one), an enum its number; a
-//! record of what it keeps as it is, as it is.
+//! `List<T>` Java's list (read back into one), a `Dictionary<K, V>` a list
+//! of its entries, an enum its number; a record of what it keeps as it
+//! is, as it is.
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Decl, DeclKind, Modifier, Type as Written, TypeKind};
 use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, VOID};
-use yog_script_ids::system::LIST;
+use yog_script_ids::system::{DICTIONARY, LIST};
 use yog_script_ids::jvm::state::{
-    ACCEPT, ADD_ALL, APPLY, BYTES, ENUM_OF, ENUM_VALUE, FORGET, FROM_BYTES, JAVA_LIST, LOAD, OF_NULLABLE, OPTIONAL, OR_ELSE, READ,
-    READ_TYPE, RECORD_PREFIX, SAVE, VALUE, WRITE, WRITE_TYPE,
+    ACCEPT, ADD_ALL, APPLY, BYTES, ENTRIES, ENTRY_KEY, ENTRY_SUFFIX, ENTRY_VALUE, ENTRY_VAR, ENUM_OF, ENUM_VALUE, FORGET, FROM_BYTES,
+    GET_KEY, GET_VALUE, JAVA_LIST, LOAD, MAP, OF_NULLABLE, OPTIONAL, OR_ELSE, READ, READ_TYPE, RECORD_PREFIX, SAVE, SET_ITEM,
+    TO_LIST, VALUE, WRITE, WRITE_TYPE,
 };
 
 use super::Gen;
@@ -38,10 +40,13 @@ impl Gen<'_> {
         let mut load = Vec::new();
         let mut save = Vec::new();
         for (ty, name) in saved_members(body) {
-            let Some(kept) = self.codec_form(ty) else {
+            let Some(kept) = self.codec_form(ty, name) else {
                 return self.not_yet("saving a value of this type", ty.span);
             };
             let (field, record) = (Self::ident(name), format!("{RECORD_PREFIX}{name}"));
+            if let Some(entry) = &kept.entry {
+                self.code.line(entry);
+            }
             self.code.line(format!("{PUBLIC} {RECORD} {record}({} {VALUE}) {{}}", kept.java));
             let key = self.code.str(&format!("{owner}.{name}"));
             let bytes = self.temp();
@@ -69,11 +74,12 @@ impl Gen<'_> {
     }
 
     /// How a member of `ty` goes through the bus's codec, if it does yet.
-    fn codec_form(&self, ty: &Written) -> Option<Kept> {
+    fn codec_form(&self, ty: &Written, name: &str) -> Option<Kept> {
         match &ty.kind {
             TypeKind::Nullable(inner) => {
                 let java = self.written(inner, true);
                 self.plain(inner).then(|| Kept {
+                    entry: None,
                     java: format!("{OPTIONAL}<{java}>"),
                     save: Box::new(|f| format!("{OPTIONAL}.{OF_NULLABLE}({f})")),
                     load: Box::new(|f, v| format!("{f} = {v}.{OR_ELSE}({NULL});")),
@@ -82,25 +88,53 @@ impl Gen<'_> {
             TypeKind::Path { path, args } if args.len() == 1 && path.last().is_some_and(|n| n.text == LIST) => {
                 let (item, made) = (self.written(&args[0], true), self.written(ty, false));
                 self.plain(&args[0]).then(|| Kept {
+                    entry: None,
                     java: format!("{JAVA_LIST}<{item}>"),
                     save: Box::new(|f| f.to_string()),
                     load: Box::new(move |f, v| format!("{f} = {NEW} {made}(); {f}.{ADD_ALL}({v});")),
                 })
             }
+            TypeKind::Path { path, args } if args.len() == 2 && path.last().is_some_and(|n| n.text == DICTIONARY) => {
+                self.dictionary_form(ty, (&args[0], &args[1]), name)
+            }
             _ if self.enum_of(ty).is_some() => {
                 let class = self.written(ty, false);
                 Some(Kept {
+                    entry: None,
                     java: LONG.to_string(),
                     save: Box::new(|f| format!("{f}.{ENUM_VALUE}()")),
                     load: Box::new(move |f, v| format!("{f} = {class}.{ENUM_OF}({v});")),
                 })
             }
             _ => self.plain(ty).then(|| Kept {
+                entry: None,
                 java: self.written(ty, false),
                 save: Box::new(|f| f.to_string()),
                 load: Box::new(|f, v| format!("{f} = {v};")),
             }),
         }
+    }
+
+    /// A `Dictionary<K, V>` (`ty`, member `name`'s) of what the codec keeps
+    /// as it is: a list of its entries, each a record of its own.
+    fn dictionary_form(&self, ty: &Written, (k, v): (&Written, &Written), name: &str) -> Option<Kept> {
+        if !(self.plain(k) && self.plain(v)) {
+            return None;
+        }
+        let entry = format!("{RECORD_PREFIX}{name}{ENTRY_SUFFIX}");
+        let (kj, vj, made) = (self.written(k, true), self.written(v, true), self.written(ty, false));
+        let declared = format!("{PUBLIC} {RECORD} {entry}({kj} {ENTRY_KEY}, {vj} {ENTRY_VALUE}) {{}}");
+        let saved_as = entry.clone();
+        Some(Kept {
+            entry: Some(declared),
+            java: format!("{JAVA_LIST}<{entry}>"),
+            save: Box::new(move |f| {
+                format!("{f}.{ENTRIES}.{MAP}({ENTRY_VAR} -> {NEW} {saved_as}({ENTRY_VAR}.{GET_KEY}(), {ENTRY_VAR}.{GET_VALUE}())).{TO_LIST}()")
+            }),
+            load: Box::new(move |f, v| {
+                format!("{f} = {NEW} {made}(); for (var {ENTRY_VAR} : {v}) {{ {f}.{SET_ITEM}({ENTRY_VAR}.{ENTRY_KEY}(), {ENTRY_VAR}.{ENTRY_VALUE}()); }}")
+            }),
+        })
     }
 
     /// Own enum `ty` names, when it's one whose cases carry no data.
@@ -156,6 +190,8 @@ impl Gen<'_> {
 /// How a member's value goes through the codec: its record's component's
 /// Java type, what's written of the field, what reads it back.
 struct Kept {
+    /// A record its value's parts need declared first (a dictionary's entry).
+    entry: Option<String>,
     java: String,
     save: Box<SaveOf>,
     load: Box<LoadInto>,

@@ -64,7 +64,7 @@ impl Checker<'_, '_, '_> {
             Type::Yog(name) => crate::yog::is_handle(name),
             Type::Own(name, args) if name == LIST && args.len() == 1 => self.data_able(&args[0], seen),
             Type::Own(name, args) if name == DICTIONARY && args.len() == 2 => {
-                (args[0] == Type::String || args[0].is_numeric()) && self.data_able(&args[1], seen)
+                self.data_able(&args[0], seen) && self.data_able(&args[1], seen)
             }
             Type::Own(name, args) if name == TEXT_TYPE && args.is_empty() => true,
             Type::Own(name, args) if args.is_empty() => self.own_data_able(name, seen),
