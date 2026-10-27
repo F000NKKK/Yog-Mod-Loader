@@ -35,13 +35,18 @@ fn extensions_hold_each_owners_state() {
     assert_eq!(out, "2 1 visited 2 6");
 }
 
-const SAVED: &str = r#"public static class S {
+const SAVED: &str = r#"using System.Collections.Generic;
+public enum Mode { Idle, Busy }
+public static class S {
     public static string Run() => "ok";
 }
 extend Player {
     public saved i32 Visits = 0;
     public saved string Title = "";
     public saved ItemId Favourite = new ItemId("stick");
+    public saved string? Note = null;
+    public saved List<i32> Scores = new List<i32>();
+    public saved Mode Mode = Mode.Idle;
     public i32 Unsaved = 0;
 }
 "#;
@@ -59,11 +64,16 @@ fn saved_members_round_trip() {
             Object first = make.newInstance("Steve");
             ext.getField("Visits").setInt(first, 7);
             ext.getField("Title").set(first, "Sir");
+            ext.getField("Note").set(first, "hi");
+            ((java.util.List<Integer>) ext.getField("Scores").get(first)).add(5);
+            ((java.util.List<Integer>) ext.getField("Scores").get(first)).add(9);
+            ext.getField("Mode").set(first, t.SScript.Mode.Busy);
             var store = new java.util.TreeMap<String, byte[]>();
             ((dev.yog.script.yog.State.Saved) first).$save(store::put);
             Object again = make.newInstance("Steve");
             ((dev.yog.script.yog.State.Saved) again).$load(store::get);
-            return store.keySet() + " " + ext.getField("Visits").getInt(again) + " " + ext.getField("Title").get(again) + " " + ext.getField("Favourite").get(again);
+            return store.keySet() + " " + ext.getField("Visits").getInt(again) + " " + ext.getField("Title").get(again) + " " + ext.getField("Favourite").get(again)
+                + " " + ext.getField("Note").get(again) + " " + ext.getField("Scores").get(again).getClass().getSimpleName() + ext.getField("Scores").get(again) + " " + ext.getField("Mode").get(again);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -71,7 +81,10 @@ fn saved_members_round_trip() {
     let Some(out) = support::run(&[("S.ys", SAVED)], java) else {
         return;
     };
-    assert_eq!(out, "[Player.Favourite, Player.Title, Player.Visits] 7 Sir minecraft:stick");
+    assert_eq!(
+        out,
+        "[Player.Favourite, Player.Mode, Player.Note, Player.Scores, Player.Title, Player.Visits] 7 Sir minecraft:stick hi List[5, 9] Busy"
+    );
 }
 
 const MOD: &str = r#"mod Charge {

@@ -120,8 +120,9 @@ For each type with `synced` members, the build generates a mirror spec
    an owner's records as its object is made, writes them as the world
    saves, and drops a player's as they leave. ✅ `extend` (compiled to
    Java), `extend Player`/`World` with members the bus's codec keeps as
-   they are (numbers, `bool`, `string`, quantities, ids); lists,
-   dictionaries, enums, records, `Player?` and `Text` are said not
+   they are (numbers, `bool`, `string`, quantities, ids, a player), `T?`
+   (as an `Optional`), `List<T>` of those, enums without data (by their
+   number); records, dictionaries, enums with data and `Text` are said not
    compiled yet. ✅ `mod` members: the mod's class reads them from the
    game's store at the end of its constructors.
 3. Blocks (the chunk scope, removal with the block) and entities.

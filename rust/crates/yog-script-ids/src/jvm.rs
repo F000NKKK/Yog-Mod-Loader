@@ -521,4 +521,13 @@ pub mod state {
     pub const FROM_BYTES: &str = concat!(bus_api!(), sep!(), "fromBytes");
     pub const APPLY: &str = "apply";
     pub const ACCEPT: &str = "accept";
+    /// What a member the codec doesn't keep as it is goes as: a `T?` an
+    /// `Optional<T>`, a `List<T>` Java's list, an enum its number.
+    pub const OPTIONAL: &str = concat!(java_util!(), sep!(), "Optional");
+    pub const OF_NULLABLE: &str = "ofNullable";
+    pub const OR_ELSE: &str = "orElse";
+    pub const JAVA_LIST: &str = concat!(java_util!(), sep!(), "List");
+    pub const ADD_ALL: &str = "addAll";
+    pub const ENUM_VALUE: &str = "value";
+    pub const ENUM_OF: &str = "of";
 }
