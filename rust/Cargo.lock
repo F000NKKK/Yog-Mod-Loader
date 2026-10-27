@@ -2035,14 +2035,14 @@ dependencies = [
 
 [[package]]
 name = "yog-abi"
-version = "0.34.0"
+version = "0.35.0"
 dependencies = [
  "yog-sync",
 ]
 
 [[package]]
 name = "yog-analysis"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2050,7 +2050,7 @@ dependencies = [
 
 [[package]]
 name = "yog-api"
-version = "0.106.0"
+version = "0.107.0"
 dependencies = [
  "ctor",
  "substrate-data",
@@ -2079,7 +2079,7 @@ dependencies = [
 
 [[package]]
 name = "yog-body"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2090,7 +2090,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.74.0"
+version = "0.75.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -2106,7 +2106,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.54.0"
+version = "0.55.0"
 dependencies = [
  "base64",
  "criterion",
@@ -2153,32 +2153,32 @@ dependencies = [
 
 [[package]]
 name = "yog-codegen"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "yog-codegen-java"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-codegen",
 ]
 
 [[package]]
 name = "yog-codegen-rust"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-codegen",
 ]
 
 [[package]]
 name = "yog-codegen-typescript"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-codegen",
 ]
 
 [[package]]
 name = "yog-codegen-ys"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-codegen",
  "yog-script-analyze",
@@ -2187,18 +2187,18 @@ dependencies = [
 
 [[package]]
 name = "yog-command"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "yog-ids",
 ]
 
 [[package]]
 name = "yog-config"
-version = "0.4.0"
+version = "0.5.0"
 
 [[package]]
 name = "yog-core"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "substrate-data",
  "yog-analysis",
@@ -2209,7 +2209,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "substrate-data",
  "yog-codegen",
@@ -2221,7 +2221,7 @@ dependencies = [
 
 [[package]]
 name = "yog-debugger"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "iced-x86",
  "libc",
@@ -2236,7 +2236,7 @@ dependencies = [
 
 [[package]]
 name = "yog-dimensions"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2245,7 +2245,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "pastey",
  "substrate-data",
@@ -2263,7 +2263,7 @@ dependencies = [
 
 [[package]]
 name = "yog-font"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "criterion",
  "substrate-data",
@@ -2273,7 +2273,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "serde_json",
  "substrate-data",
@@ -2289,7 +2289,7 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "substrate-data",
  "yog-abi",
@@ -2301,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "yog-graphics"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "yog-home"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "dirs",
  "semver",
@@ -2321,7 +2321,7 @@ dependencies = [
 
 [[package]]
 name = "yog-hot-reload"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "libloading",
  "serde",
@@ -2332,7 +2332,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "const_format",
  "yog-codegen",
@@ -2342,7 +2342,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.26.0"
+version = "0.27.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2353,7 +2353,7 @@ dependencies = [
 
 [[package]]
 name = "yog-inventory"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2361,7 +2361,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "yog-api",
  "yog-kit",
@@ -2370,14 +2370,14 @@ dependencies = [
 
 [[package]]
 name = "yog-logging"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "yog-sync",
 ]
 
 [[package]]
 name = "yog-mappings"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "substrate-data",
  "ureq",
@@ -2390,7 +2390,7 @@ dependencies = [
 
 [[package]]
 name = "yog-media"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "image",
  "png",
@@ -2404,7 +2404,7 @@ dependencies = [
 
 [[package]]
 name = "yog-mirror"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "criterion",
  "substrate-data",
@@ -2416,7 +2416,7 @@ dependencies = [
 
 [[package]]
 name = "yog-network"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2424,7 +2424,7 @@ dependencies = [
 
 [[package]]
 name = "yog-registry"
-version = "0.42.0"
+version = "0.43.0"
 dependencies = [
  "serde_json",
  "substrate-data",
@@ -2436,7 +2436,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.112.0"
+version = "0.113.0"
 dependencies = [
  "criterion",
  "glow",
@@ -2472,7 +2472,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2485,7 +2485,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-analyze"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "substrate-data",
  "yog-analysis",
@@ -2500,7 +2500,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-build"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "criterion",
  "substrate-data",
@@ -2517,11 +2517,11 @@ dependencies = [
 
 [[package]]
 name = "yog-script-ids"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "yog-script-java"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "substrate-data",
  "yog-analysis",
@@ -2535,7 +2535,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-run"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2546,7 +2546,7 @@ dependencies = [
 
 [[package]]
 name = "yog-storage"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "substrate-data",
@@ -2557,7 +2557,7 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "addr2line",
  "criterion",
@@ -2570,11 +2570,11 @@ dependencies = [
 
 [[package]]
 name = "yog-sync"
-version = "0.5.0"
+version = "0.6.0"
 
 [[package]]
 name = "yog-ui"
-version = "0.50.0"
+version = "0.51.0"
 dependencies = [
  "criterion",
  "substrate-data",
@@ -2587,7 +2587,7 @@ dependencies = [
 
 [[package]]
 name = "yog-worldgen"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "substrate-data",
  "yog-data",
