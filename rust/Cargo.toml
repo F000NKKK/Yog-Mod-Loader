@@ -95,7 +95,7 @@ resvg = { version = "0.48", default-features = false }
 serde_spanned = "1"
 toml = { version = "1", default-features = false }
 yog-abi = { version = "0.33.0", path = "crates/yog-abi" }
-yog-api = { version = "0.105.2", path = "crates/yog-api" }
+yog-api = { version = "0.105.3", path = "crates/yog-api" }
 yog-body = { version = "0.8.0", path = "crates/yog-body" }
 yog-book = { version = "0.73.2", path = "crates/yog-book" }
 yog-analysis = { version = "0.1.1", path = "crates/yog-analysis" }
