@@ -262,6 +262,7 @@ pub fn content_base(kind: &str) -> Option<&'static str> {
     match kind {
         k if k == yog_ids::kind::BLOCK => Some(yog_script_ids::system::BLOCK_OBJECT),
         k if k == yog_ids::kind::ITEM => Some(yog_script_ids::system::ITEM_OBJECT),
+        k if k == yog_ids::kind::ENTITY => Some(yog_script_ids::system::ENTITY_OBJECT),
         _ => None,
     }
 }

@@ -35,6 +35,7 @@ pub const DISPOSABLE: &str = "IDisposable";
 /// What a mod's content inherits: a block's, an item's.
 pub const BLOCK_OBJECT: &str = "BlockObject";
 pub const ITEM_OBJECT: &str = "ItemObject";
+pub const ENTITY_OBJECT: &str = "EntityObject";
 /// Who ran a command.
 pub const SENDER: &str = "Sender";
 pub const SENDER_REPLY: &str = "Reply";

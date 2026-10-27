@@ -1,0 +1,20 @@
+namespace Yog;
+
+/// An entity a mod declares (`entity Golem { … }`), one object an entity
+/// of it: made the first time something happens to it (its constructor
+/// subscribes), kept while the server runs, gone when it dies. Its fields
+/// are the server's memory (`saved` ones are kept with the entity).
+[Intrinsic]
+public abstract class EntityObject {
+    /// The entity's uuid.
+    public string Uuid { get; }
+    /// The world it's in (`minecraft:overworld`).
+    public string Dimension { get; }
+
+    /// It appeared in a world (spawned, or loaded).
+    public event Action Spawn;
+    /// It was hurt, by this much.
+    public event Action<f32> Damage;
+    /// It died (it's gone after).
+    public event Action Death;
+}

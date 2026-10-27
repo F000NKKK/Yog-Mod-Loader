@@ -59,6 +59,18 @@ public final class State {
         return live(made, new Place(mod, YogNames.Storage.PLAYER, uuid, ""));
     }
 
+    /** {@code made} (entity {@code uuid}'s object): read in from its own store, live. */
+    public static <T extends Saved> T entity(T made, String mod, String uuid) {
+        return live(made, new Place(mod, YogNames.Storage.ENTITY, uuid, ""));
+    }
+
+    /** Entity {@code uuid} dead for good: its records removed, its object no longer live. */
+    public static void entityGone(String mod, String uuid) {
+        Place at = new Place(mod, YogNames.Storage.ENTITY, uuid, "");
+        LIVE.entrySet().removeIf(e -> e.getValue().equals(at));
+        new YogServices.Storage.Remove(at.mod(), at.where(), at.owner(), null).call();
+    }
+
     /** {@code made} (a block's object at {@code x y z} in {@code dimension}):
      * read in from its chunk's store, under its place there; live. */
     public static <T extends Saved> T block(T made, String mod, String dimension, int x, int y, int z) {

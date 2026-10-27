@@ -76,3 +76,22 @@ fn saved_block_members() {
         assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
     }
 }
+
+/// An entity's object: its events (`Damage` with the amount), its `saved`
+/// members its own store's (EntityObject reads them in as it makes it).
+#[test]
+fn entity_objects_and_saved_members() {
+    let src = "entity Golem {\n    public saved i32 Hits = 0;\n    Golem() {\n        Damage += amount => {\n            Hits += 1;\n        };\n    }\n}\n";
+    let checked = yog_script_analyze::check("A.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static class Golem extends dev.yog.script.yog.EntityObject implements dev.yog.script.yog.State.Saved {",
+        "Damage.add((amount) -> {",
+        "read.apply(\"Golem.Hits\")",
+        "dev.yog.script.yog.EntityObject.register(\"test:golem\", Golem::new);",
+    ] {
+        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+    }
+}

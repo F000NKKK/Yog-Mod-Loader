@@ -132,8 +132,10 @@ For each type with `synced` members, the build generates a mirror spec
    ✅ Blocks: a block's object reads its `saved` members from its chunk's
    store (`<dim>_<cx>_<cz>`, under its place there, `<x>_<y>_<z>`) as
    BlockObject makes it; its records go when the block is broken or
-   another is placed there, its object made or not. Entities wait for
-   entity objects (content of that kind has none yet).
+   another is placed there, its object made or not. ✅ Entities: content
+   of that kind has an object now (`EntityObject`: `Spawn`, `Damage`,
+   `Death`), its `saved` members in the entity's store (`entity/<uuid>`),
+   read in as it's made, removed when it dies.
 4. Item stacks: the host's `yog:item/data` on each version.
 5. `synced` on mirrors.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
