@@ -1,7 +1,7 @@
 //! The bus described: what each address carries, asked of the bus itself
 //! (services the runtime provides) — discovery, checking, bindings.
 
-use yog_data::{Schema, Value};
+use yog_data::Schema;
 
 /// What an address is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]

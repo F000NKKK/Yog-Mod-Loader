@@ -20,7 +20,7 @@ impl ServiceError {
     pub(crate) fn of(code: &str, message: impl Into<String>) -> Self {
         let message = message.into();
         ServiceError {
-            problems: vec![Diagnostic::error(code, &message)],
+            problems: vec![Diagnostic::error(yog_data::Atom::new(code), &message)],
             message,
             file: None,
         }
@@ -37,7 +37,7 @@ impl ServiceError {
     /// Text that doesn't parse.
     pub(crate) fn syntax(e: &yog_data::SyntaxError) -> Self {
         Self::at(
-            yog_ids::data_problem::SYNTAX,
+            yog_data::Problem::Syntax.code(),
             e.message.clone(),
             e.at.line,
             Some(e.at.col),

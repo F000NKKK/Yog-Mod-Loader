@@ -385,7 +385,7 @@ mod tests {
 
     const PILL: &str = r##"<?xml version="1.0"?>
 <!-- a tag -->
-<Component name="Pill" description="@Strings.pill" icon="item:name_tag" design_w="40" design_h="12" toolbox="false">
+<Component name="Pill" description="@res:Strings.pill" icon="item:name_tag" design_w="40" design_h="12" toolbox="false">
     <Property name="label" type="text" default="Yog" doc="Text" category="Data"/>
     <Property name="fill" type="color" default="#FF2D4A8A"/>
     <Event name="on_pick"/>
@@ -404,7 +404,7 @@ mod tests {
         assert_eq!(def.info.props[0].category, "Data");
         assert_eq!(
             (def.info.description.as_str(), def.info.icon.as_str()),
-            ("@Strings.pill", "item:name_tag")
+            ("@res:Strings.pill", "item:name_tag")
         );
         assert_eq!(
             (def.info.design_w, def.info.design_h, def.info.toolbox),

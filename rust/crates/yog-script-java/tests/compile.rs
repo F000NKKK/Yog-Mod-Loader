@@ -38,7 +38,7 @@ fn what_isnt_written_yet_is_said() {
         .unwrap_or_default();
     assert_eq!(
         err.iter()
-            .filter_map(|d| d.code.as_deref())
+            .filter_map(|d| d.code.map(yog_data::Code::as_str))
             .collect::<Vec<_>>(),
         [script_problem::NOT_COMPILED]
     );

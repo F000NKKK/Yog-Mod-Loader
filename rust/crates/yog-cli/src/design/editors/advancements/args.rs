@@ -143,6 +143,6 @@ fn shown(t: &Text, texts: &crate::design::editors::book::Texts) -> String {
             .unwrap_or_else(|| r.to_string()),
         Text::Lang(key) => texts.lang.get(key).cloned().unwrap_or_else(|| key.clone()),
         Text::NameOf(r) => crate::design::editors::book::item_name(&texts.lang, &r.id)
-            .unwrap_or_else(|| r.id.clone()),
+            .unwrap_or_else(|| r.id.to_string()),
     }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@Items.apple",
+  "name": "@res:Items.apple",
   "item": {
     "food": {
       "nutrition": 4,

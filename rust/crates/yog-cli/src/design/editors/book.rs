@@ -81,7 +81,7 @@ fn mod_root(path: &Path) -> Option<PathBuf> {
 }
 
 /// The texts a player reading in `locale` sees: `Set.name` → text (for
-/// `@Set.name`) and translation key → text (item and block names), from
+/// `@res:Set.name`) and translation key → text (item and block names), from
 /// the mod's `resources/*.yres` — `Set.<locale>.yres` over the neutral
 /// `Set.yres` — and the game's language files under them.
 pub(in crate::design) struct Texts {
@@ -287,7 +287,7 @@ fn humanize(id: &str) -> String {
 }
 
 /// The book as a player reads it: references (`@item:…` in id fields)
-/// as plain ids, texts as their words (`@Book.title`) and names
+/// as plain ids, texts as their words (`@res:Book.title`) and names
 /// (`@item:…`). Whether they exist is `yog check`'s to say; the designer
 /// draws what it can.
 struct Reader<'a> {
@@ -296,9 +296,29 @@ struct Reader<'a> {
 }
 
 impl yog_data::Resolve for Reader<'_> {
-    fn text(&mut self, t: &yog_data::Text, _: &yog_data::Path) -> Result<String, String> {
-        Ok(match t {
-            yog_data::Text::Literal(s) => s.clone(),
+    fn reference(
+        &mut self,
+        r: &yog_data::Ref,
+        _: &yog_data::Path,
+    ) -> Result<yog_data::RefKey, yog_data::Unresolved> {
+        Ok(r.id.clone())
+    }
+
+    /// A text as the player reads it: its words, a name, a translation.
+    fn expand(
+        &mut self,
+        r: &yog_data::Ref,
+        _: &yog_data::Path,
+    ) -> Result<Option<yog_data::Value>, yog_data::Unresolved> {
+        Ok(yog_data::Text::of_ref(r.clone()).map(|t| yog_data::Value::Str(self.words(t))))
+    }
+}
+
+impl Reader<'_> {
+    /// `t` as the player reads it (a `.yres` text it hasn't: noted, shown as written).
+    fn words(&mut self, t: yog_data::Text) -> String {
+        match t {
+            yog_data::Text::Literal(s) => s,
             yog_data::Text::NameOf(r) => {
                 let id = yog_formats::book::refs::bare(&r.id);
                 let name = match r.kind.as_str() {
@@ -311,18 +331,12 @@ impl yog_data::Resolve for Reader<'_> {
                 };
                 name.unwrap_or_else(|| humanize(id))
             }
-            yog_data::Text::Lang(k) => self.texts.lang.get(k).cloned().unwrap_or_else(|| k.clone()),
-            yog_data::Text::Res(r) => {
-                self.texts.refs.get(&r.name()).cloned().unwrap_or_else(|| {
-                    self.missing.push(r.to_string());
-                    r.to_string()
-                })
-            }
-        })
-    }
-
-    fn words(&mut self, r: &yog_data::Res) -> Option<String> {
-        self.texts.refs.get(&r.name()).cloned()
+            yog_data::Text::Lang(k) => self.texts.lang.get(&k).cloned().unwrap_or(k),
+            yog_data::Text::Res(r) => self.texts.refs.get(&r.name()).cloned().unwrap_or_else(|| {
+                self.missing.push(r.to_string());
+                r.to_string()
+            }),
+        }
     }
 }
 
@@ -626,10 +640,7 @@ pub(crate) fn page_preview(args: &BookArgs) -> BookRendered {
             Value::List(vec![named(vec![
                 (
                     "category",
-                    Value::Ref(yog_data::Ref {
-                        kind: yog_ids::kind::CATEGORY.into(),
-                        id: entry.clone(),
-                    }),
+                    yog_data::Schema::write(&yog_data::Id::<yog_data::kinds::Category>::new(entry.clone())),
                 ),
                 ("pages", Value::List(vec![page.into()])),
             ])]),
@@ -673,9 +684,9 @@ mod tests {
             .insert("item.mymod.sapphire".to_string(), "Сапфир".to_string());
         let v = yog_data::text::parse_value(
             r#"{
-            name: "@Book.title", subtitle: "@item:mymod:ruby_block", landing_text: "@@x",
+            name: "@res:Book.title", subtitle: "@item:mymod:ruby_block", landing_text: "@@x",
             categories: [{ id: "m:c", name: "@item:mymod:sapphire", icon: "@item:mymod:sapphire" }],
-            entries: [{ id: "m:e", name: "@Book.nope", category: "@category:m:c", pages: [] }],
+            entries: [{ id: "m:e", name: "@res:Book.nope", category: "@category:m:c", pages: [] }],
             id: "m:b",
         }"#,
         )
@@ -701,7 +712,7 @@ mod tests {
         );
         assert_eq!(b.entries[0].category, "m:c");
         assert_eq!(b.landing_text, "@x");
-        assert_eq!(r.missing, ["@Book.nope"]);
+        assert_eq!(r.missing, ["@res:Book.nope"]);
     }
 
     #[test]

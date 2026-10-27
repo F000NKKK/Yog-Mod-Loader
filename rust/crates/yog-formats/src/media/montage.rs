@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn a_mix_reads_its_clips_and_effects() {
-        let text = r#"{ clips: [{ sound: "@Sounds.abacus1", at: 0.5, to: 1, speed: 2,
+        let text = r#"{ clips: [{ sound: "@res:Sounds.abacus1", at: 0.5, to: 1, speed: 2,
             effects: [{ fx: "low_pass", hz: 800 }] }], effects: [{ fx: "echo", delay: 0.2, decay: 0.4 }] }"#;
         let mix = yog_data::from_text::<Mix>(text).unwrap().value;
         let clip = &mix.clips[0];

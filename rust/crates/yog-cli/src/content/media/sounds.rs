@@ -187,7 +187,7 @@ mod tests {
         std::fs::create_dir_all(sound.join("scroll")).unwrap();
         std::fs::write(
             sound.join("abacus.ysound"),
-            r#"{ sounds: [{ sound: "@Sounds.abacus1", pitch: 0.8 }], subtitle: "@Lang.abacus" }"#,
+            r#"{ sounds: [{ sound: "@res:Sounds.abacus1", pitch: 0.8 }], subtitle: "@res:Lang.abacus" }"#,
         )
         .unwrap();
         std::fs::write(

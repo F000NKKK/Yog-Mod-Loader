@@ -8,7 +8,7 @@ use crate::project::rust_code::{is_ident, is_keyword};
 
 /// An entry name: identifiers joined by `.` (`title`, `screen.title`).
 pub(crate) fn valid_name(name: &str) -> bool {
-    yog_data::typed::is_res_key(name)
+    yog_data::is_res_key(name)
 }
 
 /// What's wrong with entry name `name`, if anything.

@@ -71,7 +71,7 @@ fn recipe_mistakes() {
         r##"{ "type": "smelting", "ingredient": "@item:minecraft:sand", "result": "@tag:item:c:glass" }"##,
     );
     assert!(
-        e.contains("result: expected a reference (`@item:`), found a tag"),
+        e.contains("result: `@tag:item:c:glass` is a reference to tag — this takes `@item:`"),
         "{e}"
     );
     let e = bad(

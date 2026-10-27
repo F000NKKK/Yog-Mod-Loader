@@ -130,9 +130,12 @@ pub(super) fn component_expr(el: &Element) -> Result<String, Diagnostic> {
             if let Some(rust) = v.strip_prefix(RAW_VALUE) {
                 return Ok(format!("({k:?}, &*{rust})"));
             }
-            match v.strip_prefix('@') {
+            match v.strip_prefix(yog_ids::sep::TYPED) {
                 // A `.yres` color (for a color property): its value.
-                Some(rest) if !is_resource_text(rest) && resource_color(rest).is_some() => {
+                Some(_) if let Some(rest) = v.strip_prefix(yog_ids::reference::RES)
+                    && !is_resource_text(rest)
+                    && resource_color(rest).is_some() =>
+                {
                     let c = resource_color(rest).unwrap_or_default();
                     Ok(format!("({k:?}, \"#{c:08X}\")"))
                 }

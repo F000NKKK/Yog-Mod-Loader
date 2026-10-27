@@ -1,8 +1,8 @@
 {
   "id": "guide",
-  "name": "@Book.title",
+  "name": "@res:Book.title",
   "version": 1,
-  "landing_text": "@Book.landing",
+  "landing_text": "@res:Book.landing",
   "accent": "#aa2233",
   "categories": [
     {
@@ -20,7 +20,7 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.intro"
+          "text": "@res:Book.intro"
         },
         {
           "type": "spotlight",

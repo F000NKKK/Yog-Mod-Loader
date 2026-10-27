@@ -254,7 +254,7 @@ impl Schema for YresFile {
         let mut map = yog_data::Map::new();
         for e in &self.0 {
             let value = match &e.value {
-                Value::Str(s) => yog_data::Value::Str(s.clone()),
+                Value::Str(s) => yog_data::Value::Str(yog_data::typed::escape_at(s)),
                 Value::Num(n) => n
                     .parse::<i64>()
                     .map(yog_data::Value::Int)

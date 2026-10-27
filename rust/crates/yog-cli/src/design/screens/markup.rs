@@ -19,7 +19,7 @@ use crate::ui::yui::Anchor;
 pub(crate) struct YuiNode {
     pub(crate) uid: String,
     pub(crate) kind: String,
-    /// Its attributes as the markup spells them (`@Strings.title` too).
+    /// Its attributes as the markup spells them (`@res:Strings.title` too).
     #[data(with = "yog_data::with::Values<yog_data::with::Spelled>", default)]
     pub(crate) attrs: HashMap<String, String>,
     #[data(default)]

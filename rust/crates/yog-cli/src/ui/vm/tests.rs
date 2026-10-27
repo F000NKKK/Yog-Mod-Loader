@@ -113,16 +113,16 @@ fn yres_colors_everywhere() {
     let code = codegen(
         r##"
         <Screen.Resources>
-            <Color x:Key="Accent" value="@Colors.accent"/>
-            <Style x:Key="Btn" target="Button" bg="@Colors.accent" hover:bg="@Colors.hot"/>
+            <Color x:Key="Accent" value="@res:Colors.accent"/>
+            <Style x:Key="Btn" target="Button" bg="@res:Colors.accent" hover:bg="@res:Colors.hot"/>
         </Screen.Resources>
         <Column w="100%">
-            <Label text="a" color="@Accent" selected:color="@Accent" disabled:bg="@Colors.hot"/>
+            <Label text="a" color="@Accent" selected:color="@Accent" disabled:bg="@res:Colors.hot"/>
             <Button style="@Btn" text="b"/>
-            <Image source="item:air" tint="@Colors.tint"/>
+            <Image source="item:air" tint="@res:Colors.tint"/>
         </Column>"##,
     );
-    let missing = codegen(r#"<Label text="a" hover:bg="@Colors.nope"/>"#);
+    let missing = codegen(r#"<Label text="a" hover:bg="@res:Colors.nope"/>"#);
     crate::ui::yui::set_resource_refs(&crate::yres::Refs::default());
     let code = code.unwrap();
     for want in [

@@ -5,9 +5,9 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 authors = { workspace = true }
 license = "MIT OR Apache-2.0"
-description = "Yog Data — the one data model, text syntax, binary form and schema system of every Yog format."
-# The benchmark fixture (a real book, 145 KB) stays in the repository.
-exclude = ["benches/hexbook.ybook"]
+description = "Yog Data — Yog's domain over Substrate Data: kinds of content, tags, .yres entries, texts, images and colours."
+# The test fixture (a real book, 145 KB) stays in the repository.
+exclude = ["tests/hexbook.ybook"]
 
 [dependencies]
 # The model, text, binary, frames and schemas: Yog's domain is declared over it.
@@ -24,21 +24,5 @@ toml = ["substrate-data/toml"]
 json = ["substrate-data/json"]
 
 [dev-dependencies]
-criterion = { workspace = true, features = ["cargo_bench_support"] }
-serde_json = { workspace = true }
-# benches/versus: the formats yog-data replaced.
-serde = { workspace = true }
-rkyv = { workspace = true }
-postcard = { workspace = true }
-
-[[bench]]
-name = "data"
-harness = false
-
-[[bench]]
-name = "messages"
-harness = false
-
-[[bench]]
-name = "versus"
-harness = false
+# What the bus test's compact types hold.
+yog-sync = { workspace = true }

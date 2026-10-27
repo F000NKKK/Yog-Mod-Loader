@@ -61,7 +61,7 @@ pub(crate) fn warn_index(root: &Path) -> Result<(), String> {
 }
 
 /// Makes the project's `.yres` resources available to `.yui` generation
-/// (`text="@Strings.title"`). Broken resources are reported but don't stop
+/// (`text="@res:Strings.title"`). Broken resources are reported but don't stop
 /// the screen from generating — `yog build` fails on them anyway.
 pub(crate) fn load_resource_refs(root: &Path) {
     let refs = YogToml::read(&root.join(MANIFEST))

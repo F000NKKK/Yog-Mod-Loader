@@ -6,7 +6,7 @@ use super::*;
 fn compiles_a_book() {
     let book = r#"{
         "id": "guide",
-        "name": "@Book.title",
+        "name": "@res:Book.title",
         "categories": [{ "id": "mymod:basics", "name": "Basics", "icon": "@item:minecraft:book" }],
         "entries": [{
             "id": "mymod:ruby", "name": "@item:mymod:ruby", "category": "@category:mymod:basics",

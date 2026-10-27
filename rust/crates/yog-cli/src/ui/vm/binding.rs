@@ -20,7 +20,7 @@ pub(super) enum Bound {
     Rust(String),
 }
 
-/// One `{x:Bind ...}` (or a `@Set.name` text, compiled as a binding).
+/// One `{x:Bind ...}` (or a `@res:Set.name` text, compiled as a binding).
 #[derive(Debug, Clone)]
 pub(super) struct Binding {
     /// The attribute value as written, for comments.

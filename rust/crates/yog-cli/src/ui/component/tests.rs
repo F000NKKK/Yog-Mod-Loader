@@ -8,7 +8,7 @@ fn codegen(src: &str) -> Result<String, String> {
 
 #[test]
 fn generates_a_component() {
-    let code = codegen(r##"<Component description="A bar." icon="@Icons.bar" category="Bars" design_w="120" design_h="10" d:bg="#FF000000">
+    let code = codegen(r##"<Component description="A bar." icon="@res:Icons.bar" category="Bars" design_w="120" design_h="10" d:bg="#FF000000">
         <Property name="label" default="HP" doc="Left text" category="Text"/>
         <Property name="value" type="number" default="0.5"/>
         <Property name="fill" type="color" default="#FF55FF55"/>
@@ -31,7 +31,7 @@ fn generates_a_component() {
         "size: p.word(\"size\").to_string(),",
         "Prop::text(\"label\", \"HP\").doc(\"Left text\").category(\"Text\")",
         "const DOC: &'static str = \"A bar.\";",
-        "const ICON: &'static str = \"@Icons.bar\";",
+        "const ICON: &'static str = \"@res:Icons.bar\";",
         "const CATEGORY: &'static str = \"Bars\";",
         "const DESIGN_SIZE: (f32, f32) = (120.0, 10.0);",
         "const TOOLBOX: bool = true;",
@@ -57,10 +57,10 @@ fn color_properties_take_yres_colors() {
     refs.colors.insert("Colors.fill".into(), 0xFF01_0203);
     crate::ui::yui::set_resource_refs(&refs);
     let code = codegen(
-        r#"<Component><Property name="fill" type="color" default="@Colors.fill"/><Row bg="@Colors.fill"/></Component>"#,
+        r#"<Component><Property name="fill" type="color" default="@res:Colors.fill"/><Row bg="@res:Colors.fill"/></Component>"#,
     );
     let screen = crate::ui::yui::generate_for(
-        r#"<Screen id="m:s" width="10" height="10"><Example fill="@Colors.fill"/></Screen>"#,
+        r#"<Screen id="m:s" width="10" height="10"><Example fill="@res:Colors.fill"/></Screen>"#,
         "s",
         None,
     );

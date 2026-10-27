@@ -70,7 +70,7 @@ fn errors_carry_lines() {
     assert_eq!(err, "3:3: expected `,` or `}`");
     // Every problem at once.
     let err =
-        parse("{\n  \"a\": [],\n  \"b\": { \"type\": \"img\", \"value\": \"@Strings.x\" }\n}")
+        parse("{\n  \"a\": [],\n  \"b\": { \"type\": \"img\", \"value\": \"@res:Strings.x\" }\n}")
             .unwrap_err()
             .to_string();
     assert_eq!(
@@ -78,7 +78,7 @@ fn errors_carry_lines() {
         [
             "2:8: a: expected a string, a number or true/false, found a list",
             "3:18: b.type: unknown `img` — did you mean `image`?",
-            "3:34: b.value: expected plain text, found a resource (write `@@` for a literal `@`)",
+            "3:34: b.value: expected plain text, found a reference (write `@@` for a literal `@`)",
         ]
     );
     assert!(
@@ -256,11 +256,11 @@ fn compiles_a_mod() {
         index.contains("/generated/resources/Strings.g.rs\"));"),
         "{index}"
     );
-    let (name, key) = resolve_text(&c.refs, "@Strings.title").unwrap();
+    let (name, key) = resolve_text(&c.refs, "@res:Strings.title").unwrap();
     assert_eq!((name.as_str(), key.as_deref()), ("Mods", Some("m.title")));
-    assert!(resolve_text(&c.refs, "@Strings.nope").is_err());
+    assert!(resolve_text(&c.refs, "@res:Strings.nope").is_err());
     assert_eq!(
-        resolve_image(&c.refs, "@Icons.images.logo").unwrap(),
+        resolve_image(&c.refs, "@res:Icons.images.logo").unwrap(),
         "m:images/logo"
     );
     let _ = std::fs::remove_dir_all(&root);

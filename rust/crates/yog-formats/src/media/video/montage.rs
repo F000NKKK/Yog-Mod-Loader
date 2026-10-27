@@ -108,8 +108,8 @@ mod tests {
     fn clips_last_as_cut_and_sped() {
         let m = yog_data::from_text::<Montage>(
             r#"{ tracks: [{}, { hidden: true }], clips: [
-                { video: "@Videos.a", from: 1, to: 5, speed: 2 },
-                { image: "@Images.logo", at: 2, track: 1 } ] }"#,
+                { video: "@res:Videos.a", from: 1, to: 5, speed: 2 },
+                { image: "@res:Images.logo", at: 2, track: 1 } ] }"#,
         )
         .unwrap()
         .value;

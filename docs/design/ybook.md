@@ -21,7 +21,7 @@ The project has **no backward compatibility**. Everything in §12 is deleted, no
 |---|---|---|
 | B1 | **A book is one `.ybook` manifest plus one `.yentry` file per entry**: `content/books/<book>.ybook` and `content/books/<book>/<category path>/<entry>.yentry`. The book id is `<mod id>:<book>`. An entry's id is its path (`patterns/math`), and its category is its folder. | Hex Casting's book has 9 categories, 82 entries and 447 pages. In one file that is ~5k lines, where every edit and every merge touches the same file. Per-entry files give small diffs, parallel work without conflicts, and the same shape as Patchouli (so imported books and `$(l:…)` links keep their paths). The manifest holds everything about the *book* in one place (metadata, skin, item, macros, the category tree and the order of entries), so a reorder changes one file. |
 | B2 | **JSON, like `.yblock`/`.yitem`/`.ymat`/`.yres`** (comments and trailing commas allowed, unknown keys are errors, a `$schema` for editors). | Pages are data, not a visual tree, so XML (`.yui`) buys nothing. The content compiler, the JSON editor with schema completion and the minimal-edit patcher are reused. |
-| B3 | **Texts are `@Set.name` refs into `.yres`** (recommended, `@Book.page.media.1`), or literal neutral text (single-language books). Translations are the `.yres` culture files (`Book.ru_ru.yres`). There is no `i18n` flag. | This is how every other Yog format localizes. The existing `.yres` editor already shows cultures side by side and highlights missing translations. The designer creates the `.yres` entries itself, so authors never type a key. |
+| B3 | **Texts are `@res:Set.name` refs into `.yres`** (recommended, `@res:Book.page.media.1`), or literal neutral text (single-language books). Translations are the `.yres` culture files (`Book.ru_ru.yres`). There is no `i18n` flag. | This is how every other Yog format localizes. The existing `.yres` editor already shows cultures side by side and highlights missing translations. The designer creates the `.yres` entries itself, so authors never type a key. |
 | B4 | **Markup is Patchouli's `$(…)` syntax**, with the same codes, built-in macros and per-book macros, plus a few Yog additions (§4). | Ported books (Hex: ~1000 strings in 13 languages) work verbatim. Modders already know it. It does not collide with `.yres` `{placeholder}` braces. In the designer, a formatting toolbar inserts the codes, so they are rarely typed by hand. |
 | B5 | **Built-in page types** cover Patchouli's: `text`, `spotlight`, `crafting`, `smelting` (all cooking types), `stonecutting`, `smithing`, `image`, `entity`, `multiblock`, `link`, `relations`, `empty`. **Custom page types are `.yui` components** with `book_page="<ns>:<type>"`; the page's fields are the component's properties. | There is one extension mechanism for UI, and it already has what custom pages need: typed properties for the property grid, markup-only rendering without a build, compiled rendering through the designer host, and generated registration. Hex's pattern page becomes a Hex component. The loader has no Hex logic (the `Pattern` page variant is deleted). *Done so far (2026-10-14):* the low-level path under it — a `drawn` page (`drawer`, `title`, `height`, `caption`, `text`, `data`) whose picture the mod's code draws (`Registry::on_book_page`, ABI 2.1); Hex's pattern page is one (`hexcasting:pattern`, drawn by HexMod), and `Pattern` and `yog_book::pattern` are gone from the loader. |
 | B6 | **No Rust needed for a book.** `yog build` compiles the files to `yog/books/<book>.json` inside the `.yog`, and the runtime loads it like `yog/materials.json`. The book item is declared in the manifest. Typed handles (`books::thehexbook::patterns::MATH`) are generated for code that wants to open the book. **Books from code stay possible** (capability rule): `yog_api::books::register(model)` takes the same typed `yog_book::model::Book` the compiler produces (built in code, e.g. generated from the mod's registries or config at run time) and goes through the same runtime path as a `.ybook` (§6.2). | A book is data. Loading data from the `.yog` also allows reloading a book in a running game without the code ABI match that hot reload needs. Today a mod builds its book in code; that stays available as the low-level path, only the hand-written builders as the *normal* way go. |
@@ -119,9 +119,9 @@ entry order are what a reorder changes. Keeping them in one place makes a drag-r
 // content/books/thehexbook.ybook
 {
   "$schema": "https://yog.dev/schema/ybook-1.json",
-  "name": "@Book.name",                          // nameplate + item name default
-  "subtitle": "@Book.subtitle",                  // optional, under the nameplate (Patchouli "subtitle")
-  "landing_text": "@Book.landing",
+  "name": "@res:Book.name",                          // nameplate + item name default
+  "subtitle": "@res:Book.subtitle",                  // optional, under the nameplate (Patchouli "subtitle")
+  "landing_text": "@res:Book.landing",
   "texts": "Book",                               // the .yres set the designer adds new texts to (default "Book")
 
   "skin": {                                      // optional; default = Yog's brown book (§7.3)
@@ -135,8 +135,8 @@ entry order are what a reorder changes. Keeping them in one place makes a drag-r
   },
 
   "item": {                                      // the book item; `false` = no item (opened from code only)
-    "name": "@Items.thehexbook",                 // default: the book's name
-    "tooltip": "@Items.thehexbook.desc",
+    "name": "@res:Items.thehexbook",                 // default: the book's name
+    "tooltip": "@res:Items.thehexbook.desc",
     "model": { "parent": "generated", "textures": { "layer0": "hexcasting:item/thehexbook" } },
                                                  // default: <ns>:item/<book> if that texture exists, else minecraft:item/book
     "creative_tab": "hexcasting:hexcasting",
@@ -154,17 +154,17 @@ entry order are what a reorder changes. Keeping them in one place makes a drag-r
   "categories": [                                // display order
     {
       "id": "basics",                            // = folder under thehexbook/
-      "name": "@Book.category.basics",
-      "description": "@Book.category.basics.desc",
+      "name": "@res:Book.category.basics",
+      "description": "@res:Book.category.basics.desc",
       "icon": "item:hexcasting:staff/oak",       // a paint ref (§3.6)
       "entries": ["media", "geodes", "couldnt_cast", "start_to_see"]   // display order
     },
     {
-      "id": "patterns", "name": "@Book.category.patterns", "icon": "item:minecraft:bookshelf",
+      "id": "patterns", "name": "@res:Book.category.patterns", "icon": "item:minecraft:bookshelf",
       "unlock": "hexcasting:root",
       "entries": ["readers_guide", "basics", "numbers", "math", "…"]
     },
-    { "id": "patterns/spells", "name": "@Book.category.spells", "icon": "item:hexcasting:artifact",
+    { "id": "patterns/spells", "name": "@res:Book.category.spells", "icon": "item:hexcasting:artifact",
       "entries": ["basic", "blockworks", "…"] }
   ]
 }
@@ -183,20 +183,20 @@ Rules:
 ```jsonc
 // content/books/thehexbook/patterns/math.yentry
 {
-  "name": "@Book.entry.math",
+  "name": "@res:Book.entry.math",
   "icon": "item:minecraft:blaze_rod",
   "unlock": "hexcasting:root",                   // §3.5
   "read_by_default": true,
   "color": "#54398A",                            // optional title color in the entry list (Patchouli entry_color)
   "pages": [
-    { "text": "@Book.page.math.numvec" },        // "type" defaults to "text"
+    { "text": "@res:Book.page.math.numvec" },        // "type" defaults to "text"
     { "type": "empty" },
     { "type": "hexcasting:pattern", "anchor": "add",
       "op_id": "hexcasting:add", "input": "num|vec, num|vec", "output": "num|vec",
-      "text": "@Book.page.math.add.1" },
-    { "text": "@Book.page.math.add.2" },
+      "text": "@res:Book.page.math.add.1" },
+    { "text": "@res:Book.page.math.add.2" },
     { "type": "crafting", "recipe": ["hexcasting:staff/oak", "hexcasting:staff/spruce"],
-      "title": "@Book.page.staff.crafting.header", "text": "@Book.page.staff.crafting.desc" }
+      "title": "@res:Book.page.staff.crafting.header", "text": "@res:Book.page.staff.crafting.desc" }
   ]
 }
 ```
@@ -214,7 +214,7 @@ condition (§3.5).
 
 ### 3.3 Built-in page types
 
-All text fields (`text`, `title`, `name`, `link_text`) are `@Set.name` refs or literals, with markup. Item fields take
+All text fields (`text`, `title`, `name`, `link_text`) are `@res:Set.name` refs or literals, with markup. Item fields take
 an **item stack ref**: `"minecraft:diamond"`, `{ "id": "minecraft:diamond", "count": 3 }`, a tag `"#minecraft:logs"`,
 or a list. Lists and tags cycle once per second, as in Patchouli.
 
@@ -244,7 +244,7 @@ A mod adds a page type by writing a `.yui` `<Component>` with one extra attribut
 ```xml
 <!-- HexMod-Yog/src/ui/book/pattern_page.yui -->
 <Component name="PatternPage" book_page="hexcasting:pattern"
-           description="@Strings.component.pattern_page" icon="item:hexcasting:scroll">
+           description="@res:Strings.component.pattern_page" icon="item:hexcasting:scroll">
     <Property name="op_id"  type="text" doc="Action whose pattern is drawn"/>
     <Property name="input"  type="text" default=""/>
     <Property name="output" type="text" default=""/>
@@ -272,7 +272,7 @@ impl PatternPage {
 - **Fields = properties.** A page `{ "type": "hexcasting:pattern", "op_id": …, "text": … }` sets the component's
   properties by name. Page fields that are not properties are build errors. `anchor`, `unlock` and `type` are
   reserved.
-- **New property type `book_text`**: a text that may be `@Set.name`, is translated by the runtime before the
+- **New property type `book_text`**: a text that may be `@res:Set.name`, is translated by the runtime before the
   component sees it, and holds book markup. A plain `text` property is translated too, but its markup is not
   interpreted.
 - **New elements** (yog-ui; drawn by the host through yog-book, §6.5):
@@ -420,7 +420,7 @@ changes, not every frame.
 
 ## 5. Localization
 
-- A text field is `@Set.name` (a `.yres` text, translated at run time like any other) or a literal. At build time
+- A text field is `@res:Set.name` (a `.yres` text, translated at run time like any other) or a literal. At build time
   a literal becomes an `en_us` lang entry under `<ns>.book.<book>.<entry path with / → .>.<page>.<field>`. The
   compiled book therefore always carries keys, and the runtime has one code path.
 - Key names: the `.yres` default key of a non-`Items`/`Blocks` set is `<mod id>.<name>`. Imported names are the
@@ -577,7 +577,7 @@ and are required by this one.
    built-in schemas or the custom page components' `<Property>` declarations (read from `.yui`, as
    `components.rs` does in IDLE);
 2. checks texts:
-   - every `@Set.name` exists;
+   - every `@res:Set.name` exists;
    - the markup parses;
    - link targets and anchors exist (including links inside `.yres` texts used by the book);
    - macros referenced as `$(name)` exist;
@@ -910,7 +910,7 @@ features, stubs written, and links whose target is missing.
 | `yog_book::{Book, BookCategory, BookEntry, BookPage, BookMacro, BookRegistry}` builders, `*_page()` helpers, `to_json`, `book_ui` | `.ybook`/`.yentry`; `yog_book::model` is internal |
 | `BookPage::{Pattern, Svg, CustomText}`, `BookFont`/`BookFontRegistry`, the `svg`/`fonts`/`full` features, `svg.rs`, `font.rs` | custom page components; yog-ui fonts |
 | `BookGl` (shader, PNG decoding, sprite blitter), `OverlayCmd`, `BookTheme` constants | draw2d + `mat:yog:book/*` + the skin |
-| `Book.i18n`, `BookRenderer::set_translator` and the language probe | `@Set.name` refs, `host_language()` |
+| `Book.i18n`, `BookRenderer::set_translator` and the language probe | `@res:Set.name` refs, `host_language()` |
 | `yog_api::book`, the `yog_book` re-exports in yog-api (except `model`), `Registry::register_book(&Book)` | data loading, `BookId`/`EntryRef` handles; `yog_api::books::register(model)` for books built in code (B6) |
 | `BookRenderer` as a mod-facing type | `<BookView>` element (§6.3), `open_book` |
 | JNI `nativeBookJson`, Java item↔book id matching | `YogItemDef.book` |

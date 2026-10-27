@@ -68,7 +68,7 @@ pub fn yblock(i: usize) -> String {
         )
     };
     format!(
-        "{{\n  \"name\": \"@Blocks.block_{i}\",\n  \"tooltip\": \"Block {i}\",\n  \"block\": {{ \"hardness\": {}, \"resistance\": 4, \"sound\": \"stone\", \"tool\": \"pickaxe\", \"requires_tool\": {} }},\n  \"model\": {model}\n}}\n",
+        "{{\n  \"name\": \"@res:Blocks.block_{i}\",\n  \"tooltip\": \"Block {i}\",\n  \"block\": {{ \"hardness\": {}, \"resistance\": 4, \"sound\": \"stone\", \"tool\": \"pickaxe\", \"requires_tool\": {} }},\n  \"model\": {model}\n}}\n",
         1 + i % 5,
         i.is_multiple_of(3)
     )
@@ -82,7 +82,7 @@ pub fn yitem(i: usize) -> String {
         format!("\"stack_size\": {}", 1 + i % 64)
     };
     format!(
-        "{{\n  \"name\": \"@Blocks.item_{i}\",\n  \"item\": {{ {props} }},\n  \"model\": {{ \"parent\": \"generated\", \"textures\": {{ \"layer0\": \"item/i{i}.png\" }} }}\n}}\n"
+        "{{\n  \"name\": \"@res:Blocks.item_{i}\",\n  \"item\": {{ {props} }},\n  \"model\": {{ \"parent\": \"generated\", \"textures\": {{ \"layer0\": \"item/i{i}.png\" }} }}\n}}\n"
     )
 }
 

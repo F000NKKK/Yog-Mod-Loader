@@ -1,6 +1,6 @@
 {
   "id": "thehexbook",
-  "name": "@Book.book.name",
+  "name": "@res:Book.book.name",
   "version": 1,
   "nameplate_color": "00072b",
   "accent": "#8d6acc",
@@ -8,72 +8,72 @@
   "categories": [
     {
       "id": "hexcasting:basics",
-      "name": "@Book.category.basics",
+      "name": "@res:Book.category.basics",
       "sortnum": 0,
-      "description": "@Book.category.basics.desc",
+      "description": "@res:Book.category.basics.desc",
       "icon": "@item:minecraft:amethyst_shard"
     },
     {
       "id": "hexcasting:casting",
-      "name": "@Book.category.casting",
+      "name": "@res:Book.category.casting",
       "sortnum": 100,
-      "description": "@Book.category.casting.desc",
+      "description": "@res:Book.category.casting.desc",
       "icon": "@item:hexcasting:staff/oak"
     },
     {
       "id": "hexcasting:items",
-      "name": "@Book.category.items",
+      "name": "@res:Book.category.items",
       "sortnum": 200,
-      "description": "@Book.category.items.desc",
+      "description": "@res:Book.category.items.desc",
       "icon": "@item:hexcasting:focus"
     },
     {
       "id": "hexcasting:greatwork",
-      "name": "@Book.category.greatwork",
+      "name": "@res:Book.category.greatwork",
       "sortnum": 300,
-      "description": "@Book.category.greatwork.desc",
+      "description": "@res:Book.category.greatwork.desc",
       "icon": "@item:minecraft:music_disc_11"
     },
     {
       "id": "hexcasting:lore",
-      "name": "@Book.category.lore",
+      "name": "@res:Book.category.lore",
       "sortnum": 9800,
-      "description": "@Book.category.lore.desc",
+      "description": "@res:Book.category.lore.desc",
       "icon": "@item:hexcasting:lore_fragment"
     },
     {
       "id": "hexcasting:interop",
-      "name": "@Book.category.interop",
+      "name": "@res:Book.category.interop",
       "sortnum": 9900,
-      "description": "@Book.category.interop.desc",
+      "description": "@res:Book.category.interop.desc",
       "icon": "@item:minecraft:chain"
     },
     {
       "id": "hexcasting:patterns",
-      "name": "@Book.category.patterns",
+      "name": "@res:Book.category.patterns",
       "sortnum": 10000,
-      "description": "@Book.category.patterns.desc",
+      "description": "@res:Book.category.patterns.desc",
       "icon": "@item:minecraft:bookshelf"
     },
     {
       "id": "hexcasting:patterns/spells",
-      "name": "@Book.category.spells",
+      "name": "@res:Book.category.spells",
       "sortnum": 10001,
-      "description": "@Book.category.spells.desc",
+      "description": "@res:Book.category.spells.desc",
       "icon": "minecraft:textures/item/enchanted_book.png"
     },
     {
       "id": "hexcasting:patterns/great_spells",
-      "name": "@Book.category.great_spells",
+      "name": "@res:Book.category.great_spells",
       "sortnum": 10002,
-      "description": "@Book.category.great_spells.desc",
+      "description": "@res:Book.category.great_spells.desc",
       "icon": "minecraft:textures/mob_effect/conduit_power.png"
     }
   ],
   "entries": [
     {
       "id": "hexcasting:basics/couldnt_cast",
-      "name": "@Book.entry.couldnt_cast",
+      "name": "@res:Book.entry.couldnt_cast",
       "category": "@category:hexcasting:basics",
       "icon": "minecraft:textures/mob_effect/nausea.png",
       "priority": 0,
@@ -81,25 +81,25 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.couldnt_cast.n1"
+          "text": "@res:Book.page.couldnt_cast.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.couldnt_cast.n2"
+          "text": "@res:Book.page.couldnt_cast.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.couldnt_cast.n3"
+          "text": "@res:Book.page.couldnt_cast.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.couldnt_cast.n4"
+          "text": "@res:Book.page.couldnt_cast.n4"
         }
       ]
     },
     {
       "id": "hexcasting:basics/geodes",
-      "name": "@Book.entry.geodes",
+      "name": "@res:Book.entry.geodes",
       "category": "@category:hexcasting:basics",
       "icon": "@item:minecraft:amethyst_block",
       "priority": 1,
@@ -107,42 +107,42 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.geodes.n1"
+          "text": "@res:Book.page.geodes.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.geodes.n2"
+          "text": "@res:Book.page.geodes.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.geodes.n3"
+          "text": "@res:Book.page.geodes.n3"
         }
       ]
     },
     {
       "id": "hexcasting:basics/media",
-      "name": "@Book.entry.media",
+      "name": "@res:Book.entry.media",
       "category": "@category:hexcasting:basics",
       "icon": "@item:hexcasting:amethyst_dust",
       "priority": 0,
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.media.n1"
+          "text": "@res:Book.page.media.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.media.n2"
+          "text": "@res:Book.page.media.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.media.n3"
+          "text": "@res:Book.page.media.n3"
         }
       ]
     },
     {
       "id": "hexcasting:basics/start_to_see",
-      "name": "@Book.entry.start_to_see",
+      "name": "@res:Book.entry.start_to_see",
       "category": "@category:hexcasting:basics",
       "icon": "minecraft:textures/mob_effect/blindness.png",
       "priority": 1,
@@ -150,25 +150,25 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.start_to_see.n1"
+          "text": "@res:Book.page.start_to_see.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.start_to_see.n2"
+          "text": "@res:Book.page.start_to_see.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.start_to_see.n3"
+          "text": "@res:Book.page.start_to_see.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.start_to_see.n4"
+          "text": "@res:Book.page.start_to_see.n4"
         }
       ]
     },
     {
       "id": "hexcasting:casting/101",
-      "name": "@Book.entry.n101",
+      "name": "@res:Book.entry.n101",
       "category": "@category:hexcasting:casting",
       "icon": "@item:hexcasting:staff/edified",
       "priority": 0,
@@ -176,23 +176,23 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.n101.n1"
+          "text": "@res:Book.page.n101.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n2"
+          "text": "@res:Book.page.n101.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n3"
+          "text": "@res:Book.page.n101.n3"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:manual",
-          "name": "@Book.page.n101.n4.header",
+          "name": "@res:Book.page.n101.n4.header",
           "input": "",
           "output": "",
-          "text": "@Book.page.n101.n4",
+          "text": "@res:Book.page.n101.n4",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -206,53 +206,53 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n5"
+          "text": "@res:Book.page.n101.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n6"
+          "text": "@res:Book.page.n101.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n7"
+          "text": "@res:Book.page.n101.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n8"
+          "text": "@res:Book.page.n101.n8"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n9"
+          "text": "@res:Book.page.n101.n9"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n10"
+          "text": "@res:Book.page.n101.n10"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n11"
+          "text": "@res:Book.page.n101.n11"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n12"
+          "text": "@res:Book.page.n101.n12"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n13"
+          "text": "@res:Book.page.n101.n13"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n14"
+          "text": "@res:Book.page.n101.n14"
         },
         {
           "type": "text",
-          "text": "@Book.page.n101.n15"
+          "text": "@res:Book.page.n101.n15"
         }
       ]
     },
     {
       "id": "hexcasting:casting/mishaps",
-      "name": "@Book.entry.mishaps",
+      "name": "@res:Book.entry.mishaps",
       "category": "@category:hexcasting:casting",
       "icon": "minecraft:textures/mob_effect/poison.png",
       "priority": 2,
@@ -260,96 +260,96 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.mishaps.n1"
+          "text": "@res:Book.page.mishaps.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.n2"
+          "text": "@res:Book.page.mishaps.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.n3"
+          "text": "@res:Book.page.mishaps.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.invalid_pattern",
-          "title": "@Book.page.mishaps.invalid_pattern.title"
+          "text": "@res:Book.page.mishaps.invalid_pattern",
+          "title": "@res:Book.page.mishaps.invalid_pattern.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.not_enough_iotas",
-          "title": "@Book.page.mishaps.not_enough_iotas.title"
+          "text": "@res:Book.page.mishaps.not_enough_iotas",
+          "title": "@res:Book.page.mishaps.not_enough_iotas.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.stack_size",
-          "title": "@Book.page.mishaps.stack_size.title"
+          "text": "@res:Book.page.mishaps.stack_size",
+          "title": "@res:Book.page.mishaps.stack_size.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.incorrect_iota",
-          "title": "@Book.page.mishaps.incorrect_iota.title"
+          "text": "@res:Book.page.mishaps.incorrect_iota",
+          "title": "@res:Book.page.mishaps.incorrect_iota.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.vector_out_of_range",
-          "title": "@Book.page.mishaps.vector_out_of_range.title"
+          "text": "@res:Book.page.mishaps.vector_out_of_range",
+          "title": "@res:Book.page.mishaps.vector_out_of_range.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.entity_out_of_range",
-          "title": "@Book.page.mishaps.entity_out_of_range.title"
+          "text": "@res:Book.page.mishaps.entity_out_of_range",
+          "title": "@res:Book.page.mishaps.entity_out_of_range.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.entity_immune",
-          "title": "@Book.page.mishaps.entity_immune.title"
+          "text": "@res:Book.page.mishaps.entity_immune",
+          "title": "@res:Book.page.mishaps.entity_immune.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.math_error",
-          "title": "@Book.page.mishaps.math_error.title"
+          "text": "@res:Book.page.mishaps.math_error",
+          "title": "@res:Book.page.mishaps.math_error.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.incorrect_item",
-          "title": "@Book.page.mishaps.incorrect_item.title"
+          "text": "@res:Book.page.mishaps.incorrect_item",
+          "title": "@res:Book.page.mishaps.incorrect_item.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.incorrect_block",
-          "title": "@Book.page.mishaps.incorrect_block.title"
+          "text": "@res:Book.page.mishaps.incorrect_block",
+          "title": "@res:Book.page.mishaps.incorrect_block.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.needs_parens",
-          "title": "@Book.page.mishaps.needs_parens.title"
+          "text": "@res:Book.page.mishaps.needs_parens",
+          "title": "@res:Book.page.mishaps.needs_parens.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.too_many_patterns",
-          "title": "@Book.page.mishaps.too_many_patterns.title"
+          "text": "@res:Book.page.mishaps.too_many_patterns",
+          "title": "@res:Book.page.mishaps.too_many_patterns.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.true_name",
-          "title": "@Book.page.mishaps.true_name.title"
+          "text": "@res:Book.page.mishaps.true_name",
+          "title": "@res:Book.page.mishaps.true_name.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.disabled",
-          "title": "@Book.page.mishaps.disabled.title"
+          "text": "@res:Book.page.mishaps.disabled",
+          "title": "@res:Book.page.mishaps.disabled.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps.other",
-          "title": "@Book.page.mishaps.other.title"
+          "text": "@res:Book.page.mishaps.other",
+          "title": "@res:Book.page.mishaps.other.title"
         }
       ]
     },
     {
       "id": "hexcasting:casting/mishaps2",
-      "name": "@Book.entry.mishaps2",
+      "name": "@res:Book.entry.mishaps2",
       "category": "@category:hexcasting:casting",
       "icon": "@item:minecraft:flint_and_steel",
       "priority": 3,
@@ -357,33 +357,33 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.mishaps2.n1"
+          "text": "@res:Book.page.mishaps2.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps2.bad_mindflay",
-          "title": "@Book.page.mishaps2.bad_mindflay.title"
+          "text": "@res:Book.page.mishaps2.bad_mindflay",
+          "title": "@res:Book.page.mishaps2.bad_mindflay.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps2.no_circle",
-          "title": "@Book.page.mishaps2.no_circle.title"
+          "text": "@res:Book.page.mishaps2.no_circle",
+          "title": "@res:Book.page.mishaps2.no_circle.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps2.no_record",
-          "title": "@Book.page.mishaps2.no_record.title"
+          "text": "@res:Book.page.mishaps2.no_record",
+          "title": "@res:Book.page.mishaps2.no_record.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.mishaps2.bad_shepherd",
-          "title": "@Book.page.mishaps2.bad_shepherd.title"
+          "text": "@res:Book.page.mishaps2.bad_shepherd",
+          "title": "@res:Book.page.mishaps2.bad_shepherd.title"
         }
       ]
     },
     {
       "id": "hexcasting:casting/naming",
-      "name": "@Book.entry.naming",
+      "name": "@res:Book.entry.naming",
       "category": "@category:hexcasting:casting",
       "icon": "@item:minecraft:name_tag",
       "priority": 1,
@@ -391,21 +391,21 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.naming.n1"
+          "text": "@res:Book.page.naming.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.naming.n2"
+          "text": "@res:Book.page.naming.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.naming.n3"
+          "text": "@res:Book.page.naming.n3"
         }
       ]
     },
     {
       "id": "hexcasting:casting/stack",
-      "name": "@Book.entry.stack",
+      "name": "@res:Book.entry.stack",
       "category": "@category:hexcasting:casting",
       "icon": "@item:minecraft:piston",
       "priority": 0,
@@ -413,25 +413,25 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.stack.n1"
+          "text": "@res:Book.page.stack.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.stack.n2"
+          "text": "@res:Book.page.stack.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.stack.n3"
+          "text": "@res:Book.page.stack.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.stack.n4"
+          "text": "@res:Book.page.stack.n4"
         }
       ]
     },
     {
       "id": "hexcasting:casting/vectors",
-      "name": "@Book.entry.vectors",
+      "name": "@res:Book.entry.vectors",
       "category": "@category:hexcasting:casting",
       "icon": "@item:minecraft:arrow",
       "priority": 1,
@@ -439,53 +439,53 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.vectors.n1"
+          "text": "@res:Book.page.vectors.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n2"
+          "text": "@res:Book.page.vectors.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n3"
+          "text": "@res:Book.page.vectors.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n4"
+          "text": "@res:Book.page.vectors.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n5"
+          "text": "@res:Book.page.vectors.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n6"
+          "text": "@res:Book.page.vectors.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n7"
+          "text": "@res:Book.page.vectors.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n8"
+          "text": "@res:Book.page.vectors.n8"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n9"
+          "text": "@res:Book.page.vectors.n9"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n10"
+          "text": "@res:Book.page.vectors.n10"
         },
         {
           "type": "text",
-          "text": "@Book.page.vectors.n11"
+          "text": "@res:Book.page.vectors.n11"
         }
       ]
     },
     {
       "id": "hexcasting:casting/whats_a_hex",
-      "name": "@Book.entry.whats_a_hex",
+      "name": "@res:Book.entry.whats_a_hex",
       "category": "@category:hexcasting:casting",
       "icon": "@item:hexcasting:focus",
       "priority": 2,
@@ -493,21 +493,21 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.whats_a_hex.n1"
+          "text": "@res:Book.page.whats_a_hex.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.whats_a_hex.n2"
+          "text": "@res:Book.page.whats_a_hex.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.whats_a_hex.n3"
+          "text": "@res:Book.page.whats_a_hex.n3"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/akashiclib",
-      "name": "@Book.entry.akashiclib",
+      "name": "@res:Book.entry.akashiclib",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:hexcasting:akashic_record",
       "priority": 4,
@@ -515,16 +515,16 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.akashiclib.n1"
+          "text": "@res:Book.page.akashiclib.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.akashiclib.n2"
+          "text": "@res:Book.page.akashiclib.n2"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.akashiclib.akashic_record"
+          "text": "@res:Book.page.akashiclib.akashic_record"
         },
         {
           "type": "recipe",
@@ -536,13 +536,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.akashiclib.n3"
+          "text": "@res:Book.page.akashiclib.n3"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/brainsweeping",
-      "name": "@Book.entry.brainsweeping",
+      "name": "@res:Book.entry.brainsweeping",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:minecraft:wither_skeleton_skull",
       "priority": 0,
@@ -550,26 +550,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.brainsweeping.n1"
+          "text": "@res:Book.page.brainsweeping.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.brainsweeping.n2"
+          "text": "@res:Book.page.brainsweeping.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.brainsweeping.n3"
+          "text": "@res:Book.page.brainsweeping.n3"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.brainsweeping.budding_amethyst"
+          "text": "@res:Book.page.brainsweeping.budding_amethyst"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/directrix",
-      "name": "@Book.entry.directrix",
+      "name": "@res:Book.entry.directrix",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:hexcasting:directrix/redstone",
       "priority": 3,
@@ -577,32 +577,32 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.directrix.n1"
+          "text": "@res:Book.page.directrix.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.directrix.n2"
+          "text": "@res:Book.page.directrix.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:directrix/empty",
-          "text": "@Book.page.directrix.empty_directrix"
+          "text": "@res:Book.page.directrix.empty_directrix"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.directrix.directrix_redstone"
+          "text": "@res:Book.page.directrix.directrix_redstone"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.directrix.directrix_boolean"
+          "text": "@res:Book.page.directrix.directrix_boolean"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/fanciful_staves",
-      "name": "@Book.entry.fanciful_staves",
+      "name": "@res:Book.entry.fanciful_staves",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:hexcasting:staff/mindsplice",
       "priority": 6,
@@ -610,7 +610,7 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.fanciful_staves.n1"
+          "text": "@res:Book.page.fanciful_staves.n1"
         },
         {
           "type": "recipe",
@@ -624,7 +624,7 @@
     },
     {
       "id": "hexcasting:greatwork/impetus",
-      "name": "@Book.entry.impetus",
+      "name": "@res:Book.entry.impetus",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:hexcasting:impetus/rightclick",
       "priority": 2,
@@ -632,49 +632,49 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.impetus.n1"
+          "text": "@res:Book.page.impetus.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.impetus.n2"
+          "text": "@res:Book.page.impetus.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.impetus.n3"
+          "text": "@res:Book.page.impetus.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.impetus.n4"
+          "text": "@res:Book.page.impetus.n4"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:impetus/empty",
-          "text": "@Book.page.impetus.empty_impetus"
+          "text": "@res:Book.page.impetus.empty_impetus"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.impetus.impetus_rightclick"
+          "text": "@res:Book.page.impetus.impetus_rightclick"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.impetus.impetus_storedplayer.n1"
+          "text": "@res:Book.page.impetus.impetus_storedplayer.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.impetus.impetus_storedplayer.n2"
+          "text": "@res:Book.page.impetus.impetus_storedplayer.n2"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.impetus.impetus_look"
+          "text": "@res:Book.page.impetus.impetus_look"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/quenching_allays",
-      "name": "@Book.entry.quenching_allays",
+      "name": "@res:Book.entry.quenching_allays",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:hexcasting:quenched_allay",
       "priority": 5,
@@ -682,26 +682,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.quenching_allays.n1"
+          "text": "@res:Book.page.quenching_allays.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.quenching_allays.n2"
+          "text": "@res:Book.page.quenching_allays.n2"
         },
         {
           "type": "entity",
           "entity": "@entity:minecraft:villager",
-          "text": "@Book.page.quenching_allays.n3"
+          "text": "@res:Book.page.quenching_allays.n3"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:quenched_allay_shard",
-          "text": "@Book.page.quenching_allays.n4"
+          "text": "@res:Book.page.quenching_allays.n4"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:decompose_quenched_shard/dust",
-          "text": "@Book.page.quenching_allays.n5"
+          "text": "@res:Book.page.quenching_allays.n5"
         },
         {
           "type": "recipe",
@@ -715,7 +715,7 @@
     },
     {
       "id": "hexcasting:greatwork/spellcircles",
-      "name": "@Book.entry.spellcircles",
+      "name": "@res:Book.entry.spellcircles",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:minecraft:lodestone",
       "priority": 1,
@@ -723,42 +723,42 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n1"
+          "text": "@res:Book.page.spellcircles.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n2"
+          "text": "@res:Book.page.spellcircles.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n3"
+          "text": "@res:Book.page.spellcircles.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n4"
+          "text": "@res:Book.page.spellcircles.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n5"
+          "text": "@res:Book.page.spellcircles.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n6"
+          "text": "@res:Book.page.spellcircles.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellcircles.n7"
+          "text": "@res:Book.page.spellcircles.n7"
         },
         {
           "type": "image",
           "texture": "hexcasting:textures/gui/entries/spell_circle.png",
-          "title": "@Book.page.spellcircles.teleport_circle.title"
+          "title": "@res:Book.page.spellcircles.teleport_circle.title"
         }
       ]
     },
     {
       "id": "hexcasting:greatwork/the_work",
-      "name": "@Book.entry.the_work",
+      "name": "@res:Book.entry.the_work",
       "category": "@category:hexcasting:greatwork",
       "icon": "@item:minecraft:nether_star",
       "priority": 0,
@@ -766,38 +766,38 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.the_work.n1"
+          "text": "@res:Book.page.the_work.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.the_work.n2"
+          "text": "@res:Book.page.the_work.n2"
         }
       ]
     },
     {
       "id": "hexcasting:interop/interop",
-      "name": "@Book.entry.interop",
+      "name": "@res:Book.entry.interop",
       "category": "@category:hexcasting:interop",
       "icon": "@item:minecraft:chain",
       "priority": 0,
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.interop.n1"
+          "text": "@res:Book.page.interop.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.interop.n2"
+          "text": "@res:Book.page.interop.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.interop.n3"
+          "text": "@res:Book.page.interop.n3"
         }
       ]
     },
     {
       "id": "hexcasting:interop/pehkui",
-      "name": "@Book.entry.interop.pehkui",
+      "name": "@res:Book.entry.interop.pehkui",
       "category": "@category:hexcasting:interop",
       "icon": "@item:minecraft:red_mushroom",
       "priority": 0,
@@ -805,29 +805,29 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.interop.pehkui.n1"
+          "text": "@res:Book.page.interop.pehkui.n1"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:interop/pehkui/get",
-          "name": "@Book.action.hexcasting.interop.pehkui.get",
+          "name": "@res:Book.action.hexcasting.interop.pehkui.get",
           "input": "entity",
           "output": "num",
-          "text": "@Book.page.interop.pehkui.get"
+          "text": "@res:Book.page.interop.pehkui.get"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:interop/pehkui/set",
-          "name": "@Book.action.hexcasting.interop.pehkui.set",
+          "name": "@res:Book.action.hexcasting.interop.pehkui.set",
           "input": "entity, num",
           "output": "",
-          "text": "@Book.page.interop.pehkui.set"
+          "text": "@res:Book.page.interop.pehkui.set"
         }
       ]
     },
     {
       "id": "hexcasting:items/abacus",
-      "name": "@Book.entry.abacus",
+      "name": "@res:Book.entry.abacus",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:abacus",
       "priority": 2,
@@ -835,22 +835,22 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.abacus.n1"
+          "text": "@res:Book.page.abacus.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.abacus.n2"
+          "text": "@res:Book.page.abacus.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:abacus",
-          "text": "@Book.page.abacus.crafting.desc"
+          "text": "@res:Book.page.abacus.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/amethyst",
-      "name": "@Book.entry.amethyst",
+      "name": "@res:Book.entry.amethyst",
       "category": "@category:hexcasting:items",
       "icon": "@item:minecraft:amethyst_shard",
       "priority": 0,
@@ -859,27 +859,27 @@
         {
           "type": "spotlight",
           "item": "@item:hexcasting:amethyst_dust",
-          "text": "@Book.page.amethyst.dust"
+          "text": "@res:Book.page.amethyst.dust"
         },
         {
           "type": "spotlight",
           "item": "@item:minecraft:amethyst_shard",
-          "text": "@Book.page.amethyst.shard"
+          "text": "@res:Book.page.amethyst.shard"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:charged_amethyst",
-          "text": "@Book.page.amethyst.crystal"
+          "text": "@res:Book.page.amethyst.crystal"
         },
         {
           "type": "text",
-          "text": "@Book.page.amethyst.lore"
+          "text": "@res:Book.page.amethyst.lore"
         }
       ]
     },
     {
       "id": "hexcasting:items/ancient_cyphers",
-      "name": "@Book.entry.ancient_cyphers",
+      "name": "@res:Book.entry.ancient_cyphers",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:ancient_cypher",
       "priority": 7,
@@ -887,23 +887,23 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.ancient_cyphers.n1"
+          "text": "@res:Book.page.ancient_cyphers.n1"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:ancient_cypher",
-          "text": "@Book.page.ancient_cyphers.n2"
+          "text": "@res:Book.page.ancient_cyphers.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:ancient_colorizer",
-          "text": "@Book.page.ancient_cyphers.n3"
+          "text": "@res:Book.page.ancient_cyphers.n3"
         }
       ]
     },
     {
       "id": "hexcasting:items/creative_items",
-      "name": "@Book.entry.creative_items",
+      "name": "@res:Book.entry.creative_items",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:creative_unlocker",
       "priority": 99,
@@ -911,28 +911,28 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.creative_items.n1"
+          "text": "@res:Book.page.creative_items.n1"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:creative_unlocker",
-          "text": "@Book.page.creative_items.creative_unlocker"
+          "text": "@res:Book.page.creative_items.creative_unlocker"
         },
         {
           "type": "text",
-          "text": "@Book.page.creative_items.n2"
+          "text": "@res:Book.page.creative_items.n2"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:creative_unlocker",
-          "title": "@Book.page.creative_items.debug_media.title",
-          "text": "@Book.page.creative_items.debug_media.desc"
+          "title": "@res:Book.page.creative_items.debug_media.title",
+          "text": "@res:Book.page.creative_items.debug_media.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/decoration",
-      "name": "@Book.entry.decoration",
+      "name": "@res:Book.entry.decoration",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:ancient_scroll_paper",
       "priority": 10,
@@ -940,7 +940,7 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.decoration.n1"
+          "text": "@res:Book.page.decoration.n1"
         },
         {
           "type": "recipe",
@@ -969,12 +969,12 @@
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:ageing_scroll_paper_lantern",
-          "text": "@Book.page.decoration.ancient_scroll.crafting.desc"
+          "text": "@res:Book.page.decoration.ancient_scroll.crafting.desc"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:amethyst_tiles",
-          "text": "@Book.page.decoration.tiles.crafting.desc"
+          "text": "@res:Book.page.decoration.tiles.crafting.desc"
         },
         {
           "type": "recipe",
@@ -987,13 +987,13 @@
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:amethyst_sconce",
-          "text": "@Book.page.decoration.sconce.crafting.desc"
+          "text": "@res:Book.page.decoration.sconce.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/edified",
-      "name": "@Book.entry.edified",
+      "name": "@res:Book.entry.edified",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:edified_log",
       "priority": 9,
@@ -1001,11 +1001,11 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.edified.n1"
+          "text": "@res:Book.page.edified.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.edified.n2"
+          "text": "@res:Book.page.edified.n2"
         },
         {
           "type": "recipe",
@@ -1025,13 +1025,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.edified.crafting.desc"
+          "text": "@res:Book.page.edified.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/focus",
-      "name": "@Book.entry.focus",
+      "name": "@res:Book.entry.focus",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:focus",
       "priority": 1,
@@ -1039,26 +1039,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.focus.n1"
+          "text": "@res:Book.page.focus.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.focus.n2"
+          "text": "@res:Book.page.focus.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.focus.n3"
+          "text": "@res:Book.page.focus.n3"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:focus",
-          "text": "@Book.page.focus.crafting.desc"
+          "text": "@res:Book.page.focus.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/hexcasting",
-      "name": "@Book.entry.hexcasting",
+      "name": "@res:Book.entry.hexcasting",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:artifact",
       "priority": 6,
@@ -1066,23 +1066,23 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.hexcasting.n1"
+          "text": "@res:Book.page.hexcasting.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting.n2"
+          "text": "@res:Book.page.hexcasting.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting.n3"
+          "text": "@res:Book.page.hexcasting.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting.n4"
+          "text": "@res:Book.page.hexcasting.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting.n5"
+          "text": "@res:Book.page.hexcasting.n5"
         },
         {
           "type": "recipe",
@@ -1095,13 +1095,13 @@
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:artifact",
-          "text": "@Book.page.hexcasting.crafting.desc"
+          "text": "@res:Book.page.hexcasting.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/jeweler_hammer",
-      "name": "@Book.entry.jeweler_hammer",
+      "name": "@res:Book.entry.jeweler_hammer",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:jeweler_hammer",
       "priority": 9,
@@ -1109,18 +1109,18 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.jeweler_hammer.n1"
+          "text": "@res:Book.page.jeweler_hammer.n1"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:jeweler_hammer",
-          "text": "@Book.page.jeweler_hammer.crafting.desc"
+          "text": "@res:Book.page.jeweler_hammer.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/lens",
-      "name": "@Book.entry.lens",
+      "name": "@res:Book.entry.lens",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:lens",
       "priority": 2,
@@ -1128,22 +1128,22 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lens.n1"
+          "text": "@res:Book.page.lens.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lens.n2"
+          "text": "@res:Book.page.lens.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:lens",
-          "text": "@Book.page.lens.crafting.desc"
+          "text": "@res:Book.page.lens.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/phials",
-      "name": "@Book.entry.phials",
+      "name": "@res:Book.entry.phials",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:battery",
       "priority": 7,
@@ -1152,26 +1152,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.phials.n1"
+          "text": "@res:Book.page.phials.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.phials.n2"
+          "text": "@res:Book.page.phials.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.phials.n3"
+          "text": "@res:Book.page.phials.n3"
         },
         {
           "type": "spotlight",
           "item": "@item:hexcasting:battery",
-          "text": "@Book.page.phials.desc"
+          "text": "@res:Book.page.phials.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/pigments",
-      "name": "@Book.entry.pigments",
+      "name": "@res:Book.entry.pigments",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:uuid_colorizer",
       "priority": 8,
@@ -1179,16 +1179,16 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.pigments.n1"
+          "text": "@res:Book.page.pigments.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.pigments.n2"
+          "text": "@res:Book.page.pigments.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:dye_colorizer_white",
-          "text": "@Book.page.pigments.colored.crafting.desc"
+          "text": "@res:Book.page.pigments.colored.crafting.desc"
         },
         {
           "type": "recipe",
@@ -1312,7 +1312,7 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.pigments.special"
+          "text": "@res:Book.page.pigments.special"
         },
         {
           "type": "recipe",
@@ -1322,7 +1322,7 @@
     },
     {
       "id": "hexcasting:items/potions",
-      "name": "@Book.entry.potions",
+      "name": "@res:Book.entry.potions",
       "category": "@category:hexcasting:items",
       "icon": "@item:minecraft:potion",
       "priority": 8,
@@ -1331,19 +1331,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.potions.n1"
+          "text": "@res:Book.page.potions.n1"
         },
         {
           "type": "spotlight",
           "item": "@item:minecraft:potion",
-          "title": "@Book.page.potions.effects.header",
-          "text": "@Book.page.potions.n2"
+          "title": "@res:Book.page.potions.effects.header",
+          "text": "@res:Book.page.potions.n2"
         }
       ]
     },
     {
       "id": "hexcasting:items/scroll",
-      "name": "@Book.entry.scroll",
+      "name": "@res:Book.entry.scroll",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:scroll",
       "priority": 4,
@@ -1351,11 +1351,11 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.scroll.n1"
+          "text": "@res:Book.page.scroll.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.scroll.n2"
+          "text": "@res:Book.page.scroll.n2"
         },
         {
           "type": "recipe",
@@ -1368,13 +1368,13 @@
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:scroll",
-          "text": "@Book.page.scroll.crafting.desc"
+          "text": "@res:Book.page.scroll.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/slate",
-      "name": "@Book.entry.slate",
+      "name": "@res:Book.entry.slate",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:slate",
       "priority": 5,
@@ -1382,26 +1382,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.slate.n1"
+          "text": "@res:Book.page.slate.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.slate.n2"
+          "text": "@res:Book.page.slate.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:slate",
-          "text": "@Book.page.slate.crafting.desc"
+          "text": "@res:Book.page.slate.crafting.desc"
         },
         {
           "type": "text",
-          "text": "@Book.page.slate.n3"
+          "text": "@res:Book.page.slate.n3"
         }
       ]
     },
     {
       "id": "hexcasting:items/spellbook",
-      "name": "@Book.entry.spellbook",
+      "name": "@res:Book.entry.spellbook",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:spellbook",
       "priority": 3,
@@ -1409,22 +1409,22 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.spellbook.n1"
+          "text": "@res:Book.page.spellbook.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.spellbook.n2"
+          "text": "@res:Book.page.spellbook.n2"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:spellbook",
-          "text": "@Book.page.spellbook.crafting.desc"
+          "text": "@res:Book.page.spellbook.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:items/staff",
-      "name": "@Book.entry.staff",
+      "name": "@res:Book.entry.staff",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:staff/oak",
       "priority": 1,
@@ -1432,12 +1432,12 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.staff.n1"
+          "text": "@res:Book.page.staff.n1"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:staff/oak",
-          "text": "@Book.page.staff.crafting.desc"
+          "text": "@res:Book.page.staff.crafting.desc"
         },
         {
           "type": "recipe",
@@ -1487,7 +1487,7 @@
     },
     {
       "id": "hexcasting:items/thought_knot",
-      "name": "@Book.entry.thought_knot",
+      "name": "@res:Book.entry.thought_knot",
       "category": "@category:hexcasting:items",
       "icon": "@item:hexcasting:thought_knot",
       "priority": 4,
@@ -1495,26 +1495,26 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.thought_knot.n1"
+          "text": "@res:Book.page.thought_knot.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.thought_knot.n2"
+          "text": "@res:Book.page.thought_knot.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.thought_knot.n3"
+          "text": "@res:Book.page.thought_knot.n3"
         },
         {
           "type": "recipe",
           "recipe": "@recipe:hexcasting:thought_knot",
-          "text": "@Book.page.thought_knot.crafting.desc"
+          "text": "@res:Book.page.thought_knot.crafting.desc"
         }
       ]
     },
     {
       "id": "hexcasting:lore/cardamom1",
-      "name": "@Book.entry.lore.cardamom1",
+      "name": "@res:Book.entry.lore.cardamom1",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 0,
@@ -1522,41 +1522,41 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n1"
+          "text": "@res:Book.page.lore.cardamom1.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n2"
+          "text": "@res:Book.page.lore.cardamom1.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n3"
+          "text": "@res:Book.page.lore.cardamom1.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n4"
+          "text": "@res:Book.page.lore.cardamom1.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n5"
+          "text": "@res:Book.page.lore.cardamom1.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n6"
+          "text": "@res:Book.page.lore.cardamom1.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n7"
+          "text": "@res:Book.page.lore.cardamom1.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom1.n8"
+          "text": "@res:Book.page.lore.cardamom1.n8"
         }
       ]
     },
     {
       "id": "hexcasting:lore/cardamom2",
-      "name": "@Book.entry.lore.cardamom2",
+      "name": "@res:Book.entry.lore.cardamom2",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 1,
@@ -1564,37 +1564,37 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n1"
+          "text": "@res:Book.page.lore.cardamom2.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n2"
+          "text": "@res:Book.page.lore.cardamom2.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n3"
+          "text": "@res:Book.page.lore.cardamom2.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n4"
+          "text": "@res:Book.page.lore.cardamom2.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n5"
+          "text": "@res:Book.page.lore.cardamom2.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n6"
+          "text": "@res:Book.page.lore.cardamom2.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom2.n7"
+          "text": "@res:Book.page.lore.cardamom2.n7"
         }
       ]
     },
     {
       "id": "hexcasting:lore/cardamom3",
-      "name": "@Book.entry.lore.cardamom3",
+      "name": "@res:Book.entry.lore.cardamom3",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 2,
@@ -1602,57 +1602,57 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n1"
+          "text": "@res:Book.page.lore.cardamom3.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n2"
+          "text": "@res:Book.page.lore.cardamom3.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n3"
+          "text": "@res:Book.page.lore.cardamom3.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n4"
+          "text": "@res:Book.page.lore.cardamom3.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n5"
+          "text": "@res:Book.page.lore.cardamom3.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n6"
+          "text": "@res:Book.page.lore.cardamom3.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n7"
+          "text": "@res:Book.page.lore.cardamom3.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n8"
+          "text": "@res:Book.page.lore.cardamom3.n8"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n9"
+          "text": "@res:Book.page.lore.cardamom3.n9"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n10"
+          "text": "@res:Book.page.lore.cardamom3.n10"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n11"
+          "text": "@res:Book.page.lore.cardamom3.n11"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom3.n12"
+          "text": "@res:Book.page.lore.cardamom3.n12"
         }
       ]
     },
     {
       "id": "hexcasting:lore/cardamom4",
-      "name": "@Book.entry.lore.cardamom4",
+      "name": "@res:Book.entry.lore.cardamom4",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 3,
@@ -1660,49 +1660,49 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n1"
+          "text": "@res:Book.page.lore.cardamom4.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n2"
+          "text": "@res:Book.page.lore.cardamom4.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n3"
+          "text": "@res:Book.page.lore.cardamom4.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n4"
+          "text": "@res:Book.page.lore.cardamom4.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n5"
+          "text": "@res:Book.page.lore.cardamom4.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n6"
+          "text": "@res:Book.page.lore.cardamom4.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n7"
+          "text": "@res:Book.page.lore.cardamom4.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n8"
+          "text": "@res:Book.page.lore.cardamom4.n8"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n9"
+          "text": "@res:Book.page.lore.cardamom4.n9"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom4.n10"
+          "text": "@res:Book.page.lore.cardamom4.n10"
         }
       ]
     },
     {
       "id": "hexcasting:lore/cardamom5",
-      "name": "@Book.entry.lore.cardamom5",
+      "name": "@res:Book.entry.lore.cardamom5",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 4,
@@ -1710,29 +1710,29 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom5.n1"
+          "text": "@res:Book.page.lore.cardamom5.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom5.n2"
+          "text": "@res:Book.page.lore.cardamom5.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom5.n3"
+          "text": "@res:Book.page.lore.cardamom5.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom5.n4"
+          "text": "@res:Book.page.lore.cardamom5.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.cardamom5.n5"
+          "text": "@res:Book.page.lore.cardamom5.n5"
         }
       ]
     },
     {
       "id": "hexcasting:lore/experiment1",
-      "name": "@Book.entry.lore.experiment1",
+      "name": "@res:Book.entry.lore.experiment1",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 5,
@@ -1740,33 +1740,33 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n1"
+          "text": "@res:Book.page.lore.experiment1.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n2"
+          "text": "@res:Book.page.lore.experiment1.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n3"
+          "text": "@res:Book.page.lore.experiment1.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n4"
+          "text": "@res:Book.page.lore.experiment1.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n5"
+          "text": "@res:Book.page.lore.experiment1.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment1.n6"
+          "text": "@res:Book.page.lore.experiment1.n6"
         }
       ]
     },
     {
       "id": "hexcasting:lore/experiment2",
-      "name": "@Book.entry.lore.experiment2",
+      "name": "@res:Book.entry.lore.experiment2",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 6,
@@ -1774,25 +1774,25 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment2.n1"
+          "text": "@res:Book.page.lore.experiment2.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment2.n2"
+          "text": "@res:Book.page.lore.experiment2.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment2.n3"
+          "text": "@res:Book.page.lore.experiment2.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.experiment2.n4"
+          "text": "@res:Book.page.lore.experiment2.n4"
         }
       ]
     },
     {
       "id": "hexcasting:lore/inventory",
-      "name": "@Book.entry.lore.inventory",
+      "name": "@res:Book.entry.lore.inventory",
       "category": "@category:hexcasting:lore",
       "icon": "@item:hexcasting:lore_fragment",
       "priority": 7,
@@ -1800,61 +1800,61 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n1"
+          "text": "@res:Book.page.lore.inventory.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n2"
+          "text": "@res:Book.page.lore.inventory.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n3"
+          "text": "@res:Book.page.lore.inventory.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n4"
+          "text": "@res:Book.page.lore.inventory.n4"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n5"
+          "text": "@res:Book.page.lore.inventory.n5"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n6"
+          "text": "@res:Book.page.lore.inventory.n6"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n7"
+          "text": "@res:Book.page.lore.inventory.n7"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n8"
+          "text": "@res:Book.page.lore.inventory.n8"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n9"
+          "text": "@res:Book.page.lore.inventory.n9"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n10"
+          "text": "@res:Book.page.lore.inventory.n10"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n11"
+          "text": "@res:Book.page.lore.inventory.n11"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n12"
+          "text": "@res:Book.page.lore.inventory.n12"
         },
         {
           "type": "text",
-          "text": "@Book.page.lore.inventory.n13"
+          "text": "@res:Book.page.lore.inventory.n13"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/advanced_escaping",
-      "name": "@Book.entry.advanced_escaping",
+      "name": "@res:Book.entry.advanced_escaping",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:emerald_block",
       "priority": 10,
@@ -1863,15 +1863,15 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.advanced_escaping.n1"
+          "text": "@res:Book.page.advanced_escaping.n1"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:read_into_parens",
-          "name": "@Book.action.hexcasting.read_into_parens",
+          "name": "@res:Book.action.hexcasting.read_into_parens",
           "input": "",
           "output": "",
-          "text": "@Book.page.advanced_escaping.read_into_parens",
+          "text": "@res:Book.page.advanced_escaping.read_into_parens",
           "patterns": [
             {
               "startdir": "EAST",
@@ -1882,10 +1882,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:open_n_parens",
-          "name": "@Book.action.hexcasting.open_n_parens",
+          "name": "@res:Book.action.hexcasting.open_n_parens",
           "input": "num",
           "output": "",
-          "text": "@Book.page.advanced_escaping.open_n_parens",
+          "text": "@res:Book.page.advanced_escaping.open_n_parens",
           "patterns": [
             {
               "startdir": "WEST",
@@ -1896,10 +1896,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:close_all_parens",
-          "name": "@Book.action.hexcasting.close_all_parens",
+          "name": "@res:Book.action.hexcasting.close_all_parens",
           "input": "",
           "output": "num, list",
-          "text": "@Book.page.advanced_escaping.close_all_parens",
+          "text": "@res:Book.page.advanced_escaping.close_all_parens",
           "patterns": [
             {
               "startdir": "EAST",
@@ -1911,7 +1911,7 @@
     },
     {
       "id": "hexcasting:patterns/advanced_math",
-      "name": "@Book.entry.advanced_math",
+      "name": "@res:Book.entry.advanced_math",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:quartz",
       "priority": 11,
@@ -1921,10 +1921,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:sin",
-          "name": "@Book.action.hexcasting.sin",
+          "name": "@res:Book.action.hexcasting.sin",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.sin",
+          "text": "@res:Book.page.advanced_math.sin",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -1935,10 +1935,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:cos",
-          "name": "@Book.action.hexcasting.cos",
+          "name": "@res:Book.action.hexcasting.cos",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.cos",
+          "text": "@res:Book.page.advanced_math.cos",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -1949,10 +1949,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:tan",
-          "name": "@Book.action.hexcasting.tan",
+          "name": "@res:Book.action.hexcasting.tan",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.tan",
+          "text": "@res:Book.page.advanced_math.tan",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -1963,10 +1963,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:arcsin",
-          "name": "@Book.action.hexcasting.arcsin",
+          "name": "@res:Book.action.hexcasting.arcsin",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.arcsin",
+          "text": "@res:Book.page.advanced_math.arcsin",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -1977,10 +1977,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:arccos",
-          "name": "@Book.action.hexcasting.arccos",
+          "name": "@res:Book.action.hexcasting.arccos",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.arccos",
+          "text": "@res:Book.page.advanced_math.arccos",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -1991,10 +1991,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:arctan",
-          "name": "@Book.action.hexcasting.arctan",
+          "name": "@res:Book.action.hexcasting.arctan",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.advanced_math.arctan",
+          "text": "@res:Book.page.advanced_math.arctan",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2005,10 +2005,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:arctan2",
-          "name": "@Book.action.hexcasting.arctan2",
+          "name": "@res:Book.action.hexcasting.arctan2",
           "input": "num, num",
           "output": "num",
-          "text": "@Book.page.advanced_math.arctan2",
+          "text": "@res:Book.page.advanced_math.arctan2",
           "patterns": [
             {
               "startdir": "WEST",
@@ -2019,10 +2019,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:logarithm",
-          "name": "@Book.action.hexcasting.logarithm",
+          "name": "@res:Book.action.hexcasting.logarithm",
           "input": "num, num",
           "output": "num",
-          "text": "@Book.page.advanced_math.logarithm",
+          "text": "@res:Book.page.advanced_math.logarithm",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -2034,7 +2034,7 @@
     },
     {
       "id": "hexcasting:patterns/akashic_patterns",
-      "name": "@Book.entry.akashic_patterns",
+      "name": "@res:Book.entry.akashic_patterns",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:hexcasting:akashic_bookshelf",
       "priority": 15,
@@ -2043,10 +2043,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:akashic/read",
-          "name": "@Book.action.hexcasting.akashic.read",
+          "name": "@res:Book.action.hexcasting.akashic.read",
           "input": "vector, pattern",
           "output": "any",
-          "text": "@Book.page.akashic_patterns.akashic.read",
+          "text": "@res:Book.page.akashic_patterns.akashic.read",
           "patterns": [
             {
               "startdir": "WEST",
@@ -2057,10 +2057,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:akashic/write",
-          "name": "@Book.action.hexcasting.akashic.write",
+          "name": "@res:Book.action.hexcasting.akashic.write",
           "input": "vector, pattern, any",
           "output": "",
-          "text": "@Book.page.akashic_patterns.akashic.write",
+          "text": "@res:Book.page.akashic_patterns.akashic.write",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2072,7 +2072,7 @@
     },
     {
       "id": "hexcasting:patterns/basics",
-      "name": "@Book.entry.basics_pattern",
+      "name": "@res:Book.entry.basics_pattern",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:wooden_pickaxe",
       "priority": 0,
@@ -2082,10 +2082,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_caster",
-          "name": "@Book.action.hexcasting.get_caster",
+          "name": "@res:Book.action.hexcasting.get_caster",
           "input": "",
           "output": "entity | null",
-          "text": "@Book.page.basics_pattern.get_caster",
+          "text": "@res:Book.page.basics_pattern.get_caster",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2096,10 +2096,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:entity_pos/eye",
-          "name": "@Book.action.hexcasting.entity_pos.eye",
+          "name": "@res:Book.action.hexcasting.entity_pos.eye",
           "input": "entity",
           "output": "vector",
-          "text": "@Book.page.basics_pattern.entity_pos.eye",
+          "text": "@res:Book.page.basics_pattern.entity_pos.eye",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2110,10 +2110,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:entity_pos/foot",
-          "name": "@Book.action.hexcasting.entity_pos.foot",
+          "name": "@res:Book.action.hexcasting.entity_pos.foot",
           "input": "entity",
           "output": "vector",
-          "text": "@Book.page.basics_pattern.entity_pos.foot",
+          "text": "@res:Book.page.basics_pattern.entity_pos.foot",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2124,10 +2124,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity_look",
-          "name": "@Book.action.hexcasting.get_entity_look",
+          "name": "@res:Book.action.hexcasting.get_entity_look",
           "input": "entity",
           "output": "vector",
-          "text": "@Book.page.basics_pattern.get_entity_look",
+          "text": "@res:Book.page.basics_pattern.get_entity_look",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2138,10 +2138,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:raycast",
-          "name": "@Book.action.hexcasting.raycast",
+          "name": "@res:Book.action.hexcasting.raycast",
           "input": "vector, vector",
           "output": "vector | null",
-          "text": "@Book.page.basics_pattern.raycast.n1",
+          "text": "@res:Book.page.basics_pattern.raycast.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2151,15 +2151,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.basics_pattern.raycast.n2"
+          "text": "@res:Book.page.basics_pattern.raycast.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:raycast/axis",
-          "name": "@Book.action.hexcasting.raycast.axis",
+          "name": "@res:Book.action.hexcasting.raycast.axis",
           "input": "vector, vector",
           "output": "vector | null",
-          "text": "@Book.page.basics_pattern.raycast.axis.n1",
+          "text": "@res:Book.page.basics_pattern.raycast.axis.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2169,15 +2169,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.basics_pattern.raycast.axis.n2"
+          "text": "@res:Book.page.basics_pattern.raycast.axis.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:raycast/entity",
-          "name": "@Book.action.hexcasting.raycast.entity",
+          "name": "@res:Book.action.hexcasting.raycast.entity",
           "input": "vector, vector",
           "output": "entity | null",
-          "text": "@Book.page.basics_pattern.raycast.entity",
+          "text": "@res:Book.page.basics_pattern.raycast.entity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2188,10 +2188,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:print",
-          "name": "@Book.action.hexcasting.print",
+          "name": "@res:Book.action.hexcasting.print",
           "input": "any",
           "output": "any",
-          "text": "@Book.page.basics_pattern.print",
+          "text": "@res:Book.page.basics_pattern.print",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2202,10 +2202,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity_height",
-          "name": "@Book.action.hexcasting.get_entity_height",
+          "name": "@res:Book.action.hexcasting.get_entity_height",
           "input": "entity",
           "output": "num",
-          "text": "@Book.page.basics_pattern.get_entity_height",
+          "text": "@res:Book.page.basics_pattern.get_entity_height",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2216,10 +2216,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity_velocity",
-          "name": "@Book.action.hexcasting.get_entity_velocity",
+          "name": "@res:Book.action.hexcasting.get_entity_velocity",
           "input": "entity",
           "output": "vector",
-          "text": "@Book.page.basics_pattern.get_entity_velocity",
+          "text": "@res:Book.page.basics_pattern.get_entity_velocity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2230,10 +2230,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_media",
-          "name": "@Book.action.hexcasting.get_media",
+          "name": "@res:Book.action.hexcasting.get_media",
           "input": "",
           "output": "num",
-          "text": "@Book.page.basics_pattern.get_media",
+          "text": "@res:Book.page.basics_pattern.get_media",
           "patterns": [
             {
               "startdir": "WEST",
@@ -2245,7 +2245,7 @@
     },
     {
       "id": "hexcasting:patterns/circle",
-      "name": "@Book.entry.circle_patterns",
+      "name": "@res:Book.entry.circle_patterns",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:hexcasting:impetus/empty",
       "priority": 14,
@@ -2253,15 +2253,15 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.circle_patterns.disclaimer"
+          "text": "@res:Book.page.circle_patterns.disclaimer"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:circle/impetus_pos",
-          "name": "@Book.action.hexcasting.circle.impetus_pos",
+          "name": "@res:Book.action.hexcasting.circle.impetus_pos",
           "input": "",
           "output": "vector",
-          "text": "@Book.page.circle_patterns.circle.impetus_pos",
+          "text": "@res:Book.page.circle_patterns.circle.impetus_pos",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -2272,10 +2272,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:circle/impetus_dir",
-          "name": "@Book.action.hexcasting.circle.impetus_dir",
+          "name": "@res:Book.action.hexcasting.circle.impetus_dir",
           "input": "",
           "output": "vector",
-          "text": "@Book.page.circle_patterns.circle.impetus_dir",
+          "text": "@res:Book.page.circle_patterns.circle.impetus_dir",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -2288,7 +2288,7 @@
           "op_id": "hexcasting:circle/bounds/min",
           "input": "",
           "output": "vector",
-          "text": "@Book.page.circle_patterns.circle.bounds.min",
+          "text": "@res:Book.page.circle_patterns.circle.bounds.min",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -2301,7 +2301,7 @@
           "op_id": "hexcasting:circle/bounds/max",
           "input": "",
           "output": "vector",
-          "text": "@Book.page.circle_patterns.circle.bounds.max",
+          "text": "@res:Book.page.circle_patterns.circle.bounds.max",
           "patterns": [
             {
               "startdir": "WEST",
@@ -2313,7 +2313,7 @@
     },
     {
       "id": "hexcasting:patterns/consts",
-      "name": "@Book.entry.consts",
+      "name": "@res:Book.entry.consts",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:bedrock",
       "priority": 3,
@@ -2323,7 +2323,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/true",
-          "name": "@Book.action.hexcasting.const.true",
+          "name": "@res:Book.action.hexcasting.const.true",
           "input": "",
           "output": "bool",
           "text": "",
@@ -2337,7 +2337,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/false",
-          "name": "@Book.action.hexcasting.const.false",
+          "name": "@res:Book.action.hexcasting.const.false",
           "input": "",
           "output": "bool",
           "text": "",
@@ -2351,7 +2351,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/null",
-          "name": "@Book.action.hexcasting.const.null",
+          "name": "@res:Book.action.hexcasting.const.null",
           "input": "",
           "output": "null",
           "text": "",
@@ -2365,7 +2365,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/vec/0",
-          "name": "@Book.action.hexcasting.const.vec.n0",
+          "name": "@res:Book.action.hexcasting.const.vec.n0",
           "input": "",
           "output": "vector",
           "text": "",
@@ -2430,7 +2430,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/double/tau",
-          "name": "@Book.action.hexcasting.const.double.tau",
+          "name": "@res:Book.action.hexcasting.const.double.tau",
           "input": "",
           "output": "num",
           "text": "",
@@ -2444,7 +2444,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/double/pi",
-          "name": "@Book.action.hexcasting.const.double.pi",
+          "name": "@res:Book.action.hexcasting.const.double.pi",
           "input": "",
           "output": "num",
           "text": "",
@@ -2458,7 +2458,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/double/e",
-          "name": "@Book.action.hexcasting.const.double.e",
+          "name": "@res:Book.action.hexcasting.const.double.e",
           "input": "",
           "output": "num",
           "text": "",
@@ -2472,7 +2472,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:const/double/phi",
-          "name": "@Book.action.hexcasting.const.double.phi",
+          "name": "@res:Book.action.hexcasting.const.double.phi",
           "input": "",
           "output": "num",
           "text": "",
@@ -2487,7 +2487,7 @@
     },
     {
       "id": "hexcasting:patterns/entities",
-      "name": "@Book.entry.entities",
+      "name": "@res:Book.entry.entities",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:pig_spawn_egg",
       "priority": 7,
@@ -2497,10 +2497,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity",
-          "name": "@Book.action.hexcasting.get_entity",
+          "name": "@res:Book.action.hexcasting.get_entity",
           "input": "vector",
           "output": "entity or null",
-          "text": "@Book.page.entities.get_entity",
+          "text": "@res:Book.page.entities.get_entity",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -2511,7 +2511,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity/animal",
-          "name": "@Book.action.hexcasting.get_entity.animal",
+          "name": "@res:Book.action.hexcasting.get_entity.animal",
           "input": "vector",
           "output": "entity or null",
           "text": "",
@@ -2525,7 +2525,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity/monster",
-          "name": "@Book.action.hexcasting.get_entity.monster",
+          "name": "@res:Book.action.hexcasting.get_entity.monster",
           "input": "vector",
           "output": "entity or null",
           "text": "",
@@ -2539,7 +2539,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity/item",
-          "name": "@Book.action.hexcasting.get_entity.item",
+          "name": "@res:Book.action.hexcasting.get_entity.item",
           "input": "vector",
           "output": "entity or null",
           "text": "",
@@ -2553,7 +2553,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity/player",
-          "name": "@Book.action.hexcasting.get_entity.player",
+          "name": "@res:Book.action.hexcasting.get_entity.player",
           "input": "vector",
           "output": "entity or null",
           "text": "",
@@ -2567,7 +2567,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:get_entity/living",
-          "name": "@Book.action.hexcasting.get_entity.living",
+          "name": "@res:Book.action.hexcasting.get_entity.living",
           "input": "vector",
           "output": "entity or null",
           "text": "",
@@ -2581,7 +2581,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/animal",
-          "name": "@Book.action.hexcasting.zone_entity.animal",
+          "name": "@res:Book.action.hexcasting.zone_entity.animal",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2595,7 +2595,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/not_animal",
-          "name": "@Book.action.hexcasting.zone_entity.not_animal",
+          "name": "@res:Book.action.hexcasting.zone_entity.not_animal",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2609,7 +2609,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/monster",
-          "name": "@Book.action.hexcasting.zone_entity.monster",
+          "name": "@res:Book.action.hexcasting.zone_entity.monster",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2623,7 +2623,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/not_monster",
-          "name": "@Book.action.hexcasting.zone_entity.not_monster",
+          "name": "@res:Book.action.hexcasting.zone_entity.not_monster",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2637,7 +2637,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/item",
-          "name": "@Book.action.hexcasting.zone_entity.item",
+          "name": "@res:Book.action.hexcasting.zone_entity.item",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2651,7 +2651,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/not_item",
-          "name": "@Book.action.hexcasting.zone_entity.not_item",
+          "name": "@res:Book.action.hexcasting.zone_entity.not_item",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2665,7 +2665,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/player",
-          "name": "@Book.action.hexcasting.zone_entity.player",
+          "name": "@res:Book.action.hexcasting.zone_entity.player",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2679,7 +2679,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/not_player",
-          "name": "@Book.action.hexcasting.zone_entity.not_player",
+          "name": "@res:Book.action.hexcasting.zone_entity.not_player",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2693,7 +2693,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/living",
-          "name": "@Book.action.hexcasting.zone_entity.living",
+          "name": "@res:Book.action.hexcasting.zone_entity.living",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2707,7 +2707,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity/not_living",
-          "name": "@Book.action.hexcasting.zone_entity.not_living",
+          "name": "@res:Book.action.hexcasting.zone_entity.not_living",
           "input": "vector, number",
           "output": "list",
           "text": "",
@@ -2721,10 +2721,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:zone_entity",
-          "name": "@Book.action.hexcasting.zone_entity",
+          "name": "@res:Book.action.hexcasting.zone_entity",
           "input": "vector, number",
           "output": "list",
-          "text": "@Book.page.entities.zone_entity",
+          "text": "@res:Book.page.entities.zone_entity",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -2736,7 +2736,7 @@
     },
     {
       "id": "hexcasting:patterns/great_spells/altiora",
-      "name": "@Book.action.hexcasting.flight",
+      "name": "@res:Book.action.hexcasting.flight",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:minecraft:elytra",
       "priority": 2,
@@ -2746,10 +2746,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:flight",
-          "name": "@Book.action.hexcasting.flight",
+          "name": "@res:Book.action.hexcasting.flight",
           "input": "player",
           "output": "",
-          "text": "@Book.page.altiora.n1",
+          "text": "@res:Book.page.altiora.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -2759,13 +2759,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.altiora.n2"
+          "text": "@res:Book.page.altiora.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/great_spells/brainsweep",
-      "name": "@Book.action.hexcasting.brainsweep",
+      "name": "@res:Book.action.hexcasting.brainsweep",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:minecraft:skeleton_skull",
       "priority": 7,
@@ -2775,10 +2775,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:brainsweep",
-          "name": "@Book.action.hexcasting.brainsweep",
+          "name": "@res:Book.action.hexcasting.brainsweep",
           "input": "entity, vector",
           "output": "",
-          "text": "@Book.page.brainsweep_spell.n1",
+          "text": "@res:Book.page.brainsweep_spell.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -2790,7 +2790,7 @@
     },
     {
       "id": "hexcasting:patterns/great_spells/create_lava",
-      "name": "@Book.action.hexcasting.create_lava",
+      "name": "@res:Book.action.hexcasting.create_lava",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:minecraft:lava_bucket",
       "priority": 0,
@@ -2800,10 +2800,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:create_lava",
-          "name": "@Book.action.hexcasting.create_lava",
+          "name": "@res:Book.action.hexcasting.create_lava",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.create_lava.n1",
+          "text": "@res:Book.page.create_lava.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2813,7 +2813,7 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.create_lava.n2"
+          "text": "@res:Book.page.create_lava.n2"
         }
       ]
     },
@@ -2831,7 +2831,7 @@
           "op_id": "hexcasting:sentinel/create/great",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.greater_sentinel.n1",
+          "text": "@res:Book.page.greater_sentinel.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2841,13 +2841,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.greater_sentinel.n2"
+          "text": "@res:Book.page.greater_sentinel.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/great_spells/make_battery",
-      "name": "@Book.action.hexcasting.craft.battery",
+      "name": "@res:Book.action.hexcasting.craft.battery",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:hexcasting:battery",
       "priority": 6,
@@ -2857,10 +2857,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:craft/battery",
-          "name": "@Book.action.hexcasting.craft.battery",
+          "name": "@res:Book.action.hexcasting.craft.battery",
           "input": "entity",
           "output": "",
-          "text": "@Book.page.make_battery.n1",
+          "text": "@res:Book.page.make_battery.n1",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -2870,13 +2870,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.make_battery.n2"
+          "text": "@res:Book.page.make_battery.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/great_spells/teleport",
-      "name": "@Book.action.hexcasting.teleport.great",
+      "name": "@res:Book.action.hexcasting.teleport.great",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:minecraft:ender_pearl",
       "priority": 3,
@@ -2886,10 +2886,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:teleport/great",
-          "name": "@Book.action.hexcasting.teleport.great",
+          "name": "@res:Book.action.hexcasting.teleport.great",
           "input": "entity, vector",
           "output": "",
-          "text": "@Book.page.teleport.great.n1",
+          "text": "@res:Book.page.teleport.great.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2899,13 +2899,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.teleport.great.n2"
+          "text": "@res:Book.page.teleport.great.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/great_spells/weather_manip",
-      "name": "@Book.entry.weather_manip",
+      "name": "@res:Book.entry.weather_manip",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "minecraft:textures/mob_effect/levitation.png",
       "priority": 1,
@@ -2915,10 +2915,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:lightning",
-          "name": "@Book.action.hexcasting.lightning",
+          "name": "@res:Book.action.hexcasting.lightning",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.weather_manip.lightning",
+          "text": "@res:Book.page.weather_manip.lightning",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2929,10 +2929,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:summon_rain",
-          "name": "@Book.action.hexcasting.summon_rain",
+          "name": "@res:Book.action.hexcasting.summon_rain",
           "input": "",
           "output": "",
-          "text": "@Book.page.weather_manip.summon_rain",
+          "text": "@res:Book.page.weather_manip.summon_rain",
           "patterns": [
             {
               "startdir": "WEST",
@@ -2943,10 +2943,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:dispel_rain",
-          "name": "@Book.action.hexcasting.dispel_rain",
+          "name": "@res:Book.action.hexcasting.dispel_rain",
           "input": "",
           "output": "",
-          "text": "@Book.page.weather_manip.dispel_rain",
+          "text": "@res:Book.page.weather_manip.dispel_rain",
           "patterns": [
             {
               "startdir": "EAST",
@@ -2958,7 +2958,7 @@
     },
     {
       "id": "hexcasting:patterns/great_spells/zeniths",
-      "name": "@Book.entry.zeniths",
+      "name": "@res:Book.entry.zeniths",
       "category": "@category:hexcasting:patterns/great_spells",
       "icon": "@item:minecraft:potion",
       "priority": 4,
@@ -2967,15 +2967,15 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.zeniths.n1"
+          "text": "@res:Book.page.zeniths.n1"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/regeneration",
-          "name": "@Book.action.hexcasting.potion.regeneration",
+          "name": "@res:Book.action.hexcasting.potion.regeneration",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.zeniths.potion.regeneration",
+          "text": "@res:Book.page.zeniths.potion.regeneration",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -2986,10 +2986,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/night_vision",
-          "name": "@Book.action.hexcasting.potion.night_vision",
+          "name": "@res:Book.action.hexcasting.potion.night_vision",
           "input": "entity, number",
           "output": "",
-          "text": "@Book.page.zeniths.potion.night_vision",
+          "text": "@res:Book.page.zeniths.potion.night_vision",
           "patterns": [
             {
               "startdir": "WEST",
@@ -3000,10 +3000,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/absorption",
-          "name": "@Book.action.hexcasting.potion.absorption",
+          "name": "@res:Book.action.hexcasting.potion.absorption",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.zeniths.potion.absorption",
+          "text": "@res:Book.page.zeniths.potion.absorption",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3014,10 +3014,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/haste",
-          "name": "@Book.action.hexcasting.potion.haste",
+          "name": "@res:Book.action.hexcasting.potion.haste",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.zeniths.potion.haste",
+          "text": "@res:Book.page.zeniths.potion.haste",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3028,10 +3028,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/strength",
-          "name": "@Book.action.hexcasting.potion.strength",
+          "name": "@res:Book.action.hexcasting.potion.strength",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.zeniths.potion.strength",
+          "text": "@res:Book.page.zeniths.potion.strength",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3043,7 +3043,7 @@
     },
     {
       "id": "hexcasting:patterns/lists",
-      "name": "@Book.entry.lists",
+      "name": "@res:Book.entry.lists",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:oak_sign",
       "priority": 8,
@@ -3053,10 +3053,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:index",
-          "name": "@Book.action.hexcasting.index",
+          "name": "@res:Book.action.hexcasting.index",
           "input": "list, number",
           "output": "any",
-          "text": "@Book.page.lists.index",
+          "text": "@res:Book.page.lists.index",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3067,10 +3067,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:slice",
-          "name": "@Book.action.hexcasting.slice",
+          "name": "@res:Book.action.hexcasting.slice",
           "input": "list, num, num",
           "output": "list",
-          "text": "@Book.page.lists.slice",
+          "text": "@res:Book.page.lists.slice",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3081,10 +3081,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:append",
-          "name": "@Book.action.hexcasting.append",
+          "name": "@res:Book.action.hexcasting.append",
           "input": "list, any",
           "output": "list",
-          "text": "@Book.page.lists.append",
+          "text": "@res:Book.page.lists.append",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3095,10 +3095,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:unappend",
-          "name": "@Book.action.hexcasting.unappend",
+          "name": "@res:Book.action.hexcasting.unappend",
           "input": "list",
           "output": "list, any",
-          "text": "@Book.page.lists.unappend",
+          "text": "@res:Book.page.lists.unappend",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3109,10 +3109,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:add",
-          "name": "@Book.action.hexcasting.add",
+          "name": "@res:Book.action.hexcasting.add",
           "input": "list, list",
           "output": "list",
-          "text": "@Book.page.lists.add",
+          "text": "@res:Book.page.lists.add",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3123,10 +3123,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:empty_list",
-          "name": "@Book.action.hexcasting.empty_list",
+          "name": "@res:Book.action.hexcasting.empty_list",
           "input": "",
           "output": "list",
-          "text": "@Book.page.lists.empty_list",
+          "text": "@res:Book.page.lists.empty_list",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3137,10 +3137,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:singleton",
-          "name": "@Book.action.hexcasting.singleton",
+          "name": "@res:Book.action.hexcasting.singleton",
           "input": "any",
           "output": "list",
-          "text": "@Book.page.lists.singleton",
+          "text": "@res:Book.page.lists.singleton",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3151,10 +3151,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:abs",
-          "name": "@Book.action.hexcasting.abs",
+          "name": "@res:Book.action.hexcasting.abs",
           "input": "list",
           "output": "num",
-          "text": "@Book.page.lists.abs",
+          "text": "@res:Book.page.lists.abs",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3165,10 +3165,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:reverse",
-          "name": "@Book.action.hexcasting.reverse",
+          "name": "@res:Book.action.hexcasting.reverse",
           "input": "list",
           "output": "list",
-          "text": "@Book.page.lists.reverse",
+          "text": "@res:Book.page.lists.reverse",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3179,10 +3179,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:index_of",
-          "name": "@Book.action.hexcasting.index_of",
+          "name": "@res:Book.action.hexcasting.index_of",
           "input": "list, any",
           "output": "num",
-          "text": "@Book.page.lists.index_of",
+          "text": "@res:Book.page.lists.index_of",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3193,10 +3193,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:remove_from",
-          "name": "@Book.action.hexcasting.remove_from",
+          "name": "@res:Book.action.hexcasting.remove_from",
           "input": "list, num",
           "output": "list",
-          "text": "@Book.page.lists.remove_from",
+          "text": "@res:Book.page.lists.remove_from",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3207,10 +3207,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:replace",
-          "name": "@Book.action.hexcasting.replace",
+          "name": "@res:Book.action.hexcasting.replace",
           "input": "list, num, any",
           "output": "list",
-          "text": "@Book.page.lists.replace",
+          "text": "@res:Book.page.lists.replace",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3221,10 +3221,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:last_n_list",
-          "name": "@Book.action.hexcasting.last_n_list",
+          "name": "@res:Book.action.hexcasting.last_n_list",
           "input": "many, num",
           "output": "list",
-          "text": "@Book.page.lists.last_n_list",
+          "text": "@res:Book.page.lists.last_n_list",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3235,10 +3235,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:splat",
-          "name": "@Book.action.hexcasting.splat",
+          "name": "@res:Book.action.hexcasting.splat",
           "input": "list",
           "output": "many",
-          "text": "@Book.page.lists.splat",
+          "text": "@res:Book.page.lists.splat",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3249,10 +3249,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:construct",
-          "name": "@Book.action.hexcasting.construct",
+          "name": "@res:Book.action.hexcasting.construct",
           "input": "list, any",
           "output": "list",
-          "text": "@Book.page.lists.construct",
+          "text": "@res:Book.page.lists.construct",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3263,10 +3263,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:deconstruct",
-          "name": "@Book.action.hexcasting.deconstruct",
+          "name": "@res:Book.action.hexcasting.deconstruct",
           "input": "list",
           "output": "list, any",
-          "text": "@Book.page.lists.deconstruct",
+          "text": "@res:Book.page.lists.deconstruct",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3278,7 +3278,7 @@
     },
     {
       "id": "hexcasting:patterns/logic",
-      "name": "@Book.entry.logic",
+      "name": "@res:Book.entry.logic",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:comparator",
       "priority": 5,
@@ -3288,10 +3288,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:bool_coerce",
-          "name": "@Book.action.hexcasting.bool_coerce",
+          "name": "@res:Book.action.hexcasting.bool_coerce",
           "input": "any",
           "output": "bool",
-          "text": "@Book.page.logic.bool_coerce",
+          "text": "@res:Book.page.logic.bool_coerce",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3302,10 +3302,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:abs",
-          "name": "@Book.action.hexcasting.abs",
+          "name": "@res:Book.action.hexcasting.abs",
           "input": "bool",
           "output": "number",
-          "text": "@Book.page.logic.bool_to_number",
+          "text": "@res:Book.page.logic.bool_to_number",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3316,10 +3316,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:not",
-          "name": "@Book.action.hexcasting.not",
+          "name": "@res:Book.action.hexcasting.not",
           "input": "bool",
           "output": "bool",
-          "text": "@Book.page.logic.not",
+          "text": "@res:Book.page.logic.not",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3330,10 +3330,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:or",
-          "name": "@Book.action.hexcasting.or",
+          "name": "@res:Book.action.hexcasting.or",
           "input": "bool, bool",
           "output": "bool",
-          "text": "@Book.page.logic.or",
+          "text": "@res:Book.page.logic.or",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3344,10 +3344,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:and",
-          "name": "@Book.action.hexcasting.and",
+          "name": "@res:Book.action.hexcasting.and",
           "input": "bool, bool",
           "output": "bool",
-          "text": "@Book.page.logic.and",
+          "text": "@res:Book.page.logic.and",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3358,10 +3358,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:xor",
-          "name": "@Book.action.hexcasting.xor",
+          "name": "@res:Book.action.hexcasting.xor",
           "input": "bool, bool",
           "output": "bool",
-          "text": "@Book.page.logic.xor",
+          "text": "@res:Book.page.logic.xor",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3372,10 +3372,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:if",
-          "name": "@Book.action.hexcasting.if",
+          "name": "@res:Book.action.hexcasting.if",
           "input": "bool, any, any",
           "output": "any",
-          "text": "@Book.page.logic.if",
+          "text": "@res:Book.page.logic.if",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3386,10 +3386,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:equals",
-          "name": "@Book.action.hexcasting.equals",
+          "name": "@res:Book.action.hexcasting.equals",
           "input": "any, any",
           "output": "bool",
-          "text": "@Book.page.logic.equals",
+          "text": "@res:Book.page.logic.equals",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3400,10 +3400,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:not_equals",
-          "name": "@Book.action.hexcasting.not_equals",
+          "name": "@res:Book.action.hexcasting.not_equals",
           "input": "any, any",
           "output": "bool",
-          "text": "@Book.page.logic.not_equals",
+          "text": "@res:Book.page.logic.not_equals",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3414,10 +3414,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:greater",
-          "name": "@Book.action.hexcasting.greater",
+          "name": "@res:Book.action.hexcasting.greater",
           "input": "number, number",
           "output": "bool",
-          "text": "@Book.page.logic.greater",
+          "text": "@res:Book.page.logic.greater",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3428,10 +3428,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:less",
-          "name": "@Book.action.hexcasting.less",
+          "name": "@res:Book.action.hexcasting.less",
           "input": "number, number",
           "output": "bool",
-          "text": "@Book.page.logic.less",
+          "text": "@res:Book.page.logic.less",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3442,10 +3442,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:greater_eq",
-          "name": "@Book.action.hexcasting.greater_eq",
+          "name": "@res:Book.action.hexcasting.greater_eq",
           "input": "number, number",
           "output": "bool",
-          "text": "@Book.page.logic.greater_eq",
+          "text": "@res:Book.page.logic.greater_eq",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3456,10 +3456,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:less_eq",
-          "name": "@Book.action.hexcasting.less_eq",
+          "name": "@res:Book.action.hexcasting.less_eq",
           "input": "number, number",
           "output": "bool",
-          "text": "@Book.page.logic.less_eq",
+          "text": "@res:Book.page.logic.less_eq",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3471,7 +3471,7 @@
     },
     {
       "id": "hexcasting:patterns/math",
-      "name": "@Book.entry.math",
+      "name": "@res:Book.entry.math",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:blaze_rod",
       "priority": 2,
@@ -3480,7 +3480,7 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.math.numvec"
+          "text": "@res:Book.page.math.numvec"
         },
         {
           "type": "empty"
@@ -3488,10 +3488,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:add",
-          "name": "@Book.action.hexcasting.add",
+          "name": "@res:Book.action.hexcasting.add",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.add.n1",
+          "text": "@res:Book.page.math.add.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3501,15 +3501,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.add.n2"
+          "text": "@res:Book.page.math.add.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:sub",
-          "name": "@Book.action.hexcasting.sub",
+          "name": "@res:Book.action.hexcasting.sub",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.sub.n1",
+          "text": "@res:Book.page.math.sub.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3519,15 +3519,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.sub.n2"
+          "text": "@res:Book.page.math.sub.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:mul",
-          "name": "@Book.action.hexcasting.mul",
+          "name": "@res:Book.action.hexcasting.mul",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.mul.n1",
+          "text": "@res:Book.page.math.mul.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3537,15 +3537,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.mul.n2"
+          "text": "@res:Book.page.math.mul.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:div",
-          "name": "@Book.action.hexcasting.div",
+          "name": "@res:Book.action.hexcasting.div",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.div.n1",
+          "text": "@res:Book.page.math.div.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3555,15 +3555,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.div.n2"
+          "text": "@res:Book.page.math.div.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:abs",
-          "name": "@Book.action.hexcasting.abs",
+          "name": "@res:Book.action.hexcasting.abs",
           "input": "num|vec",
           "output": "number",
-          "text": "@Book.page.math.abs.n1",
+          "text": "@res:Book.page.math.abs.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3573,15 +3573,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.abs.n2"
+          "text": "@res:Book.page.math.abs.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:pow",
-          "name": "@Book.action.hexcasting.pow",
+          "name": "@res:Book.action.hexcasting.pow",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.pow.n1",
+          "text": "@res:Book.page.math.pow.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3591,15 +3591,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.math.pow.n2"
+          "text": "@res:Book.page.math.pow.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:floor",
-          "name": "@Book.action.hexcasting.floor",
+          "name": "@res:Book.action.hexcasting.floor",
           "input": "num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.floor",
+          "text": "@res:Book.page.math.floor",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3610,10 +3610,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:ceil",
-          "name": "@Book.action.hexcasting.ceil",
+          "name": "@res:Book.action.hexcasting.ceil",
           "input": "num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.ceil",
+          "text": "@res:Book.page.math.ceil",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3624,10 +3624,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:construct_vec",
-          "name": "@Book.action.hexcasting.construct_vec",
+          "name": "@res:Book.action.hexcasting.construct_vec",
           "input": "num, num, num",
           "output": "vector",
-          "text": "@Book.page.math.construct_vec",
+          "text": "@res:Book.page.math.construct_vec",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3638,10 +3638,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:deconstruct_vec",
-          "name": "@Book.action.hexcasting.deconstruct_vec",
+          "name": "@res:Book.action.hexcasting.deconstruct_vec",
           "input": "vector",
           "output": "num, num, num",
-          "text": "@Book.page.math.deconstruct_vec",
+          "text": "@res:Book.page.math.deconstruct_vec",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3652,10 +3652,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:modulo",
-          "name": "@Book.action.hexcasting.modulo",
+          "name": "@res:Book.action.hexcasting.modulo",
           "input": "num|vec, num|vec",
           "output": "num|vec",
-          "text": "@Book.page.math.modulo",
+          "text": "@res:Book.page.math.modulo",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3666,10 +3666,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:coerce_axial",
-          "name": "@Book.action.hexcasting.coerce_axial",
+          "name": "@res:Book.action.hexcasting.coerce_axial",
           "input": "vec|num",
           "output": "vec|num",
-          "text": "@Book.page.math.coerce_axial",
+          "text": "@res:Book.page.math.coerce_axial",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3680,10 +3680,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:random",
-          "name": "@Book.action.hexcasting.random",
+          "name": "@res:Book.action.hexcasting.random",
           "input": "",
           "output": "num",
-          "text": "@Book.page.math.random",
+          "text": "@res:Book.page.math.random",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3695,7 +3695,7 @@
     },
     {
       "id": "hexcasting:patterns/meta",
-      "name": "@Book.entry.meta",
+      "name": "@res:Book.entry.meta",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:shulker_box",
       "priority": 13,
@@ -3705,10 +3705,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:eval",
-          "name": "@Book.action.hexcasting.eval",
+          "name": "@res:Book.action.hexcasting.eval",
           "input": "evaluatable",
           "output": "many",
-          "text": "@Book.page.meta.eval.n1",
+          "text": "@res:Book.page.meta.eval.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3718,15 +3718,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.meta.eval.n2"
+          "text": "@res:Book.page.meta.eval.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:eval/cc",
-          "name": "@Book.action.hexcasting.eval.cc",
+          "name": "@res:Book.action.hexcasting.eval.cc",
           "input": "evaluatable",
           "output": "many",
-          "text": "@Book.page.meta.eval.cc.n1",
+          "text": "@res:Book.page.meta.eval.cc.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -3736,15 +3736,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.meta.eval.cc.n2"
+          "text": "@res:Book.page.meta.eval.cc.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:for_each",
-          "name": "@Book.action.hexcasting.for_each",
+          "name": "@res:Book.action.hexcasting.for_each",
           "input": "evaluatable, list",
           "output": "list",
-          "text": "@Book.page.meta.for_each.n1",
+          "text": "@res:Book.page.meta.for_each.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3754,15 +3754,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.meta.for_each.n2"
+          "text": "@res:Book.page.meta.for_each.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:halt",
-          "name": "@Book.action.hexcasting.halt",
+          "name": "@res:Book.action.hexcasting.halt",
           "input": "",
           "output": "",
-          "text": "@Book.page.meta.halt.n1",
+          "text": "@res:Book.page.meta.halt.n1",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3772,15 +3772,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.meta.halt.n2"
+          "text": "@res:Book.page.meta.halt.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:thanatos",
-          "name": "@Book.action.hexcasting.thanatos",
+          "name": "@res:Book.action.hexcasting.thanatos",
           "input": "",
           "output": "number",
-          "text": "@Book.page.meta.thanatos.n1",
+          "text": "@res:Book.page.meta.thanatos.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3792,7 +3792,7 @@
     },
     {
       "id": "hexcasting:patterns/numbers",
-      "name": "@Book.entry.numbers",
+      "name": "@res:Book.entry.numbers",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:stick",
       "priority": 1,
@@ -3802,10 +3802,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:number",
-          "name": "@Book.action.book.hexcasting.number",
+          "name": "@res:Book.action.book.hexcasting.number",
           "input": "",
           "output": "number",
-          "text": "@Book.page.numbers.n1",
+          "text": "@res:Book.page.numbers.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3819,15 +3819,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.numbers.n2"
+          "text": "@res:Book.page.numbers.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:manual",
-          "name": "@Book.page.numbers.example.n10.header",
+          "name": "@res:Book.page.numbers.example.n10.header",
           "input": "",
           "output": "",
-          "text": "@Book.page.numbers.example.n10",
+          "text": "@res:Book.page.numbers.example.n10",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3838,10 +3838,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:manual",
-          "name": "@Book.page.numbers.example.n7.header",
+          "name": "@res:Book.page.numbers.example.n7.header",
           "input": "",
           "output": "",
-          "text": "@Book.page.numbers.example.n7",
+          "text": "@res:Book.page.numbers.example.n7",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -3852,10 +3852,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:manual",
-          "name": "@Book.page.numbers.example.n32.header",
+          "name": "@res:Book.page.numbers.example.n32.header",
           "input": "",
           "output": "",
-          "text": "@Book.page.numbers.example.n32",
+          "text": "@res:Book.page.numbers.example.n32",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -3866,10 +3866,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:manual",
-          "name": "@Book.page.numbers.example.n4.n5.header",
+          "name": "@res:Book.page.numbers.example.n4.n5.header",
           "input": "",
           "output": "",
-          "text": "@Book.page.numbers.example.n4.n5",
+          "text": "@res:Book.page.numbers.example.n4.n5",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3879,13 +3879,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.numbers.n3"
+          "text": "@res:Book.page.numbers.n3"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/patterns_as_iotas",
-      "name": "@Book.entry.patterns_as_iotas",
+      "name": "@res:Book.entry.patterns_as_iotas",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:emerald",
       "priority": 9,
@@ -3894,19 +3894,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.n1"
+          "text": "@res:Book.page.patterns_as_iotas.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.n2"
+          "text": "@res:Book.page.patterns_as_iotas.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:runtime_escape",
-          "name": "@Book.action.hexcasting.runtime_escape",
+          "name": "@res:Book.action.hexcasting.runtime_escape",
           "input": "",
           "output": "",
-          "text": "@Book.page.patterns_as_iotas.runtime_escape.n1",
+          "text": "@res:Book.page.patterns_as_iotas.runtime_escape.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -3916,15 +3916,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.runtime_escape.n2"
+          "text": "@res:Book.page.patterns_as_iotas.runtime_escape.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:open_paren",
-          "name": "@Book.action.hexcasting.open_paren",
+          "name": "@res:Book.action.hexcasting.open_paren",
           "input": "",
           "output": "",
-          "text": "@Book.page.patterns_as_iotas.parens.n1",
+          "text": "@res:Book.page.patterns_as_iotas.parens.n1",
           "patterns": [
             {
               "startdir": "WEST",
@@ -3935,10 +3935,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:close_paren",
-          "name": "@Book.action.hexcasting.close_paren",
+          "name": "@res:Book.action.hexcasting.close_paren",
           "input": "",
           "output": "",
-          "text": "@Book.page.patterns_as_iotas.parens.n2",
+          "text": "@res:Book.page.patterns_as_iotas.parens.n2",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3949,10 +3949,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:undo",
-          "name": "@Book.action.hexcasting.undo",
+          "name": "@res:Book.action.hexcasting.undo",
           "input": "",
           "output": "",
-          "text": "@Book.page.patterns_as_iotas.undo",
+          "text": "@res:Book.page.patterns_as_iotas.undo",
           "patterns": [
             {
               "startdir": "EAST",
@@ -3963,10 +3963,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:escape",
-          "name": "@Book.action.hexcasting.escape",
+          "name": "@res:Book.action.hexcasting.escape",
           "input": "",
           "output": "",
-          "text": "@Book.page.patterns_as_iotas.escape",
+          "text": "@res:Book.page.patterns_as_iotas.escape",
           "patterns": [
             {
               "startdir": "WEST",
@@ -3976,22 +3976,22 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.further_notes.n1",
-          "title": "@Book.page.patterns_as_iotas.further_notes.title"
+          "text": "@res:Book.page.patterns_as_iotas.further_notes.n1",
+          "title": "@res:Book.page.patterns_as_iotas.further_notes.title"
         },
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.further_notes.n2"
+          "text": "@res:Book.page.patterns_as_iotas.further_notes.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.patterns_as_iotas.further_notes.n3"
+          "text": "@res:Book.page.patterns_as_iotas.further_notes.n3"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/readers_guide",
-      "name": "@Book.entry.readers_guide",
+      "name": "@res:Book.entry.readers_guide",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:knowledge_book",
       "priority": 0,
@@ -3999,25 +3999,25 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.readers_guide.n1"
+          "text": "@res:Book.page.readers_guide.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.readers_guide.n2"
+          "text": "@res:Book.page.readers_guide.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.readers_guide.n3"
+          "text": "@res:Book.page.readers_guide.n3"
         },
         {
           "type": "text",
-          "text": "@Book.page.readers_guide.n4"
+          "text": "@res:Book.page.readers_guide.n4"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/readwrite",
-      "name": "@Book.entry.readwrite",
+      "name": "@res:Book.entry.readwrite",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:writable_book",
       "priority": 10,
@@ -4026,19 +4026,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.readwrite.n1"
+          "text": "@res:Book.page.readwrite.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.readwrite.n2"
+          "text": "@res:Book.page.readwrite.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:read",
-          "name": "@Book.action.hexcasting.read",
+          "name": "@res:Book.action.hexcasting.read",
           "input": "",
           "output": "any",
-          "text": "@Book.page.readwrite.read",
+          "text": "@res:Book.page.readwrite.read",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4049,10 +4049,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:write",
-          "name": "@Book.action.hexcasting.write",
+          "name": "@res:Book.action.hexcasting.write",
           "input": "any",
           "output": "",
-          "text": "@Book.page.readwrite.write",
+          "text": "@res:Book.page.readwrite.write",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4063,10 +4063,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:read/entity",
-          "name": "@Book.action.hexcasting.read.entity",
+          "name": "@res:Book.action.hexcasting.read.entity",
           "input": "entity",
           "output": "any",
-          "text": "@Book.page.readwrite.read.entity",
+          "text": "@res:Book.page.readwrite.read.entity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4077,10 +4077,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:write/entity",
-          "name": "@Book.action.hexcasting.write.entity",
+          "name": "@res:Book.action.hexcasting.write.entity",
           "input": "entity, any",
           "output": "",
-          "text": "@Book.page.readwrite.write.entity",
+          "text": "@res:Book.page.readwrite.write.entity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4091,10 +4091,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:readable",
-          "name": "@Book.action.hexcasting.readable",
+          "name": "@res:Book.action.hexcasting.readable",
           "input": "",
           "output": "bool",
-          "text": "@Book.page.readwrite.readable",
+          "text": "@res:Book.page.readwrite.readable",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4105,10 +4105,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:readable/entity",
-          "name": "@Book.action.hexcasting.readable.entity",
+          "name": "@res:Book.action.hexcasting.readable.entity",
           "input": "entity",
           "output": "bool",
-          "text": "@Book.page.readwrite.readable.entity",
+          "text": "@res:Book.page.readwrite.readable.entity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4119,10 +4119,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:writable",
-          "name": "@Book.action.hexcasting.writable",
+          "name": "@res:Book.action.hexcasting.writable",
           "input": "",
           "output": "bool",
-          "text": "@Book.page.readwrite.writable",
+          "text": "@res:Book.page.readwrite.writable",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4133,10 +4133,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:writable/entity",
-          "name": "@Book.action.hexcasting.writable.entity",
+          "name": "@res:Book.action.hexcasting.writable.entity",
           "input": "entity",
           "output": "bool",
-          "text": "@Book.page.readwrite.writable.entity",
+          "text": "@res:Book.page.readwrite.writable.entity",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4146,16 +4146,16 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.readwrite.local",
-          "title": "@Book.page.readwrite.local.title"
+          "text": "@res:Book.page.readwrite.local",
+          "title": "@res:Book.page.readwrite.local.title"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:write/local",
-          "name": "@Book.action.hexcasting.write.local",
+          "name": "@res:Book.action.hexcasting.write.local",
           "input": "any",
           "output": "",
-          "text": "@Book.page.readwrite.write.local",
+          "text": "@res:Book.page.readwrite.write.local",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -4166,10 +4166,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:read/local",
-          "name": "@Book.action.hexcasting.read.local",
+          "name": "@res:Book.action.hexcasting.read.local",
           "input": "",
           "output": "any",
-          "text": "@Book.page.readwrite.read.local",
+          "text": "@res:Book.page.readwrite.read.local",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4181,7 +4181,7 @@
     },
     {
       "id": "hexcasting:patterns/sets",
-      "name": "@Book.entry.sets",
+      "name": "@res:Book.entry.sets",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:bundle",
       "priority": 12,
@@ -4190,7 +4190,7 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.sets.numlist"
+          "text": "@res:Book.page.sets.numlist"
         },
         {
           "type": "empty"
@@ -4198,10 +4198,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:or",
-          "name": "@Book.action.hexcasting.or",
+          "name": "@res:Book.action.hexcasting.or",
           "input": "(num, num)|(list, list)",
           "output": "num|list",
-          "text": "@Book.page.sets.or.n1",
+          "text": "@res:Book.page.sets.or.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -4211,15 +4211,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.sets.or.n2"
+          "text": "@res:Book.page.sets.or.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:and",
-          "name": "@Book.action.hexcasting.and",
+          "name": "@res:Book.action.hexcasting.and",
           "input": "(num, num)|(list, list)",
           "output": "num|list",
-          "text": "@Book.page.sets.and.n1",
+          "text": "@res:Book.page.sets.and.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4229,15 +4229,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.sets.and.n2"
+          "text": "@res:Book.page.sets.and.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:xor",
-          "name": "@Book.action.hexcasting.xor",
+          "name": "@res:Book.action.hexcasting.xor",
           "input": "(num, num)|(list, list)",
           "output": "num|list",
-          "text": "@Book.page.sets.xor.n1",
+          "text": "@res:Book.page.sets.xor.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -4247,15 +4247,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.sets.xor.n2"
+          "text": "@res:Book.page.sets.xor.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:not",
-          "name": "@Book.action.hexcasting.not",
+          "name": "@res:Book.action.hexcasting.not",
           "input": "num",
           "output": "num",
-          "text": "@Book.page.sets.not",
+          "text": "@res:Book.page.sets.not",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -4266,10 +4266,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:unique",
-          "name": "@Book.action.hexcasting.unique",
+          "name": "@res:Book.action.hexcasting.unique",
           "input": "list",
           "output": "list",
-          "text": "@Book.page.sets.to_set",
+          "text": "@res:Book.page.sets.to_set",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4281,7 +4281,7 @@
     },
     {
       "id": "hexcasting:patterns/spells/basic",
-      "name": "@Book.entry.basic_spell",
+      "name": "@res:Book.entry.basic_spell",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:bookshelf",
       "priority": 0,
@@ -4291,10 +4291,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:explode",
-          "name": "@Book.action.hexcasting.explode",
+          "name": "@res:Book.action.hexcasting.explode",
           "input": "vector, number",
           "output": "",
-          "text": "@Book.page.basic_spell.explode.n1",
+          "text": "@res:Book.page.basic_spell.explode.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4304,15 +4304,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.basic_spell.explode.n2"
+          "text": "@res:Book.page.basic_spell.explode.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:explode/fire",
-          "name": "@Book.action.hexcasting.explode.fire",
+          "name": "@res:Book.action.hexcasting.explode.fire",
           "input": "vector, number",
           "output": "",
-          "text": "@Book.page.basic_spell.explode.fire.n1",
+          "text": "@res:Book.page.basic_spell.explode.fire.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4322,15 +4322,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.basic_spell.explode.fire.n2"
+          "text": "@res:Book.page.basic_spell.explode.fire.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:add_motion",
-          "name": "@Book.action.hexcasting.add_motion",
+          "name": "@res:Book.action.hexcasting.add_motion",
           "input": "entity, vector",
           "output": "",
-          "text": "@Book.page.basic_spell.add_motion",
+          "text": "@res:Book.page.basic_spell.add_motion",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4341,10 +4341,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:blink",
-          "name": "@Book.action.hexcasting.blink",
+          "name": "@res:Book.action.hexcasting.blink",
           "input": "entity, number",
           "output": "",
-          "text": "@Book.page.basic_spell.blink",
+          "text": "@res:Book.page.basic_spell.blink",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4355,10 +4355,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:beep",
-          "name": "@Book.action.hexcasting.beep",
+          "name": "@res:Book.action.hexcasting.beep",
           "input": "vector, number, number",
           "output": "",
-          "text": "@Book.page.basic_spell.beep.n1",
+          "text": "@res:Book.page.basic_spell.beep.n1",
           "patterns": [
             {
               "startdir": "WEST",
@@ -4368,13 +4368,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.basic_spell.beep.n2"
+          "text": "@res:Book.page.basic_spell.beep.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/spells/blockworks",
-      "name": "@Book.entry.blockworks",
+      "name": "@res:Book.entry.blockworks",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:cobblestone",
       "priority": 1,
@@ -4384,10 +4384,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:place_block",
-          "name": "@Book.action.hexcasting.place_block",
+          "name": "@res:Book.action.hexcasting.place_block",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.place_block",
+          "text": "@res:Book.page.blockworks.place_block",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4398,10 +4398,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:break_block",
-          "name": "@Book.action.hexcasting.break_block",
+          "name": "@res:Book.action.hexcasting.break_block",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.break_block",
+          "text": "@res:Book.page.blockworks.break_block",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4412,10 +4412,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:create_water",
-          "name": "@Book.action.hexcasting.create_water",
+          "name": "@res:Book.action.hexcasting.create_water",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.create_water",
+          "text": "@res:Book.page.blockworks.create_water",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -4426,10 +4426,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:destroy_water",
-          "name": "@Book.action.hexcasting.destroy_water",
+          "name": "@res:Book.action.hexcasting.destroy_water",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.destroy_water",
+          "text": "@res:Book.page.blockworks.destroy_water",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4440,10 +4440,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:conjure_block",
-          "name": "@Book.action.hexcasting.conjure_block",
+          "name": "@res:Book.action.hexcasting.conjure_block",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.conjure_block",
+          "text": "@res:Book.page.blockworks.conjure_block",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4454,10 +4454,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:conjure_light",
-          "name": "@Book.action.hexcasting.conjure_light",
+          "name": "@res:Book.action.hexcasting.conjure_light",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.conjure_light",
+          "text": "@res:Book.page.blockworks.conjure_light",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4468,10 +4468,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:bonemeal",
-          "name": "@Book.action.hexcasting.bonemeal",
+          "name": "@res:Book.action.hexcasting.bonemeal",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.bonemeal",
+          "text": "@res:Book.page.blockworks.bonemeal",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4482,10 +4482,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:edify",
-          "name": "@Book.action.hexcasting.edify",
+          "name": "@res:Book.action.hexcasting.edify",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.edify",
+          "text": "@res:Book.page.blockworks.edify",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4496,10 +4496,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:ignite",
-          "name": "@Book.action.hexcasting.ignite",
+          "name": "@res:Book.action.hexcasting.ignite",
           "input": "entity | vector",
           "output": "",
-          "text": "@Book.page.blockworks.ignite",
+          "text": "@res:Book.page.blockworks.ignite",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -4510,10 +4510,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:extinguish",
-          "name": "@Book.action.hexcasting.extinguish",
+          "name": "@res:Book.action.hexcasting.extinguish",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.blockworks.extinguish",
+          "text": "@res:Book.page.blockworks.extinguish",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4525,7 +4525,7 @@
     },
     {
       "id": "hexcasting:patterns/spells/colorize",
-      "name": "@Book.action.hexcasting.colorize",
+      "name": "@res:Book.action.hexcasting.colorize",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:hexcasting:pride_colorizer_gay",
       "priority": 5,
@@ -4535,10 +4535,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:colorize",
-          "name": "@Book.action.hexcasting.colorize",
+          "name": "@res:Book.action.hexcasting.colorize",
           "input": "",
           "output": "",
-          "text": "@Book.page.colorize",
+          "text": "@res:Book.page.colorize",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4550,7 +4550,7 @@
     },
     {
       "id": "hexcasting:patterns/spells/cyclevariant",
-      "name": "@Book.action.hexcasting.cycle_variant",
+      "name": "@res:Book.action.hexcasting.cycle_variant",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:smithing_table",
       "priority": 6,
@@ -4560,10 +4560,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:cycle_variant",
-          "name": "@Book.action.hexcasting.cycle_variant",
+          "name": "@res:Book.action.hexcasting.cycle_variant",
           "input": "",
           "output": "",
-          "text": "@Book.page.cycle_variant",
+          "text": "@res:Book.page.cycle_variant",
           "patterns": [
             {
               "startdir": "WEST",
@@ -4575,7 +4575,7 @@
     },
     {
       "id": "hexcasting:patterns/spells/flight",
-      "name": "@Book.entry.flights",
+      "name": "@res:Book.entry.flights",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:feather",
       "priority": 7,
@@ -4584,19 +4584,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.flights.n1"
+          "text": "@res:Book.page.flights.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.flights.n2"
+          "text": "@res:Book.page.flights.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:flight/range",
-          "name": "@Book.action.hexcasting.flight.range",
+          "name": "@res:Book.action.hexcasting.flight.range",
           "input": "entity, number",
           "output": "",
-          "text": "@Book.page.flights.range.n1",
+          "text": "@res:Book.page.flights.range.n1",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4606,15 +4606,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.flights.range.n2"
+          "text": "@res:Book.page.flights.range.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:flight/time",
-          "name": "@Book.action.hexcasting.flight.time",
+          "name": "@res:Book.action.hexcasting.flight.time",
           "input": "entity, number",
           "output": "",
-          "text": "@Book.page.flights.time.n1",
+          "text": "@res:Book.page.flights.time.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4624,15 +4624,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.flights.time.n2"
+          "text": "@res:Book.page.flights.time.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:flight/can_fly",
-          "name": "@Book.action.hexcasting.flight.can_fly",
+          "name": "@res:Book.action.hexcasting.flight.can_fly",
           "input": "entity",
           "output": "boolean",
-          "text": "@Book.page.flights.can_fly.n1",
+          "text": "@res:Book.page.flights.can_fly.n1",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4642,13 +4642,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.flights.can_fly.n2"
+          "text": "@res:Book.page.flights.can_fly.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/spells/hexcasting",
-      "name": "@Book.entry.hexcasting_spell",
+      "name": "@res:Book.entry.hexcasting_spell",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:hexcasting:artifact",
       "priority": 3,
@@ -4657,15 +4657,15 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.hexcasting_spell.basics"
+          "text": "@res:Book.page.hexcasting_spell.basics"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:craft/cypher",
-          "name": "@Book.action.hexcasting.craft.cypher",
+          "name": "@res:Book.action.hexcasting.craft.cypher",
           "input": "entity, list",
           "output": "",
-          "text": "@Book.page.hexcasting_spell.craft.cypher",
+          "text": "@res:Book.page.hexcasting_spell.craft.cypher",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4676,10 +4676,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:craft/trinket",
-          "name": "@Book.action.hexcasting.craft.trinket",
+          "name": "@res:Book.action.hexcasting.craft.trinket",
           "input": "entity, list",
           "output": "",
-          "text": "@Book.page.hexcasting_spell.craft.trinket",
+          "text": "@res:Book.page.hexcasting_spell.craft.trinket",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4690,10 +4690,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:craft/artifact",
-          "name": "@Book.action.hexcasting.craft.artifact",
+          "name": "@res:Book.action.hexcasting.craft.artifact",
           "input": "entity, list",
           "output": "",
-          "text": "@Book.page.hexcasting_spell.craft.artifact",
+          "text": "@res:Book.page.hexcasting_spell.craft.artifact",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4704,10 +4704,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:recharge",
-          "name": "@Book.action.hexcasting.recharge",
+          "name": "@res:Book.action.hexcasting.recharge",
           "input": "entity",
           "output": "",
-          "text": "@Book.page.hexcasting_spell.recharge.n1",
+          "text": "@res:Book.page.hexcasting_spell.recharge.n1",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -4717,15 +4717,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting_spell.recharge.n2"
+          "text": "@res:Book.page.hexcasting_spell.recharge.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:erase",
-          "name": "@Book.action.hexcasting.erase",
+          "name": "@res:Book.action.hexcasting.erase",
           "input": "",
           "output": "",
-          "text": "@Book.page.hexcasting_spell.erase.n1",
+          "text": "@res:Book.page.hexcasting_spell.erase.n1",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4735,13 +4735,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.hexcasting_spell.erase.n2"
+          "text": "@res:Book.page.hexcasting_spell.erase.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/spells/itempicking",
-      "name": "@Book.entry.itempicking",
+      "name": "@res:Book.entry.itempicking",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:item_frame",
       "priority": 0,
@@ -4750,21 +4750,21 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.itempicking.n1"
+          "text": "@res:Book.page.itempicking.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.itempicking.n2"
+          "text": "@res:Book.page.itempicking.n2"
         },
         {
           "type": "text",
-          "text": "@Book.page.itempicking.n3"
+          "text": "@res:Book.page.itempicking.n3"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/spells/nadirs",
-      "name": "@Book.entry.nadirs",
+      "name": "@res:Book.entry.nadirs",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:potion",
       "priority": 2,
@@ -4773,19 +4773,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.nadirs.n1"
+          "text": "@res:Book.page.nadirs.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.nadirs.n2"
+          "text": "@res:Book.page.nadirs.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/weakness",
-          "name": "@Book.action.hexcasting.potion.weakness",
+          "name": "@res:Book.action.hexcasting.potion.weakness",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.nadirs.potion.weakness",
+          "text": "@res:Book.page.nadirs.potion.weakness",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -4796,10 +4796,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/levitation",
-          "name": "@Book.action.hexcasting.potion.levitation",
+          "name": "@res:Book.action.hexcasting.potion.levitation",
           "input": "entity, number",
           "output": "",
-          "text": "@Book.page.nadirs.potion.levitation",
+          "text": "@res:Book.page.nadirs.potion.levitation",
           "patterns": [
             {
               "startdir": "WEST",
@@ -4810,10 +4810,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/wither",
-          "name": "@Book.action.hexcasting.potion.wither",
+          "name": "@res:Book.action.hexcasting.potion.wither",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.nadirs.potion.wither",
+          "text": "@res:Book.page.nadirs.potion.wither",
           "patterns": [
             {
               "startdir": "SOUTH_WEST",
@@ -4824,10 +4824,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/poison",
-          "name": "@Book.action.hexcasting.potion.poison",
+          "name": "@res:Book.action.hexcasting.potion.poison",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.nadirs.potion.poison",
+          "text": "@res:Book.page.nadirs.potion.poison",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -4838,10 +4838,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:potion/slowness",
-          "name": "@Book.action.hexcasting.potion.slowness",
+          "name": "@res:Book.action.hexcasting.potion.slowness",
           "input": "entity, number, number",
           "output": "",
-          "text": "@Book.page.nadirs.potion.slowness",
+          "text": "@res:Book.page.nadirs.potion.slowness",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -4853,7 +4853,7 @@
     },
     {
       "id": "hexcasting:patterns/spells/sentinels",
-      "name": "@Book.entry.sentinels",
+      "name": "@res:Book.entry.sentinels",
       "category": "@category:hexcasting:patterns/spells",
       "icon": "@item:minecraft:purple_candle",
       "priority": 4,
@@ -4862,19 +4862,19 @@
       "pages": [
         {
           "type": "text",
-          "text": "@Book.page.sentinels.n1"
+          "text": "@res:Book.page.sentinels.n1"
         },
         {
           "type": "text",
-          "text": "@Book.page.sentinels.n2"
+          "text": "@res:Book.page.sentinels.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:sentinel/create",
-          "name": "@Book.action.hexcasting.sentinel.create",
+          "name": "@res:Book.action.hexcasting.sentinel.create",
           "input": "vector",
           "output": "",
-          "text": "@Book.page.sentinels.sentinel.create",
+          "text": "@res:Book.page.sentinels.sentinel.create",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4885,10 +4885,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:sentinel/destroy",
-          "name": "@Book.action.hexcasting.sentinel.destroy",
+          "name": "@res:Book.action.hexcasting.sentinel.destroy",
           "input": "",
           "output": "",
-          "text": "@Book.page.sentinels.sentinel.destroy",
+          "text": "@res:Book.page.sentinels.sentinel.destroy",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4899,10 +4899,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:sentinel/get_pos",
-          "name": "@Book.action.hexcasting.sentinel.get_pos",
+          "name": "@res:Book.action.hexcasting.sentinel.get_pos",
           "input": "",
           "output": "vector",
-          "text": "@Book.page.sentinels.sentinel.get_pos",
+          "text": "@res:Book.page.sentinels.sentinel.get_pos",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4913,10 +4913,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:sentinel/wayfind",
-          "name": "@Book.action.hexcasting.sentinel.wayfind",
+          "name": "@res:Book.action.hexcasting.sentinel.wayfind",
           "input": "vector",
           "output": "vector",
-          "text": "@Book.page.sentinels.sentinel.wayfind",
+          "text": "@res:Book.page.sentinels.sentinel.wayfind",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4928,7 +4928,7 @@
     },
     {
       "id": "hexcasting:patterns/stackmanip",
-      "name": "@Book.entry.stackmanip",
+      "name": "@res:Book.entry.stackmanip",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:minecraft:piston",
       "priority": 4,
@@ -4938,10 +4938,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:pseudo-novice",
-          "name": "@Book.page.stackmanip.pseudo.novice.title",
+          "name": "@res:Book.page.stackmanip.pseudo.novice.title",
           "input": "any",
           "output": "",
-          "text": "@Book.page.stackmanip.pseudo.novice",
+          "text": "@res:Book.page.stackmanip.pseudo.novice",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4952,10 +4952,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:swap",
-          "name": "@Book.action.hexcasting.swap",
+          "name": "@res:Book.action.hexcasting.swap",
           "input": "any, any",
           "output": "any, any",
-          "text": "@Book.page.stackmanip.swap",
+          "text": "@res:Book.page.stackmanip.swap",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4966,10 +4966,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:rotate",
-          "name": "@Book.action.hexcasting.rotate",
+          "name": "@res:Book.action.hexcasting.rotate",
           "input": "any, any, any",
           "output": "any, any, any",
-          "text": "@Book.page.stackmanip.rotate",
+          "text": "@res:Book.page.stackmanip.rotate",
           "patterns": [
             {
               "startdir": "EAST",
@@ -4980,10 +4980,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:rotate_reverse",
-          "name": "@Book.action.hexcasting.rotate_reverse",
+          "name": "@res:Book.action.hexcasting.rotate_reverse",
           "input": "any, any, any",
           "output": "any, any, any",
-          "text": "@Book.page.stackmanip.rotate_reverse",
+          "text": "@res:Book.page.stackmanip.rotate_reverse",
           "patterns": [
             {
               "startdir": "NORTH_EAST",
@@ -4994,10 +4994,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:duplicate",
-          "name": "@Book.action.hexcasting.duplicate",
+          "name": "@res:Book.action.hexcasting.duplicate",
           "input": "any",
           "output": "any, any",
-          "text": "@Book.page.stackmanip.duplicate",
+          "text": "@res:Book.page.stackmanip.duplicate",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5008,10 +5008,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:over",
-          "name": "@Book.action.hexcasting.over",
+          "name": "@res:Book.action.hexcasting.over",
           "input": "any, any",
           "output": "any, any, any",
-          "text": "@Book.page.stackmanip.over",
+          "text": "@res:Book.page.stackmanip.over",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5022,10 +5022,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:tuck",
-          "name": "@Book.action.hexcasting.tuck",
+          "name": "@res:Book.action.hexcasting.tuck",
           "input": "any, any",
           "output": "any, any, any",
-          "text": "@Book.page.stackmanip.tuck",
+          "text": "@res:Book.page.stackmanip.tuck",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5036,10 +5036,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:duplicate_n",
-          "name": "@Book.action.hexcasting.duplicate_n",
+          "name": "@res:Book.action.hexcasting.duplicate_n",
           "input": "any, number",
           "output": "many",
-          "text": "@Book.page.stackmanip.duplicate_n",
+          "text": "@res:Book.page.stackmanip.duplicate_n",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5050,10 +5050,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:2dup",
-          "name": "@Book.action.hexcasting.n2dup",
+          "name": "@res:Book.action.hexcasting.n2dup",
           "input": "any, any",
           "output": "any, any, any, any",
-          "text": "@Book.page.stackmanip.n2dup",
+          "text": "@res:Book.page.stackmanip.n2dup",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5064,10 +5064,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:stack_len",
-          "name": "@Book.action.hexcasting.stack_len",
+          "name": "@res:Book.action.hexcasting.stack_len",
           "input": "",
           "output": "number",
-          "text": "@Book.page.stackmanip.stack_len",
+          "text": "@res:Book.page.stackmanip.stack_len",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -5078,10 +5078,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:fisherman",
-          "name": "@Book.action.hexcasting.fisherman",
+          "name": "@res:Book.action.hexcasting.fisherman",
           "input": "number",
           "output": "any",
-          "text": "@Book.page.stackmanip.fisherman",
+          "text": "@res:Book.page.stackmanip.fisherman",
           "patterns": [
             {
               "startdir": "WEST",
@@ -5092,10 +5092,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:fisherman/copy",
-          "name": "@Book.action.hexcasting.fisherman.copy",
+          "name": "@res:Book.action.hexcasting.fisherman.copy",
           "input": "number",
           "output": "any",
-          "text": "@Book.page.stackmanip.fisherman.copy",
+          "text": "@res:Book.page.stackmanip.fisherman.copy",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5106,10 +5106,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:mask",
-          "name": "@Book.action.book.hexcasting.mask",
+          "name": "@res:Book.action.book.hexcasting.mask",
           "input": "many",
           "output": "many",
-          "text": "@Book.page.stackmanip.mask.n1",
+          "text": "@res:Book.page.stackmanip.mask.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -5127,15 +5127,15 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.stackmanip.mask.n2"
+          "text": "@res:Book.page.stackmanip.mask.n2"
         },
         {
           "type": "pattern",
           "op_id": "hexcasting:swizzle",
-          "name": "@Book.action.hexcasting.swizzle",
+          "name": "@res:Book.action.hexcasting.swizzle",
           "input": "many, number",
           "output": "many",
-          "text": "@Book.page.stackmanip.swizzle.n1",
+          "text": "@res:Book.page.stackmanip.swizzle.n1",
           "patterns": [
             {
               "startdir": "SOUTH_EAST",
@@ -5145,13 +5145,13 @@
         },
         {
           "type": "text",
-          "text": "@Book.page.stackmanip.swizzle.n2"
+          "text": "@res:Book.page.stackmanip.swizzle.n2"
         }
       ]
     },
     {
       "id": "hexcasting:patterns/types",
-      "name": "@Book.entry.types",
+      "name": "@res:Book.entry.types",
       "category": "@category:hexcasting:patterns",
       "icon": "@item:hexcasting:lens",
       "priority": 6,
@@ -5161,10 +5161,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:type_equals",
-          "name": "@Book.action.hexcasting.type_equals",
+          "name": "@res:Book.action.hexcasting.type_equals",
           "input": "any, any",
           "output": "bool",
-          "text": "@Book.page.types.type_equals",
+          "text": "@res:Book.page.types.type_equals",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5175,10 +5175,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:type_not_equals",
-          "name": "@Book.action.hexcasting.type_not_equals",
+          "name": "@res:Book.action.hexcasting.type_not_equals",
           "input": "any, any",
           "output": "bool",
-          "text": "@Book.page.types.type_not_equals",
+          "text": "@res:Book.page.types.type_not_equals",
           "patterns": [
             {
               "startdir": "EAST",
@@ -5189,7 +5189,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:compare_item/lenient",
-          "name": "@Book.action.hexcasting.compare_item.lenient",
+          "name": "@res:Book.action.hexcasting.compare_item.lenient",
           "input": "entity, entity",
           "output": "bool",
           "text": "",
@@ -5203,7 +5203,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:compare_item/strict",
-          "name": "@Book.action.hexcasting.compare_item.strict",
+          "name": "@res:Book.action.hexcasting.compare_item.strict",
           "input": "entity, entity",
           "output": "bool",
           "text": "",
@@ -5222,10 +5222,10 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:compare_entity",
-          "name": "@Book.action.hexcasting.compare_entity",
+          "name": "@res:Book.action.hexcasting.compare_entity",
           "input": "entity, entity",
           "output": "bool",
-          "text": "@Book.page.types.compare_entity",
+          "text": "@res:Book.page.types.compare_entity",
           "patterns": [
             {
               "startdir": "NORTH_WEST",
@@ -5236,7 +5236,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:compare_block/lenient",
-          "name": "@Book.action.hexcasting.compare_block.lenient",
+          "name": "@res:Book.action.hexcasting.compare_block.lenient",
           "input": "vec, vec",
           "output": "bool",
           "text": "",
@@ -5250,7 +5250,7 @@
         {
           "type": "pattern",
           "op_id": "hexcasting:compare_block/strict",
-          "name": "@Book.action.hexcasting.compare_block.strict",
+          "name": "@res:Book.action.hexcasting.compare_block.strict",
           "input": "vec, vec",
           "output": "bool",
           "text": "",
@@ -5268,5 +5268,5 @@
       ]
     }
   ],
-  "landing_text": "@Book.landing"
+  "landing_text": "@res:Book.landing"
 }

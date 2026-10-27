@@ -101,7 +101,7 @@ impl Scalar {
         let typed;
         let v = match v {
             Value::Str(s) if s.starts_with('@') => {
-                typed = yog_data::typed::classify(s)?;
+                typed = yog_data::typed::classify(s).map_err(|e| e.to_string())?.into_value();
                 &typed
             }
             v => v,
@@ -138,14 +138,14 @@ impl Scalar {
                 .as_str()
                 .map(|s| format!("{s:?}"))
                 .map_or_else(|| want("a string"), Ok),
-            Scalar::Text => match v {
-                Value::Res(r) => refs
-                    .text(r)
+            Scalar::Text => match res_of(v) {
+                Some(r) => refs
+                    .text(&r)
                     .map(|(key, _)| format!("::yog_api::tr({key:?})")),
                 _ => want("a text, `@Strings.<key>`"),
             },
-            Scalar::Color => match v {
-                Value::Res(r) => refs.color(r).map(|c| format!("0x{c:08X}")),
+            Scalar::Color => match res_of(v) {
+                Some(r) => refs.color(&r).map(|c| format!("0x{c:08X}")),
                 _ => want("a color, `@Colors.<key>`"),
             },
             Scalar::Item | Scalar::Block => {
@@ -156,7 +156,7 @@ impl Scalar {
                 };
                 match v {
                     Value::Ref(r) if r.kind == word => {
-                        known.check(kind, &r.id).map(|()| format!("{:?}", r.id))
+                        known.check(kind, &r.id).map(|()| format!("{:?}", r.id.as_str()))
                     }
                     _ => want(&format!("`@{word}:<id>`")),
                 }
@@ -338,12 +338,23 @@ fn cell_expr(
     }
 }
 
+/// The `.yres` entry `v` names, if it's one.
+fn res_of(v: &Value) -> Option<yog_data::Res> {
+    match v {
+        Value::Ref(r) => match yog_data::Meaning::of(r.clone())? {
+            yog_data::Meaning::Res(r) => Some(r),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// A map cell's key as the value it stands for — written bare:
 /// `minecraft:redstone`, not `@item:…`.
 fn map_key(k: &Scalar, key: &str) -> Value {
     match k {
-        Scalar::Item => Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key)),
-        Scalar::Block => Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key)),
+        Scalar::Item => yog_data::Schema::write(&yog_data::Id::<yog_data::kinds::Item>::new(key)),
+        Scalar::Block => yog_data::Schema::write(&yog_data::Id::<yog_data::kinds::Block>::new(key)),
         _ => yog_data::text::parse_value(key).unwrap_or_else(|_| Value::Str(key.to_string())),
     }
 }
@@ -445,8 +456,8 @@ mod tests {
             r#"{ kind: "table", id: "tier",
                 columns: { size: "u32", chip: "item", name: "text", inputs: "{item: u64}" },
                 rows: {
-                    wood: { size: 16, chip: "@item:mymod:chip_wood", name: "@Strings.tier_wood", inputs: { "minecraft:oak_log": 1 } },
-                    stone: { size: 32, chip: "@item:mymod:chip_wood", name: "@Strings.tier_wood", inputs: {} },
+                    wood: { size: 16, chip: "@item:mymod:chip_wood", name: "@res:Strings.tier_wood", inputs: { "minecraft:oak_log": 1 } },
+                    stone: { size: 32, chip: "@item:mymod:chip_wood", name: "@res:Strings.tier_wood", inputs: {} },
                 } }"#,
         )
         .unwrap();

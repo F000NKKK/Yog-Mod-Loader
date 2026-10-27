@@ -356,7 +356,7 @@ fn sources(root: &Path) -> Vec<PathBuf> {
 fn mod_name(root: &Path) -> String {
     // Only a name to show: a manifest that doesn't read shows the folder's.
     let manifest = crate::project::manifest::YogToml::read(&project::path(root)).ok();
-    // `@Strings.x` names a resource text — the id reads better than the reference.
+    // `@res:Strings.x` names a resource text — the id reads better than the reference.
     manifest
         .as_ref()
         .map(|m| m.name.clone())

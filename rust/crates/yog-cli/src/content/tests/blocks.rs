@@ -7,7 +7,7 @@ fn compiles_a_cube_block() {
     let root = project(&[
         (
             "resources/block/ruby_ore.ytexture",
-            r#"{ image: "@Images.block.ruby_ore" }"#,
+            r#"{ image: "@res:Images.block.ruby_ore" }"#,
         ),
         (
             "content/ruby.yitem",

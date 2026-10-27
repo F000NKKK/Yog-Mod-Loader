@@ -1,4 +1,4 @@
-//! A sound for a designer to play: the mod's own (`@Sounds.abacus1`, its
+//! A sound for a designer to play: the mod's own (`@res:Sounds.abacus1`, its
 //! `.yres` bytes as given) or a file the game has (`minecraft:dig/sand1`,
 //! from its assets on this machine) — the variants of a `.ysound`.
 
@@ -43,10 +43,10 @@ pub(crate) fn sound_list(file: &Path) -> Result<SoundList, ServiceError> {
     })
 }
 
-/// Sound `sound` as the mod at `file` plays it: `@Set.name` its own, else
+/// Sound `sound` as the mod at `file` plays it: `@res:Set.name` its own, else
 /// a file of the game's sounds (`minecraft:dig/sand1`, no namespace: the game's).
 pub(crate) fn sound_data(file: &Path, sound: &str) -> Result<SoundData, ServiceError> {
-    let bytes = match sound.strip_prefix(yog_ids::sep::TYPED) {
+    let bytes = match sound.strip_prefix(yog_ids::reference::RES) {
         Some(res) => own(file, res)?,
         None => game(sound)?,
     };
@@ -64,10 +64,10 @@ pub(crate) fn sound_data(file: &Path, sound: &str) -> Result<SoundData, ServiceE
 fn own(file: &Path, res: &str) -> Result<Vec<u8>, ServiceError> {
     let (set, name) = res
         .split_once(yog_ids::sep::DOT)
-        .ok_or_else(|| ServiceError::from(format!("`{res}`: a sound is `@Set.name`")))?;
+        .ok_or_else(|| ServiceError::from(format!("`{res}`: a sound is `@res:Set.name`")))?;
     let root = mod_root(file).ok_or("not in a mod")?;
     crate::media::assets::sound(&root, set, name)
-        .ok_or_else(|| ServiceError::not_found(format!("no sound `@{res}` in the mod's .yres")))
+        .ok_or_else(|| ServiceError::not_found(format!("no sound `{}{res}` in the mod's .yres", yog_ids::reference::RES)))
 }
 
 /// The game's sound file `id`, from its assets.
@@ -96,15 +96,15 @@ mod tests {
         )
         .unwrap();
         let file = dir.join("resources/click.ysound");
-        let s = super::sound_data(&file, "@Sounds.click").unwrap();
+        let s = super::sound_data(&file, "@res:Sounds.click").unwrap();
         assert_eq!(
             (s.mime.as_str(), s.data.as_str()),
             ("audio/ogg", ogg.as_str())
         );
-        assert!(super::sound_data(&file, "@Sounds.nope").is_err());
+        assert!(super::sound_data(&file, "@res:Sounds.nope").is_err());
         assert_eq!(
             super::sound_list(&file).unwrap().own,
-            vec!["@Sounds.click".to_owned()]
+            vec!["@res:Sounds.click".to_owned()]
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

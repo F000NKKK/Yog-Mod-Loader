@@ -141,8 +141,8 @@ the Java and Rust worlds.
   `Strings.ru_ru.yres`), images, sounds, colors and numbers. One
   `yog_api::resources!()` generates typed accessors (`Strings::screen_title()`)
   and Minecraft lang files
-- 🔗 **`@Set.key` references** work in `.yui`, `.yblock`/`.yitem`,
-  `.ybook` and in `yog.toml` (`name = "@Strings.mod_name"`)
+- 🔗 **`@res:Set.key` references** work in `.yui`, `.yblock`/`.yitem`,
+  `.ybook` and in `yog.toml` (`name = "@res:Strings.mod_name"`)
 - ✍️ **Yog text**: one format for every text — `{b|bold}`, `{i|…}`,
   `{u|…}`, `{s|…}`, `{#8d6acc|colored}`, nested spans, `{{`/`}}` for braces —
   read the same by the Rust UI and the Java hosts
@@ -339,12 +339,12 @@ shortened. The layout and its wiring are in `src/mod_list.yui`:
         bg="#E0101010" x:ViewModel="ModListVm">
     <Grid w="100%" h="100%" rows="20,*,Auto">
         <Row padding="0 8" gap="4" align="center" bg="#FF222222">
-            <Label text="@Strings.screen.title" color="#FFD700" />
+            <Label text="@res:Strings.screen.title" color="#FFD700" />
             <Spacer flex="1" />
             <Label text="{x:Bind count_text()}" color="#AAAAAA" />
         </Row>
         <Grid Grid.Row="1" rows="14,*" columns="*,*" row_spacing="4" column_spacing="6">
-            <TextBox text="{x:Bind search, Mode=TwoWay}" placeholder="@Strings.search.placeholder" />
+            <TextBox text="{x:Bind search, Mode=TwoWay}" placeholder="@res:Strings.search.placeholder" />
             <ListView Grid.Row="1" items="{x:Bind visible()}" key="{x:Bind id}"
                       selected="{x:Bind selected_id(), BindBack=select}" item_height="24">
                 <ListView.ItemTemplate>
@@ -354,7 +354,7 @@ shortened. The layout and its wiring are in `src/mod_list.yui`:
                 </ListView.ItemTemplate>
             </ListView>
         </Grid>
-        <Button Grid.Row="2" halign="right" text="@Strings.screen.done" command="{x:Bind cx.close()}" />
+        <Button Grid.Row="2" halign="right" text="@res:Strings.screen.done" command="{x:Bind cx.close()}" />
     </Grid>
 </Screen>
 ```
@@ -414,7 +414,7 @@ Strings::screen_count(42)            // "42 mods" or "Модов: 42", in the pl
 Strings::MENU_BUTTON_KEY             // the translation key, for APIs that take one
 ```
 
-`yog.toml` can point at the same texts: `name = "@Strings.mod_name"`. See
+`yog.toml` can point at the same texts: `name = "@res:Strings.mod_name"`. See
 [`.yres` resource files](https://github.com/F000NKKK/Yog-IDLE/blob/master/docs/yres.md).
 
 ### Blocks and items as files
@@ -424,8 +424,8 @@ A real item from [HexMod-Yog](https://github.com/F000NKKK/HexMod-Yog),
 
 ```json
 {
-  "name": "@Items.amethyst_dust",
-  "tooltip": "@Items.amethyst_dust.desc",
+  "name": "@res:Items.amethyst_dust",
+  "tooltip": "@res:Items.amethyst_dust.desc",
   "model": { "parent": "generated", "textures": { "layer0": "item/amethyst_dust.png" } }
 }
 ```

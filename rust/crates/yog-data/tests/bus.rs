@@ -261,13 +261,13 @@ mod frames {
     /// A frame packed in the thread's reused buffers is the same frame — nested too.
     #[test]
     fn reused_buffers_make_the_same_frames() {
-        use yog_data::frame::with_frame;
+        let (mut pa, mut pb) = (yog_data::frame::Packer::new(), yog_data::frame::Packer::new());
         let a = vec!["x".to_owned(), "y".to_owned(), "x".to_owned()];
         let b = vec![1u32, 2, 3];
         for _ in 0..3 {
-            with_frame(&a, |fa| {
+            pa.with_frame(&a, |fa| {
                 assert_eq!(fa, to_frame(&a).as_slice());
-                with_frame(&b, |fb| assert_eq!(fb, to_frame(&b).as_slice()));
+                pb.with_frame(&b, |fb| assert_eq!(fb, to_frame(&b).as_slice()));
             });
         }
     }

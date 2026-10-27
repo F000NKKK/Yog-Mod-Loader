@@ -76,7 +76,7 @@ fn yres_round_trips_through_the_service() {
 fn typed_values_are_classified_by_the_service() {
     let r = call(
         "typed.classify",
-        r#"{ values: ["@item:stick", "@tag:item:c:dusts", "@Strings.a.b", "@@x", "plain", "@Item:x"] }"#,
+        r#"{ values: ["@item:stick", "@tag:item:c:dusts", "@res:Strings.a.b", "@@x", "plain", "@Item:x"] }"#,
     )
     .unwrap();
     let t = |i: &str| at(&r, &[i, "t"]).as_str();
@@ -210,12 +210,12 @@ fn textures_and_advancements_take_references_as_written() {
     let bare = texture("mymod:block/ruby").unwrap_err();
     assert_eq!(bare.problems[0].path.to_string(), "texture");
     assert_eq!(
-        bare.problems[0].code.as_deref(),
-        Some(yog_ids::data_problem::NOT_A_REFERENCE)
+        bare.problems[0].code.map(yog_data::Code::as_str),
+        Some(yog_data::Problem::NotAReference.code())
     );
     let missing = texture("@texture:mymod:block/none").unwrap_err();
     assert_eq!(
-        missing.problems[0].code.as_deref(),
+        missing.problems[0].code.map(yog_data::Code::as_str),
         Some(yog_ids::request_problem::NOT_FOUND)
     );
     let args = format!(
@@ -250,13 +250,13 @@ fn a_source_being_edited_is_checked_where_it_goes_wrong() {
     assert_eq!(unknown.len(), 1, "{unknown:?}");
     assert_eq!(
         unknown[0].get("code").and_then(Value::as_str),
-        Some(yog_ids::data_problem::UNKNOWN_FIELD)
+        Some(yog_data::Problem::UnknownField.code())
     );
     assert_eq!(unknown[0].get("line"), Some(&Value::Int(3)));
     assert_eq!(unknown[0].get("col"), Some(&Value::Int(3)));
     let syntax = problems(&check("{ hardness: }"));
     assert_eq!(
         syntax[0].get("code").and_then(Value::as_str),
-        Some(yog_ids::data_problem::SYNTAX)
+        Some(yog_data::Problem::Syntax.code())
     );
 }

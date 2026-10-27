@@ -3,9 +3,9 @@
 //! these split them.
 
 use substrate_data::schema::Found;
-use substrate_data::{Kind, Ref};
+use substrate_data::{Kind, Path, Ref};
 
-use crate::{Res, kinds};
+use crate::{Meaning, Res, kinds};
 
 /// A tag met: its content's kind (`item`) and its id (`minecraft:planks`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,29 +23,26 @@ pub fn content(refs: &[Found<Ref>]) -> impl Iterator<Item = &Found<Ref>> {
 
 /// The tags in `refs`.
 pub fn tags(refs: &[Found<Ref>]) -> Vec<Found<TagRef>> {
-    of_kind::<kinds::Tag>(refs)
-        .filter_map(|f| {
-            let (kind, id) = f.value.id.as_str().split_once(yog_ids::sep::NAMESPACE)?;
-            let value = TagRef {
-                kind: kind.to_owned(),
-                id: id.to_owned(),
-            };
-            Some(Found { value, path: f.path.clone() })
+    meanings(refs)
+        .filter_map(|(m, path)| match m {
+            Meaning::Tag(value) => Some(Found { value, path }),
+            _ => None,
         })
         .collect()
 }
 
 /// The `.yres` entries in `refs`.
 pub fn resources(refs: &[Found<Ref>]) -> Vec<Found<Res>> {
-    of_kind::<kinds::Res>(refs)
-        .filter_map(|f| {
-            let value = Res::parse(f.value.id.as_str())?;
-            Some(Found { value, path: f.path.clone() })
+    meanings(refs)
+        .filter_map(|(m, path)| match m {
+            Meaning::Res(value) => Some(Found { value, path }),
+            _ => None,
         })
         .collect()
 }
 
-/// The references of kind `K` in `refs`.
-fn of_kind<K: Kind>(refs: &[Found<Ref>]) -> impl Iterator<Item = &Found<Ref>> {
-    refs.iter().filter(|f| f.value.kind.as_str() == K::NAME)
+/// What each of `refs` is to Yog, and where.
+fn meanings(refs: &[Found<Ref>]) -> impl Iterator<Item = (Meaning, Path)> + '_ {
+    refs.iter()
+        .filter_map(|f| Some((Meaning::of(f.value.clone())?, f.path.clone())))
 }

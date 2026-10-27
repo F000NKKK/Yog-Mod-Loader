@@ -125,7 +125,7 @@ mod tests {
             address: "test:gone".into(),
             kind: AddressKind::Service,
             doc: String::new(),
-            shape: yog_data::Value::Null,
+            shape: <() as yog_data::Schema>::shape().describe(),
             reply: None,
             interfaces: Vec::new(),
         };

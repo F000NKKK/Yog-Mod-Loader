@@ -106,7 +106,7 @@ yog-codegen-ys = { version = "0.1.0", path = "crates/yog-codegen-ys" }
 yog-command = { version = "0.4.2", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
 yog-core = { version = "0.10.1", path = "crates/yog-core" }
-substrate-data = "0.2.0"
+substrate-data = "0.2.1"
 yog-data = { version = "0.10.2", path = "crates/yog-data" }
 yog-dimensions = { version = "0.17.0", path = "crates/yog-dimensions" }
 yog-event = { version = "0.11.8", path = "crates/yog-event" }

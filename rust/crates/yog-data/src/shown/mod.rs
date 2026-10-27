@@ -34,7 +34,7 @@ impl Text {
     pub fn to_ref(&self) -> Option<Ref> {
         match self {
             Text::Literal(_) => None,
-            Text::Res(r) => Some(Id::<kinds::Res>::new(r.to_string()).to_ref()),
+            Text::Res(r) => Some(Id::<kinds::Res>::new(r.name()).to_ref()),
             Text::NameOf(r) => Some(r.clone()),
             Text::Lang(k) => Some(Lang::new(k.clone()).to_ref()),
         }
@@ -61,8 +61,9 @@ impl Text {
         }
     }
 
-    /// What reference `r` is as a text.
-    fn of_ref(r: Ref) -> Option<Text> {
+    /// What reference `r` is as a text (a resolver's `expand` gets the
+    /// reference a text is).
+    pub fn of_ref(r: Ref) -> Option<Text> {
         let kind = r.kind.as_str();
         if kind == kinds::Res::NAME {
             return Res::parse(r.id.as_str()).map(Text::Res);
@@ -133,5 +134,22 @@ impl Schema for Text {
     }
     fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
         Value::unpack(u).and_then(Text::from_stored)
+    }
+}
+
+/// A field that is a text, kept resolved ([`Text::resolve`]):
+/// `#[data(with = "yog_data::TextOf")]`.
+#[derive(Debug)]
+pub struct TextOf;
+
+impl substrate_data::with::With<String> for TextOf {
+    fn shape() -> Shape {
+        Text::shape()
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader<'_>) -> Option<String> {
+        Text::read(v, cx)?.resolve(cx)
+    }
+    fn write(f: &String) -> Value {
+        Text::Literal(f.clone()).write()
     }
 }

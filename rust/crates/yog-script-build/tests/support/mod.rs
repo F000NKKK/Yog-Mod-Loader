@@ -69,7 +69,7 @@ pub fn run_warned(sources: &[(&str, &str)], expr: &str, warned: &[&str]) -> Opti
             ..Env::default()
         };
         let checked = check_in(name, text, env);
-        let code = |p: &yog_data::Diagnostic| p.code.as_deref().unwrap_or_default().to_string();
+        let code = |p: &yog_data::Diagnostic| p.code.map(yog_data::Code::as_str).unwrap_or_default().to_string();
         let unexpected = checked
             .problems
             .iter()

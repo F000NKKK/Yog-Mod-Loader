@@ -252,7 +252,7 @@ pub struct DamageTypeDef {
 
 /// `{ kind: "table", id: "tier", columns: { size: "u32", chip: "item",
 /// name: "text" }, rows: { wood: { size: 16, chip: "@item:mymod:chip_wood",
-/// name: "@Strings.tier_wood" }, … } }` — in the mod's code an enum `Tier`,
+/// name: "@res:Strings.tier_wood" }, … } }` — in the mod's code an enum `Tier`,
 /// a variant per row (`Tier::Wood`, in order), a method per column
 /// (`Tier::Wood.size()`), `Tier::ALL`, `id()`, `from_id()` and, for an
 /// `item`, `block` or `string` column, `from_<column>()`.

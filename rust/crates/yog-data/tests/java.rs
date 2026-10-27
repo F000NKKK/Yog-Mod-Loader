@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use yog_data::{Map, Ref, Res, Value, binary, text};
+use yog_data::{Map, Ref, Value, binary, text};
 
 /// Gson, which YogData's JSON half uses: the newest Gradle cached.
 fn gson() -> PathBuf {
@@ -77,19 +77,14 @@ fn every_type() -> Value {
             Value::Str("ünï😀".into()),
         ]),
     );
-    m.insert("ref", Value::Ref(Ref::new("item", "minecraft:stick")));
-    m.insert("tag", Value::Tag(Ref::new("block", "minecraft:logs")));
-    m.insert(
-        "res",
-        Value::Res(Res {
-            set: "Strings".into(),
-            key: "a.b".into(),
-        }),
-    );
-    m.insert("text", Value::Text("{b|x}".into()));
-    m.insert("image", Value::Image("sprite:x".into()));
-    m.insert("color", Value::Color(0x80FF_0000));
-    m.insert("lang", Value::Lang("gui.done".into()));
+    let r = |kind: &str, id: &str| Value::Ref(Ref::parse(kind, id).expect("a reference"));
+    m.insert("ref", r("item", "minecraft:stick"));
+    m.insert("tag", r("tag", "block:minecraft:logs"));
+    m.insert("res", r("res", "Strings.a.b"));
+    m.insert("text", Value::Str("{b|x}".into()));
+    m.insert("image", r("image", "sprite:x"));
+    m.insert("color", Value::Int(0x80FF_0000));
+    m.insert("lang", r("lang", "gui.done"));
     m.insert("again", Value::Str("ünï😀".into()));
     Value::Map(m)
 }
@@ -111,7 +106,7 @@ fn java_reads_and_writes_the_same_bytes() {
         .expect("javac");
     assert!(javac.success());
 
-    let book = text::parse_value(include_str!("../benches/hexbook.ybook")).unwrap();
+    let book = text::parse_value(include_str!("hexbook.ybook")).unwrap();
     for (name, value) in [("types", every_type()), ("book", book)] {
         let bytes = binary::encode(&value);
         let (input, output) = (

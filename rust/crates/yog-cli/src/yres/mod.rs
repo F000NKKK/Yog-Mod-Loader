@@ -199,8 +199,12 @@ fn parse_color(s: &str) -> Option<u32> {
 /// Resolves a `yog.toml` value: `@<Set>.<name>` of a text → (neutral text,
 /// Some(key)); anything else as is. Errors on an unknown reference.
 pub fn resolve_text(refs: &Refs, value: &str) -> Result<(String, Option<String>), String> {
-    match value.strip_prefix('@') {
-        Some(rest) if rest.starts_with('@') => Ok((rest.to_string(), None)),
+    if let Some(rest) = value.strip_prefix(yog_ids::sep::TYPED)
+        && rest.starts_with(yog_ids::sep::TYPED)
+    {
+        return Ok((rest.to_string(), None));
+    }
+    match value.strip_prefix(yog_ids::reference::RES) {
         Some(rest) => match refs.texts.get(rest) {
             Some((key, text)) => Ok((text.clone(), Some(key.clone()))),
             None => Err(format!("`{value}`: no text `{rest}` in resources/*.yres")),
@@ -211,7 +215,7 @@ pub fn resolve_text(refs: &Refs, value: &str) -> Result<(String, Option<String>)
 
 /// Resolves a `yog.toml` image value: `@<Set>.<name>` → its image source.
 pub fn resolve_image(refs: &Refs, value: &str) -> Result<String, String> {
-    match value.strip_prefix('@') {
+    match value.strip_prefix(yog_ids::reference::RES) {
         Some(rest) => refs
             .images
             .get(rest)

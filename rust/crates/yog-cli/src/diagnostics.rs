@@ -44,7 +44,7 @@ pub fn report(d: &Diagnostic) {
 
 /// `message` reported as an error of kind `code`, and returned to be said.
 pub fn failed(code: &str, message: impl fmt::Display) -> String {
-    let d = Diagnostic::error(code, message);
+    let d = Diagnostic::error(yog_data::Atom::new(code), message);
     report(&d);
     d.message
 }

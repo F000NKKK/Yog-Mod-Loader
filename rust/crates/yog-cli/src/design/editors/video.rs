@@ -19,7 +19,7 @@ const KEPT: usize = 4;
 /// The videos a `.yvideo` can show: the mod's.
 #[derive(yog_data::Schema)]
 pub(crate) struct VideoList {
-    /// The mod's videos (`@Videos.intro`), and how long each lasts (seconds; 0: unreadable).
+    /// The mod's videos (`@res:Videos.intro`), and how long each lasts (seconds; 0: unreadable).
     pub(crate) own: Vec<String>,
     pub(crate) seconds: Vec<f32>,
     /// The mod's pictures, for a montage's picture clips.
@@ -185,10 +185,10 @@ mod tests {
         let file = res.join(yog_formats::video::DIR).join("intro.yvideo");
         assert_eq!(
             video_list(&file).unwrap().own,
-            vec!["@Videos.intro".to_owned()]
+            vec!["@res:Videos.intro".to_owned()]
         );
         let video =
-            yog_data::from_text::<Video>(r#"{ source: "@Videos.intro", width: 64, fps: 10 }"#)
+            yog_data::from_text::<Video>(r#"{ source: "@res:Videos.intro", width: 64, fps: 10 }"#)
                 .unwrap()
                 .value;
         let p = preview(&file, &video).unwrap();

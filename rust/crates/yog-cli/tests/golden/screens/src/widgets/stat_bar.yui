@@ -6,7 +6,7 @@
     <Property name="mode" type="choice" options="bar,dots" default="bar"/>
     <Event name="on_select"/>
     <Row w="100%" gap="4">
-        <Label text="{x:Bind label}" color="@Colors.detail"/>
+        <Label text="{x:Bind label}" color="@res:Colors.detail"/>
         <Spacer w="{x:Bind bar_w()}" h="6" bg="{x:Bind fill}"/>
     </Row>
 </Component>

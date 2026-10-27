@@ -50,7 +50,7 @@ pub struct YogToml {
     pub name_key: Option<String>,
     /// See [`YogToml::name_key`].
     pub description_key: Option<String>,
-    /// The mod's icon, an image source (`icon = "@Icons.logo"` resolved).
+    /// The mod's icon, an image source (`icon = "@res:Icons.logo"` resolved).
     pub icon: Option<String>,
     /// Who made it.
     pub authors: Vec<String>,
@@ -192,13 +192,13 @@ fn toml_inline(v: &Value) -> String {
     }
 }
 
-/// A text of `yog.toml` as `resolve_metadata` reads it: `@Set.key` or the words (`@@` for a leading `@`).
+/// A text of `yog.toml` as `resolve_metadata` reads it: `@res:Set.key` or the words (`@@` for a leading `@`).
 fn text_form(t: Text) -> Result<String, String> {
     match t {
         Text::Literal(s) => Ok(yog_data::typed::escape_at(&s)),
         Text::Res(r) => Ok(r.to_string()),
         Text::NameOf(_) | Text::Lang(_) => Err(
-            "a mod's name and description are text or a `.yres` text (`@Strings.mod_name`)".into(),
+            "a mod's name and description are text or a `.yres` text (`@res:Strings.mod_name`)".into(),
         ),
     }
 }
@@ -346,9 +346,9 @@ mod tests {
     const VLSI: &str = r#"
 [mod]
 id          = "yog-vlsi"
-name        = "@Strings.mod_name"
+name        = "@res:Strings.mod_name"
 version     = "0.3.0"
-description = "@Strings.mod_description"
+description = "@res:Strings.mod_description"
 authors     = ["F000NK", "Yog Team"]
 license     = "AGPL-3.0-only"
 edition     = "2024"
@@ -373,7 +373,7 @@ blocks = ["stove"]
         let t = parse_yog_toml(VLSI).unwrap();
         assert_eq!(
             (t.id.as_str(), t.name.as_str(), t.version.as_str()),
-            ("yog-vlsi", "@Strings.mod_name", "0.3.0")
+            ("yog-vlsi", "@res:Strings.mod_name", "0.3.0")
         );
         assert_eq!(t.authors, ["F000NK", "Yog Team"]);
         assert_eq!(t.license, "AGPL-3.0-only");

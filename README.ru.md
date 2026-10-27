@@ -143,7 +143,7 @@ Java и миром Rust.
   `yog_api::resources!()` генерирует типизированные методы доступа
   (`Strings::screen_title()`) и lang-файлы Minecraft
 - 🔗 **Ссылки `@Набор.ключ`** работают в `.yui`, в `.yblock`/`.yitem`, в
-  `.ybook` и в `yog.toml` (`name = "@Strings.mod_name"`)
+  `.ybook` и в `yog.toml` (`name = "@res:Strings.mod_name"`)
 - ✍️ **Текст Yog**: один формат для всех текстов — `{b|жирный}`, `{i|…}`,
   `{u|…}`, `{s|…}`, `{#8d6acc|цветной}`, вложенные спаны, `{{`/`}}` для
   фигурных скобок. Его одинаково читают интерфейс на Rust и Java-хосты
@@ -343,12 +343,12 @@ impl Mod for MyMod {
         bg="#E0101010" x:ViewModel="ModListVm">
     <Grid w="100%" h="100%" rows="20,*,Auto">
         <Row padding="0 8" gap="4" align="center" bg="#FF222222">
-            <Label text="@Strings.screen.title" color="#FFD700" />
+            <Label text="@res:Strings.screen.title" color="#FFD700" />
             <Spacer flex="1" />
             <Label text="{x:Bind count_text()}" color="#AAAAAA" />
         </Row>
         <Grid Grid.Row="1" rows="14,*" columns="*,*" row_spacing="4" column_spacing="6">
-            <TextBox text="{x:Bind search, Mode=TwoWay}" placeholder="@Strings.search.placeholder" />
+            <TextBox text="{x:Bind search, Mode=TwoWay}" placeholder="@res:Strings.search.placeholder" />
             <ListView Grid.Row="1" items="{x:Bind visible()}" key="{x:Bind id}"
                       selected="{x:Bind selected_id(), BindBack=select}" item_height="24">
                 <ListView.ItemTemplate>
@@ -358,7 +358,7 @@ impl Mod for MyMod {
                 </ListView.ItemTemplate>
             </ListView>
         </Grid>
-        <Button Grid.Row="2" halign="right" text="@Strings.screen.done" command="{x:Bind cx.close()}" />
+        <Button Grid.Row="2" halign="right" text="@res:Strings.screen.done" command="{x:Bind cx.close()}" />
     </Grid>
 </Screen>
 ```
@@ -418,7 +418,7 @@ Strings::screen_count(42)            // "42 mods" или "Модов: 42" — н
 Strings::MENU_BUTTON_KEY             // ключ перевода, для API, которым нужен ключ
 ```
 
-`yog.toml` может ссылаться на те же тексты: `name = "@Strings.mod_name"`.
+`yog.toml` может ссылаться на те же тексты: `name = "@res:Strings.mod_name"`.
 Подробнее: [ресурсы `.yres`](https://github.com/F000NKKK/Yog-IDLE/blob/master/docs/yres.md).
 
 ### Блоки и предметы в файлах
@@ -428,8 +428,8 @@ Strings::MENU_BUTTON_KEY             // ключ перевода, для API, �
 
 ```json
 {
-  "name": "@Items.amethyst_dust",
-  "tooltip": "@Items.amethyst_dust.desc",
+  "name": "@res:Items.amethyst_dust",
+  "tooltip": "@res:Items.amethyst_dust.desc",
   "model": { "parent": "generated", "textures": { "layer0": "item/amethyst_dust.png" } }
 }
 ```

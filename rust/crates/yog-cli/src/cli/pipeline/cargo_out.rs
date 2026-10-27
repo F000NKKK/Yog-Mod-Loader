@@ -124,7 +124,7 @@ fn message(v: &Value, build_dir: &Path, root: &Path) -> Option<Severity> {
         .pointer("/code/code")
         .and_then(Value::as_str)
         .unwrap_or(build_problem::COMPILER);
-    let mut d = Diagnostic::of(severity, code, text).by(RUSTC);
+    let mut d = Diagnostic::of(severity, yog_data::Atom::new(code), text).by(yog_data::Atom::new(RUSTC));
     if let Some(span) = primary_span(m) {
         place(&mut d, span, build_dir, root);
     }
@@ -186,7 +186,7 @@ fn cargo_failed(status: ExitStatus, stderr: &str) {
     } else {
         said.join("\n")
     };
-    diagnostics::report(&Diagnostic::error(yog_data::Atom::new(build_problem::CARGO), message).by(CARGO));
+    diagnostics::report(&Diagnostic::error(yog_data::Atom::new(build_problem::CARGO), message).by(yog_data::Atom::new(CARGO)));
 }
 
 #[cfg(test)]
@@ -197,7 +197,7 @@ mod tests {
     fn a_mod_source_is_named_from_the_mods_root() {
         let root = Path::new("/m");
         let span = serde_json::json!({ "file_name": "../src/lib.rs", "line_start": 3, "column_start": 5, "line_end": 3, "column_end": 9 });
-        let mut d = Diagnostic::error("E0308", "mismatched types");
+        let mut d = Diagnostic::error(yog_data::Atom::new("E0308"), "mismatched types");
         place(&mut d, &span, &root.join(yog_ids::project::OBJ), root);
         assert_eq!(d.file.as_deref(), Some("src/lib.rs"));
         assert_eq!((d.line, d.col, d.end_col), (Some(3), Some(5), Some(9)));

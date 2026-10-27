@@ -104,6 +104,12 @@ impl<K: Kind<Id = String>> Schema for OneOrTag<K> {
         }
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader<'_>) -> Option<Self> {
+        if let ValueRef::Str(s) = v
+            && let Some(tag) = s.strip_prefix(yog_ids::sep::TAG)
+        {
+            cx.problem(format!("`{s}`: write a tag as `@{}:{}:{tag}`", kinds::Tag::NAME, K::NAME));
+            return None;
+        }
         if is_tag(v) {
             TagId::read(v, cx).map(OneOrTag::Tag)
         } else {

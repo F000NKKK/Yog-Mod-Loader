@@ -2,9 +2,9 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use yog_data::schema::{Resolve, Text};
+use yog_data::schema::{Resolve, Unresolved};
 use yog_data::with::With;
-use yog_data::{Path as At, Ref, Res};
+use yog_data::{Path as At, Ref, RefKey, Text, Value};
 use yog_formats::book::layout::{LayoutPart, RecipeLayout};
 use yog_formats::book::page_type::{CustomPage, OWN_FIELDS, PageType, PropKind};
 use yog_formats::book::{Book, BookEntry, BookPage};
@@ -39,38 +39,64 @@ struct Check<'a> {
 }
 
 impl Resolve for Check<'_> {
-    fn reference(&mut self, r: &Ref, _: &At) -> Result<String, String> {
+    fn reference(&mut self, r: &Ref, _: &At) -> Result<RefKey, Unresolved> {
         let own = match r.kind.as_str() {
             kind::ENTRY => Some(&self.entries),
             kind::CATEGORY => Some(&self.categories),
             _ => None,
         };
+        let refused = |reason: String| Unresolved::Refused {
+            reference: r.clone(),
+            reason,
+        };
         match (own, RefKind::from_word(&r.kind)) {
-            (Some(set), _) if set.contains(&r.id) => Ok(r.id.clone()),
-            (Some(_), _) => Err(format!("no {} {} in this book", r.kind, r.id)),
-            (None, Some(kind)) => self.known.check(kind, &r.id).map(|()| r.id.clone()),
-            (None, None) => Err(format!("`@{}:` names nothing a book shows", r.kind)),
+            (Some(set), _) if set.contains(r.id.as_str()) => Ok(r.id.clone()),
+            (Some(_), _) => Err(Unresolved::Missing(r.clone())),
+            (None, Some(kind)) => self.known.check(kind, &r.id).map(|()| r.id.clone()).map_err(refused),
+            // A text's reference (`@res:`, `@lang:`) is its expansion's to check.
+            (None, None) if Text::of_ref(r.clone()).is_some() => Ok(r.id.clone()),
+            (None, None) => Err(refused(format!("`@{}:` names nothing a book shows", r.kind))),
         }
     }
 
-    fn text(&mut self, t: &Text, _: &At) -> Result<String, String> {
-        // A name: the game's translation of the item, block or entity — one that's there.
-        if let Text::NameOf(r) = t {
+    /// A text: its translation key — a `.yres` text's (the book then shown
+    /// in the player's language), a name's (an item, block or entity
+    /// there is), any `@lang:` key.
+    fn expand(&mut self, r: &Ref, _: &At) -> Result<Option<Value>, Unresolved> {
+        let refused = |reason: String| Unresolved::Refused {
+            reference: r.clone(),
+            reason,
+        };
+        let Some(t) = Text::of_ref(r.clone()) else {
+            return Ok(None);
+        };
+        if let Text::NameOf(r) = &t {
             let kind = RefKind::from_word(&r.kind)
                 .filter(|_| matches!(r.kind.as_str(), kind::ITEM | kind::BLOCK | kind::ENTITY))
-                .ok_or_else(|| format!("`@{}:{}` has no name to show", r.kind, r.id))?;
-            self.known.check(kind, &r.id)?;
+                .ok_or_else(|| refused(format!("`{r}` has no name to show")))?;
+            self.known.check(kind, &r.id).map_err(refused)?;
         }
-        if let Text::Literal(s) = t {
-            return Ok(s.clone());
-        }
-        let key = self.texts.key_of(t)?.unwrap_or_default();
+        // A text by key: the book is shown in the player's language.
         self.text_refs = true;
-        Ok(key)
+        if let Text::Res(res) = &t {
+            let words = self.texts.text(res).map_err(refused)?.1.clone();
+            self.links_resolve(&words).map_err(refused)?;
+        }
+        let key = self.texts.key_of(&t).map_err(refused)?.unwrap_or_default();
+        Ok(Some(Value::Str(key)))
     }
+}
 
-    fn words(&mut self, r: &Res) -> Option<String> {
-        self.texts.text(r).ok().map(|(_, t)| t.clone())
+impl Check<'_> {
+    /// Whether every `{link=@entry:…}` in a `.yres` text names an entry of the book.
+    fn links_resolve(&self, words: &str) -> Result<(), String> {
+        for l in yog_formats::book::refs::links(words) {
+            let target = yog_formats::book::refs::link_target(l);
+            if l != target && !self.entries.contains(target) {
+                return Err(format!("link: no entry {target} in this book"));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -298,7 +324,8 @@ fn read_field(
     check: &mut Check,
 ) -> (Option<yog_data::Value>, Vec<String>) {
     use yog_data::Value;
-    use yog_data::with::{RefTo, TextOf};
+    use yog_data::TextOf;
+    use yog_data::with::RefTo;
     use yog_formats::book::refs::{BookText, Icon};
     let arena = yog_data::Bump::new();
     let r = v.borrow(&arena);

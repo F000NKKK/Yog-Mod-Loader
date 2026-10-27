@@ -94,10 +94,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let videos = dir.join(RESOURCES_DIR).join(yog_formats::video::DIR);
         std::fs::create_dir_all(&videos).unwrap();
-        std::fs::write(videos.join("intro.yvideo"), r#"{ source: "@Videos.nope" }"#).unwrap();
+        std::fs::write(videos.join("intro.yvideo"), r#"{ source: "@res:Videos.nope" }"#).unwrap();
         std::fs::write(
             dir.join(RESOURCES_DIR).join("stray.yvideo"),
-            r#"{ source: "@V.a" }"#,
+            r#"{ source: "@res:V.a" }"#,
         )
         .unwrap();
         let mut errors = Vec::new();
@@ -115,7 +115,7 @@ mod tests {
         std::fs::create_dir_all(videos.join("cut")).unwrap();
         std::fs::write(
             videos.join("cut/intro.yvideo"),
-            r#"{ source: "@Media.intro", width: 64, looping: true }"#,
+            r#"{ source: "@res:Media.intro", width: 64, looping: true }"#,
         )
         .unwrap();
         crate::media::video::tests::put_source(&dir, "intro");

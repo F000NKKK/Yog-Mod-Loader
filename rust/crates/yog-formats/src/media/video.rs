@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn a_video_needs_only_its_source() {
-        let v = yog_data::from_text::<Video>(r#"{ source: "@Videos.intro" }"#)
+        let v = yog_data::from_text::<Video>(r#"{ source: "@res:Videos.intro" }"#)
             .unwrap()
             .value;
         assert_eq!(

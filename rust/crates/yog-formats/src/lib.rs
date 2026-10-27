@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn every_format_describes_itself() {
         for name in super::names() {
-            let d = super::shape_of(name).unwrap().describe();
+            let d = yog_data::Schema::write(&super::shape_of(name).unwrap().describe());
             assert!(d.get("root").is_some(), "{name}");
         }
     }

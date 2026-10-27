@@ -17,7 +17,7 @@
 //! | `relations.entries` | `@entry:` |
 //!
 //! Texts (names, titles, page texts, …) may be whole references to texts
-//! (`@Book.title`), names (`@item:mymod:ruby` shows the item's name) or
+//! (`@res:Book.title`), names (`@item:mymod:ruby` shows the item's name) or
 //! any translation key (`@lang:gui.done`), and
 //! link entries with `{link=@entry:mymod:basics|text}`.
 
@@ -51,7 +51,7 @@ pub fn link_target(l: &str) -> &str {
     l.strip_prefix("@entry:").unwrap_or(l)
 }
 
-/// A shown text: as [`yog_data::with::TextOf`], and every link in it
+/// A shown text: as [`yog_data::TextOf`], and every link in it
 /// (`{link=@entry:…|…}`, or a web address) checked.
 pub struct BookText;
 
@@ -157,30 +157,32 @@ impl Book {
 mod tests {
     use super::*;
     use crate::book::BookPage;
-    use yog_data::Path;
+    use yog_data::schema::Unresolved;
+    use yog_data::{Path, RefKey};
 
     struct Check(Vec<String>);
 
     impl Resolve for Check {
-        fn reference(&mut self, r: &Ref, _: &Path) -> Result<String, String> {
+        fn reference(&mut self, r: &Ref, _: &Path) -> Result<RefKey, Unresolved> {
             self.0.push(format!("{}:{}", r.kind, r.id));
             if r.id == "minecraft:nope" {
-                Err("no item minecraft:nope".into())
+                Err(Unresolved::Missing(r.clone()))
             } else {
                 Ok(r.id.clone())
             }
         }
-        fn text(&mut self, t: &Text, _: &Path) -> Result<String, String> {
-            Ok(match t {
-                Text::Res(r) if r.set == "Book" => format!("mymod.{}", r.key),
-                Text::Literal(s) => s.clone(),
-                other => format!("{other:?}"),
-            })
+        fn expand(&mut self, r: &Ref, _: &Path) -> Result<Option<Value>, Unresolved> {
+            Ok(Text::of_ref(r.clone()).map(|t| {
+                Value::Str(match t {
+                    Text::Res(r) if r.set == "Book" => format!("mymod.{}", r.key),
+                    other => format!("{other:?}"),
+                })
+            }))
         }
     }
 
     const BOOK: &str = r#"{
-  id: "mymod:guide", name: "@Book.title",
+  id: "mymod:guide", name: "@res:Book.title",
   categories: [{ id: "mymod:basics", name: "Basics", icon: "@item:minecraft:book" }],
   entries: [{
     id: "mymod:ruby", name: "Ruby", category: "@category:mymod:basics", icon: "minecraft:textures/item/book.png",

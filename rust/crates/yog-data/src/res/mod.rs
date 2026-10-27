@@ -17,7 +17,7 @@ pub struct Res {
 impl Res {
     /// `Set.key`: what the resources list it by.
     pub fn name(&self) -> String {
-        self.to_string()
+        format!("{}{}{}", self.set, yog_ids::sep::DOT, self.key)
     }
 
     /// `spelled` (`Strings.screen.title`) as an entry, if it's one.
@@ -33,8 +33,8 @@ impl Res {
 }
 
 /// A key as `.yres` files have them: letters, digits, `_`, dotted.
-fn is_key(key: &str) -> bool {
-    !key.is_empty()
+pub fn is_key(key: &str) -> bool {
+    key.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
         && key
             .split(yog_ids::sep::DOT)
             .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
@@ -42,7 +42,7 @@ fn is_key(key: &str) -> bool {
 
 impl fmt::Display for Res {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}{}", self.set, yog_ids::sep::DOT, self.key)
+        write!(f, "{}{}", yog_ids::reference::RES, self.name())
     }
 }
 
@@ -61,6 +61,6 @@ impl Schema for Res {
         })
     }
     fn write(&self) -> Value {
-        Id::<kinds::Res>::new(self.to_string()).write()
+        Id::<kinds::Res>::new(self.name()).write()
     }
 }

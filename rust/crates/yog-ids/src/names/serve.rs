@@ -81,7 +81,7 @@ names! {
         RECIPE_KINDS = "recipe_kinds",
         SOUND_DATA = "sound_data",
         SOUND_LIST = "sound_list",
-        /// The mod's videos (`@Videos.intro`), what a `.yvideo` can show.
+        /// The mod's videos (`@res:Videos.intro`), what a `.yvideo` can show.
         VIDEO_LIST = "video_list",
         /// A `.yvideo` as edited, rendered as the build renders it.
         VIDEO_PREVIEW = "video_preview",

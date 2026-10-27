@@ -1,5 +1,5 @@
 //! `.ysound` — a sound event: what the game plays when it's played. The
-//! sounds themselves are `.yres` sounds (`sound: @Sounds.abacus1`) as given
+//! sounds themselves are `.yres` sounds (`sound: @res:Sounds.abacus1`) as given
 //! — any format, normalised by the build — or the game's sound files
 //! (`file: "minecraft:dig/sand1"`); this says which of them play,
 //! how loud and how high, and the subtitle shown. Its id is its path under

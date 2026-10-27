@@ -36,7 +36,7 @@ fn problem(line: usize, message: impl std::fmt::Display) -> Diagnostic {
 }
 
 /// The resource `v` names (`@Accent` → `Accent`); none for anything else
-/// (`@@x`, `@Set.key`, words).
+/// (`@@x`, `@res:Set.key`, words).
 pub(crate) fn local_name(v: &str) -> Option<&str> {
     v.strip_prefix(TYPED)
         .filter(|n| !n.is_empty() && !n.starts_with(TYPED) && !n.contains('.'))
