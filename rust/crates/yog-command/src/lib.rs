@@ -21,6 +21,12 @@ pub struct CommandContext {
     pub uuid: String,
     /// Dimension the source is in, empty for console-run commands (no world).
     pub dimension: String,
+    /// The source's permission level, as the game has it (0 anyone … 4
+    /// the server's owners; the console all of them).
+    pub permission: i32,
+    /// Whether the source is an operator: it may run the game's operators'
+    /// commands (the game's own measure).
+    pub op: bool,
 }
 
 impl CommandContext {
@@ -66,6 +72,8 @@ mod tests {
             source: "Dev".into(),
             uuid: String::new(),
             dimension: String::new(),
+            permission: 0,
+            op: false,
         }
     }
 

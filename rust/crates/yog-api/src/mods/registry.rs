@@ -227,6 +227,8 @@ impl Registry {
                         source: run.source.clone(),
                         uuid: run.uuid.clone(),
                         dimension: run.dimension.clone(),
+                        permission: run.permission,
+                        op: run.op,
                     };
                     run.reply = handler(&ctx);
                 },
