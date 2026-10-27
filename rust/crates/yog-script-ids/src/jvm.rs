@@ -95,6 +95,9 @@ pub const HOST_PACKAGE: &str = "host";
 pub const TEMP: &str = "$t";
 
 /// The runtime's helpers compiled code calls (`Ys.at`, `Ys.noArm`).
+/// What a property's own stored value (`field` in its accessors) is
+/// named after it: `Level$field`.
+pub const BACKING: &str = "$field";
 pub const HELPERS: &str = "Ys";
 /// The helpers an index's `^n` and a slice (`xs[a..b]`) are written by.
 pub const LENGTH_OF: &str = "lengthOf";

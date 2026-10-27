@@ -221,28 +221,46 @@ impl Gen<'_> {
         } else {
             format!("{PUBLIC} {}", stat(place))
         };
+        let has = |word: &str| accessors.iter().any(|a| a.name.text == word);
         let body_of = |word: &str| {
             accessors
                 .iter()
                 .find(|a| a.name.text == word)
                 .and_then(|a| a.body.as_ref())
         };
-        match body_of(get::WORD.text) {
-            Some(body) => self.body(&format!("{lead}{t} {n}()"), Some(body), false),
-            // An interface's: its getter, its implementers'.
-            None if interface => {
-                self.code.line(format!("{t} {n}();"));
+        // Its own value's field, when it keeps one (`backing.rs`).
+        let kept = crate::backing::keeps_value(accessors)
+            .then(|| format!("{THIS}.{}", crate::backing::backing_name(n)));
+        self.with_backing(n, accessors, |g| {
+            let getter = format!("{lead}{t} {n}()");
+            match (body_of(get::WORD.text), &kept) {
+                (Some(body), _) => g.body(&getter, Some(body), false),
+                (None, Some(field)) if has(get::WORD.text) => {
+                    g.code.open(getter);
+                    g.code.line(format!("{RETURN} {field};"));
+                    g.code.close("");
+                }
+                // An interface's: its getter, its implementers'.
+                (None, _) if interface => {
+                    g.code.line(format!("{t} {n}();"));
+                }
+                (None, _) => {}
             }
-            None => {}
-        }
-        if let Some(body) = body_of(set::WORD.text) {
-            let head = format!(
+            let setter = format!(
                 "{lead}{VOID} {}{ACCESSOR_SEP}{n}({t} {})",
                 set::WORD.text,
                 value::WORD.text
             );
-            self.body(&head, Some(body), true);
-        }
+            match (body_of(set::WORD.text), &kept) {
+                (Some(body), _) => g.body(&setter, Some(body), true),
+                (None, Some(field)) if has(set::WORD.text) => {
+                    g.code.open(setter);
+                    g.code.line(format!("{field} = {};", value::WORD.text));
+                    g.code.close("");
+                }
+                (None, _) => {}
+            }
+        });
     }
 
     /// `T a, U b`.

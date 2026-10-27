@@ -1,0 +1,92 @@
+//! A property's own stored value (C#'s `field`): `i32 Level { get; set =>
+//! field = Math.Max(value, 0); }`. A property whose accessors have bodies is
+//! Java's methods; one reaching `field`, or with an accessor without a body
+//! beside one with, keeps its value in a field of its own (`Level$field`),
+//! what `field` is in its accessors and what its accessor without a body
+//! reads or writes.
+
+use yog_script_analyze::ast::{Accessor, Decl, DeclKind, Expr, ExprKind, MethodBody};
+use yog_script_analyze::words::field;
+use yog_script_ids::java::{PRIVATE, THIS};
+use yog_script_ids::jvm::BACKING;
+
+use crate::Gen;
+
+impl Gen<'_> {
+    /// The fields of `body`'s properties keeping their own value.
+    pub(crate) fn backing_fields(&mut self, body: &[Decl]) {
+        for (ty, name) in backed(body) {
+            let t = self.written(ty, false);
+            self.code
+                .line(format!("{PRIVATE} {t} {};", backing_name(name)));
+        }
+    }
+
+    /// `f` with `field` naming property `name`'s own value, when it keeps one.
+    pub(crate) fn with_backing<R>(
+        &mut self,
+        name: &str,
+        accessors: &[Accessor],
+        f: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        if !keeps_value(accessors) {
+            return f(self);
+        }
+        self.renamed.push((
+            field::WORD.text.to_string(),
+            format!("{THIS}.{}", backing_name(name)),
+        ));
+        let out = f(self);
+        self.renamed.pop();
+        out
+    }
+}
+
+/// Property `name`'s own value's field.
+pub(crate) fn backing_name(name: &str) -> String {
+    format!("{name}{BACKING}")
+}
+
+/// The properties of `body` keeping their own value: their types and names.
+pub(crate) fn backed(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
+    body.iter()
+        .filter_map(|d| match &d.kind {
+            DeclKind::Property {
+                ty,
+                name,
+                accessors,
+                ..
+            } if keeps_value(accessors) => Some((ty, name.text.as_str())),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Whether accessors with bodies keep a value of their own: one reaches
+/// `field`, or one has no body beside one that has.
+pub(crate) fn keeps_value(accessors: &[Accessor]) -> bool {
+    let bodies = accessors.iter().filter(|a| a.body.is_some()).count();
+    if bodies == 0 {
+        return false;
+    }
+    bodies < accessors.len()
+        || accessors
+            .iter()
+            .filter_map(|a| a.body.as_ref())
+            .any(reaches_field)
+}
+
+fn reaches_field(body: &MethodBody) -> bool {
+    let mut found = false;
+    crate::drops::each_body_expr(Some(body), &mut |e| found |= names_field(e));
+    found
+}
+
+fn names_field(e: &Expr) -> bool {
+    if matches!(&e.kind, ExprKind::Ident(n) if n == field::WORD.text) {
+        return true;
+    }
+    let mut found = false;
+    e.each_child(|c| found |= names_field(c));
+    found
+}

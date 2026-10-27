@@ -63,6 +63,7 @@ impl Gen<'_> {
                 Self::ident(&p.name.text)
             ));
         }
+        self.backing_fields(body);
         for f in fields(body) {
             self.code.line(format!(
                 "{PUBLIC} {} {};",
@@ -360,6 +361,20 @@ impl Gen<'_> {
                     accessors,
                     ..
                 } if accessors.iter().all(|a| a.body.is_none()) => (&name.text, value.as_ref()),
+                // One keeping its own value: that set first.
+                DeclKind::Property {
+                    name,
+                    value,
+                    accessors,
+                    ..
+                } if crate::backing::keeps_value(accessors) => {
+                    if let Some(v) = value {
+                        let v = self.handed_expr(v);
+                        let field = crate::backing::backing_name(&name.text);
+                        self.code.line(format!("{THIS}.{field} = {v};"));
+                    }
+                    continue;
+                }
                 _ => continue,
             };
             if let Some(v) = value {

@@ -714,3 +714,22 @@ fn ends_slices_and_safe_indexes() {
     };
     assert_eq!(out, "40 l 230 2 ell 2 -1 10");
 }
+
+/// Accessors after `=>`: `field` (a property's own storage) and `value`
+/// (what's set), an assignment as the body.
+#[test]
+fn arrow_accessors() {
+    let src = "public class C {\n\
+                   public i32 X { get => field; set => field = value * 2; }\n\
+                   private i32 _y;\n\
+                   public i32 Y { get => _y; set => _y = value + 1; }\n\
+                   public i32 Z { get; set => field = Math.Max(value, 0); } = 5;\n\
+               }\n\
+               public static class A {\n\
+                   public static i32 Run() { let mut c = new C(); c.X = 3; c.Y = 4; let first = c.Z; c.Z = -7; return c.X * 10 + c.Y + first * 100 + c.Z; }\n\
+               }\n";
+    let Some(out) = support::run(&[("a.ys", src)], "t.AScript.A.Run()") else {
+        return;
+    };
+    assert_eq!(out, "565");
+}
