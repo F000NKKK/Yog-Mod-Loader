@@ -95,6 +95,10 @@ impl Checker<'_, '_, '_> {
                 }
             }
             (Type::Array(x, rx), Type::Array(y, ry)) => rx == ry && self.unify(x, y, free, found),
+            // An `ItemId` where a `ContentId<T>` is wanted: `T` is `ItemId`.
+            (Type::Own(b, ys), Type::Content(_)) if b == yog_script_ids::system::CONTENT_ID && ys.len() == 1 => {
+                self.unify(&ys[0], given, free, found)
+            }
             (Type::Nullable(x), Type::Nullable(y)) => self.unify(x, y, free, found),
             (Type::Tuple(xs, _), Type::Tuple(ys, _)) => self.unify_tuples((xs, ys), free, found),
             // A `T[]` as one of its interfaces: `IEnumerable<T>`'s `T` its item.

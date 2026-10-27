@@ -410,6 +410,13 @@ impl Index {
     /// Where built-in type `t`'s members' companion is (`string`'s), if
     /// the library has one.
     pub fn host(&self, t: &yog_script_analyze::Type) -> Option<String> {
+        use yog_script_ids::system::CONTENT_ID;
+        // An `ItemId`, a `ContentId<T>`: `ContentId<TSelf>`'s.
+        if matches!(t.non_null(), yog_script_analyze::Type::Content(_))
+            || matches!(t.non_null(), yog_script_analyze::Type::Own(n, _) if n == CONTENT_ID)
+        {
+            return self.hosts.contains(CONTENT_ID).then(|| self.place(CONTENT_ID, 1));
+        }
         let name = match t.non_null() {
             yog_script_analyze::Type::Array(..) => yog_script_ids::system::ARRAY,
             t => yog_script_analyze::system_name(t)?,

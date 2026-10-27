@@ -273,3 +273,24 @@ fn await_using() {
     };
     assert_eq!(out, "1 2 body,b,a,body,b,end,a");
 }
+
+/// Content's typed ids on the JVM: their text (qualified when written
+/// without a namespace), their parts, generic code taking any kind.
+#[test]
+fn content_ids() {
+    let src = "using Yog;\n\
+               public static class K {\n\
+                   static string Path<T>(ContentId<T> id) => id.Path;\n\
+                   public static string Run() {\n\
+                       let stick = new ItemId(\"stick\");\n\
+                       let name = \"minecraft:oak_log\";\n\
+                       let log = new BlockId(name);\n\
+                       let made = new BlockId(\"oak\" + \"_planks\");\n\
+                       return stick.Id + \" \" + stick.Namespace + \" \" + Path(log) + \" \" + made.Id + \" \" + (stick.Id == \"minecraft:stick\");\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("k.ys", src)], "t.KScript.K.Run()") else {
+        return;
+    };
+    assert_eq!(out, "minecraft:stick minecraft oak_log minecraft:oak_planks True");
+}

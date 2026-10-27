@@ -207,3 +207,10 @@ fn checked_forms_run() {
     let src = "i32 Run() { let mut t = checked(2 + 3); unchecked { t += 1; } checked { t *= 2; } return t; }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(12)));
 }
+
+/// Content's typed ids: their text, qualified; their parts.
+#[test]
+fn content_ids_are_their_text() {
+    let src = "string Run() { let stick = new ItemId(\"stick\"); return stick.Id + \" \" + stick.Namespace + \" \" + new BlockId(\"mymod:lamp\").Path; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(Value::str("minecraft:stick minecraft lamp")));
+}

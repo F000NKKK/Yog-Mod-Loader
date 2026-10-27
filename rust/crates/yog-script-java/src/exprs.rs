@@ -68,7 +68,6 @@ impl Gen<'_> {
                 self.index.place(yog_script_ids::system::TEXT_TYPE, 0),
                 self.code.str(key)
             ),
-            ExprKind::Content { id, .. } => self.code.str(id),
             ExprKind::Str(segs) => self.string(e, segs),
             ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
             ExprKind::Ident(name) if self.cells.contains(name) => {

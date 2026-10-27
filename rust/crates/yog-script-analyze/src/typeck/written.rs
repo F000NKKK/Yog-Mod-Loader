@@ -71,7 +71,20 @@ impl Checker<'_, '_, '_> {
         {
             return b;
         }
-        if self.own.get(name, args.len()).is_some() && self.own_in_reach(name) {
+        // `ItemId`, `BlockId`, …; `ContentId<T>`: content's ids, unless the
+        // code declares its own of the name.
+        let own = self.own.get(name, args.len()).is_some() && self.own_in_reach(name);
+        let yog = |c: &Self| c.own.namespaces.get(name).is_none_or(|ns| *ns == super::names::yog_ns());
+        if let Some(kind) = super::content_ids::content_id_kind(name)
+            && args.is_empty()
+            && (!own || yog(self))
+        {
+            return Type::Content(kind.to_string());
+        }
+        if name == yog_script_ids::system::CONTENT_ID && args.len() == 1 && yog(self) {
+            return super::content_ids::content_id_of(args);
+        }
+        if own {
             return Type::Own(name.to_string(), args);
         }
         let t = self.imported(name, at);

@@ -17,6 +17,7 @@ mod collections;
 pub mod commands;
 mod constraints;
 mod content;
+mod content_ids;
 mod context;
 mod copy;
 mod ctors;
@@ -159,6 +160,7 @@ pub fn builtin_type(word: &str) -> Option<Type> {
 /// `void`): the same table read the other way.
 pub fn system_type(name: &str) -> Option<Type> {
     builtin::by_system_name(name)
+        .or_else(|| content_ids::content_id_kind(name).map(|k| Type::Content(k.to_string())))
 }
 
 /// A built-in type's type in `System` (`string`'s `String`), which a
@@ -273,6 +275,8 @@ impl Checker<'_, '_, '_> {
             // An own type, or one it inherits, given the arguments wanted.
             (Type::Own(a, xs), Type::Own(b, ys)) => self.own_converts(a, xs, (b, ys), true),
             (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
+            // An `ItemId` is a `ContentId<T>` (generic code's).
+            (Type::Content(_), Type::Own(b, ys)) => b == yog_script_ids::system::CONTENT_ID && ys.len() == 1,
             (Type::Tuple(got, _), Type::Tuple(wanted, _)) => self.tuple_converts(got, wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {

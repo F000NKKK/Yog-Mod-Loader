@@ -30,6 +30,11 @@ impl<'p> Interp<'p> {
             .iter()
             .map(|a| self.eval(&a.value).map(|v| v.copied()))
             .collect::<Run<Vec<_>>>()?;
+        // `new ItemId(text)`: its id, as its text.
+        if let Some(yog_script_analyze::Type::Content(_)) = yog_script_analyze::system_type(name) {
+            let text = args.first().map(ToString::to_string).unwrap_or_default();
+            return Ok(Value::str(&yog_ids::qualify(&text)));
+        }
         let made = self.make(name, args, at)?;
         for (field, e) in init {
             let v = self.eval(e)?.copied();

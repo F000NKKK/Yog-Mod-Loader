@@ -39,15 +39,16 @@ VERBATIM   = '@"' (char | '""' | '{' expr '}')* '"' ;  (* C#'s $@: no escapes, "
 CHAR       = "'" (char | '\' escape) "'" ;
 LIFETIME   = "'" IDENT ;                              (* 'a, 'static: no closing quote, unlike a CHAR *)
 TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
-CONTENT    = '@' kind ':' res_id ;                   (* @item:minecraft:stick, @effect:charge:overcharged *)
 TAG        = '#' res_id ;                            (* #minecraft:logs *)
 res_id     = (namespace ':')? path ;
 kind       = IDENT ;                                 (* the content kinds of yog-ids, open: a mod's own kinds too *)
 ```
 
 A unit suffix binds without a space (`20t`, `5s`, `3b`); `20 t` is a
-number and a name. `CONTENT` and `TAG` are checked at build time against
-the registries of every targeted version.
+number and a name. `TAG` is checked at build time against the registries
+of every targeted version. Content is named by a typed id, not a literal:
+`new ItemId("minecraft:stick")` (`BlockId`, `SoundId`, … one each kind,
+all a `ContentId<TSelf>`), its text checked when it's written out.
 
 ### 1.3 Keywords
 
@@ -284,7 +285,7 @@ block Charger has Charge(Res.Charger.Capacity) {      // content/charger.yblock'
 
 recipe Battery : Shaped {
     Pattern = ["RIR", "IGI", "RIR"];
-    Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
+    Keys = ['R' => new ItemId("minecraft:redstone"), 'I' => new ItemId("minecraft:iron_ingot"), 'G' => new ItemId("minecraft:gold_ingot")];
 }
 ```
 
@@ -408,7 +409,7 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 expr        = lambda | conditional ;
 primary     = literal | macro_call | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
             | '(' expr ')' | tuple | collection | new_expr | block_lambda ;
-literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | CHAR | TEXT | CONTENT | TAG | 'true' | 'false' ;
+literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | VERBATIM | CHAR | TEXT | TAG | 'true' | 'false' ;
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
 collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
 element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)
@@ -649,7 +650,7 @@ item Battery has Charge(Res.Battery.Capacity) { }    // content/battery.yitem's 
 
 recipe Battery : Shaped {
     Pattern = ["RIR", "IGI", "RIR"];
-    Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
+    Keys = ['R' => new ItemId("minecraft:redstone"), 'I' => new ItemId("minecraft:iron_ingot"), 'G' => new ItemId("minecraft:gold_ingot")];
 }
 
 client void Welcome(i32 times) {
@@ -730,7 +731,7 @@ patch MinecraftServer {
 
 patch Player {
     read FoodData {
-        return HasEffect(@effect:charge:overcharged) ? FoodData.Full : proceed();
+        return HasEffect(new EffectId("charge:overcharged")) ? FoodData.Full : proceed();
     }
     write ExperienceLevel {
         if (value >= ExperienceLevel) proceed(value);
@@ -768,7 +769,7 @@ lossy one is an explicit cast or call.
 | `Text` → `string` | `text.Resolve()`, `client` only | it needs the client's language |
 | a mod's units | declared conversions only (`unit FE = Energy * 1;`); different quantities never mix | |
 | `Entity` → subtype | `as` → nullable; `is` patterns narrow | a downcast can fail |
-| another mod's content | `@item:create:wrench` is `Item?` unless that mod is required | it may be absent |
+| another mod's content | `new ItemId("create:wrench")` names it; its item is `Item?` unless that mod is required | it may be absent |
 
 Edge cases: a stack held after it's used up is an empty stack (as in the
 game), not `null`; an entity held in a `saved` field reads as `null` once

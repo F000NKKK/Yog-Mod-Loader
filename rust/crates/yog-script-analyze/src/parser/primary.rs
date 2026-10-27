@@ -14,7 +14,6 @@ impl Parser<'_, '_, '_> {
             Tok::RawStr(s) => ExprKind::RawStr(s),
             Tok::Char(c) => ExprKind::Char(c),
             Tok::Text(key) => ExprKind::Text(key),
-            Tok::Content(kind, id) => ExprKind::Content { kind, id },
             Tok::Tag(id) => ExprKind::Tag(id),
             Tok::Ident(_) if self.macro_ahead() => return self.macro_call(),
             Tok::Ident(name) => ExprKind::Ident(name),

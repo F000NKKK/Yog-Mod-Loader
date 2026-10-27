@@ -433,6 +433,10 @@ impl Checker<'_, '_, '_> {
         if let Type::Param(p) = &t {
             self.param_made(p, args.map_or(0, <[_]>::len), e.span);
         }
+        if let Type::Content(kind) = &t {
+            self.new_content_id(e, kind, args.unwrap_or_default());
+            return t;
+        }
         if let Some(args) = args {
             self.constructed(e, &t, args);
         }
@@ -490,7 +494,6 @@ fn literal(kind: &ExprKind) -> Option<Type> {
         ExprKind::Char(_) => Type::Char,
         // `t"key"`: Yog's.
         ExprKind::Text(_) => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
-        ExprKind::Content { kind, .. } => Type::Content(kind.clone()),
         ExprKind::Tag(_) => Type::Tag,
         ExprKind::Null => Type::Null,
         _ => return None,

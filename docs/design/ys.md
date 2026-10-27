@@ -96,7 +96,7 @@ let tier = tool.Tier switch {
 | Text, truth | `string`, `char`, `bool`, `Text` (translatable: `t"charge.tooltip"`) |
 | Units | `Ticks` (`20t`), `Seconds` (`5s`, convertible to ticks), `Blocks` (`3b`), `Energy` (a mod declares its own units) |
 | Bounded | `i32 Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
-| Content | `ItemRef` (`@item:minecraft:stick`), `BlockRef`, `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
+| Content | `ItemId` (`new ItemId("minecraft:stick")`), `BlockId`, … — each kind's id, all a `ContentId<TSelf>`; `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
 | Nullable | `Player?` — only nullable types can be `null` |
 | Results | `Result<T, E>`: `Ok(v)` / `Err(e)`; `try` passes an `Err` up, like Rust's `?` |
 | Records, enums | `record Pos(i32 X, i32 Y, i32 Z);`, `enum Shape { Circle(f32 R), Box(f32 W, f32 H) }` |
@@ -638,7 +638,7 @@ item Battery has Charge(Res.Battery.Capacity) { }   // content/battery.yitem
 
 recipe Battery : Shaped {
     Pattern = ["RIR", "IGI", "RIR"];
-    Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
+    Keys = ['R' => new ItemId("minecraft:redstone"), 'I' => new ItemId("minecraft:iron_ingot"), 'G' => new ItemId("minecraft:gold_ingot")];
 }
 
 // In the mod's constructor: `Player.Join += Welcome;`
@@ -719,7 +719,7 @@ patch MinecraftServer {
 patch Player {
     // A field's read and write.
     read FoodData {
-        return HasEffect(@effect:charge:overcharged) ? FoodData.Full : proceed();
+        return HasEffect(new EffectId("charge:overcharged")) ? FoodData.Full : proceed();
     }
     write ExperienceLevel {
         if (value >= ExperienceLevel) proceed(value);

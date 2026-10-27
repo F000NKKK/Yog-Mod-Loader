@@ -42,8 +42,6 @@ pub enum Tok {
     Lifetime(String),
     /// A translatable text by key: `t"charge.tooltip"`.
     Text(String),
-    /// `@kind:namespace:path`: the kind, the id.
-    Content(String, String),
     /// `#namespace:path`.
     Tag(String),
     /// `/// …`: a declaration's documentation line.

@@ -31,7 +31,7 @@ pub enum Type {
     Null,
     /// A quantity with a unit: `Ticks`, `Seconds`, `Blocks`, a mod's own.
     Unit(String),
-    /// A content reference of a kind: `@item:…` is `Content("item")`.
+    /// A content's id of a kind: an `ItemId` is `Content("item")` (`content_ids.rs`).
     Content(String),
     Tag,
     /// A type the source declares, by name, with its type arguments
@@ -180,7 +180,7 @@ impl fmt::Display for Type {
             | Type::Namespace(u) => {
                 write!(f, "{u}")
             }
-            Type::Content(kind) => write!(f, "@{kind}"),
+            Type::Content(kind) => write!(f, "{}", super::content_ids::content_id_name(kind)),
             Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),
             // As C# writes it: the item, then the ranks outermost first

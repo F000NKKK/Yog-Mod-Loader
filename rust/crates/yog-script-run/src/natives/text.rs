@@ -1,7 +1,7 @@
 //! A string's members.
 
 use yog_script_ids::members::{
-    CONTAINS, ENDS_WITH, LENGTH, STARTS_WITH, SUBSTRING, TO_LOWER, TO_UPPER, TRIM,
+    CONTAINS, ENDS_WITH, ID, LENGTH, NAMESPACE, PATH, STARTS_WITH, SUBSTRING, TO_LOWER, TO_UPPER, TRIM,
 };
 
 use super::Native;
@@ -12,6 +12,10 @@ pub(super) fn member(s: &str, name: &str) -> Option<Value> {
         LENGTH => Some(Value::Int(
             i64::try_from(s.chars().count()).unwrap_or(i64::MAX),
         )),
+        // A content id's parts (an `ItemId` is its text).
+        ID => Some(Value::str(s)),
+        NAMESPACE => Some(Value::str(yog_ids::split(s).0)),
+        PATH => Some(Value::str(yog_ids::split(s).1)),
         _ => None,
     }
 }

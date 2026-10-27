@@ -9,5 +9,6 @@ description = "Yog Script's interpreter: checked code run over its tree — for 
 [dependencies]
 # Yog Script's names.
 yog-script-ids = { workspace = true }
+yog-ids = { workspace = true }
 yog-script-analyze = { workspace = true }
 yog-data = { workspace = true }

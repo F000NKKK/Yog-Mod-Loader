@@ -176,6 +176,11 @@ pub const LOGGER_MESSAGE: &str = "LoggerMessage";
 /// `[LoggerMessage]` method writes faster (a warning, .NET's CA1848).
 pub const LOGGER_EXTENSIONS: &str = "LoggerExtensions";
 
+/// Content's ids, typed by kind (`ItemId`, `BlockId`, … each a kind's
+/// name and this suffix), all a `ContentId<TSelf>`: `Yog`'s.
+pub const CONTENT_ID: &str = "ContentId";
+pub const CONTENT_ID_SUFFIX: &str = "Id";
+
 /// The attribute of a constructor that sets its type's `required` members.
 pub const SETS_REQUIRED_MEMBERS: &str = "SetsRequiredMembers";
 pub const LOGGER_MESSAGE_EVENT_ID: &str = "eventId";

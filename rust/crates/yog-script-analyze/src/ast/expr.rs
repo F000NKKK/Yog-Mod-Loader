@@ -21,10 +21,6 @@ pub enum ExprKind {
     RawStr(String),
     Char(char),
     Text(String),
-    Content {
-        kind: String,
-        id: String,
-    },
     Tag(String),
     Bool(bool),
     Null,

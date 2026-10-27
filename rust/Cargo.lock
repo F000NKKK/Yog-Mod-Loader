@@ -2729,6 +2729,7 @@ name = "yog-script-run"
 version = "0.1.0"
 dependencies = [
  "yog-data",
+ "yog-ids",
  "yog-script-analyze",
  "yog-script-ids",
 ]

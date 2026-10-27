@@ -497,6 +497,21 @@ impl Gen<'_> {
         self.new_object(e, ty.as_ref(), args, (init, items))
     }
 
+    /// `new ItemId(text)`: its id (qualified now when it's written out).
+    fn new_content_id(&mut self, args: &[Arg]) -> String {
+        let Some(arg) = args.first() else {
+            return String::new();
+        };
+        if let ExprKind::Str(segs) = &arg.value.kind
+            && let [yog_script_analyze::ast::StrSeg::Text(t)] = segs.as_slice()
+        {
+            return self.code.str(&yog_ids::qualify(t));
+        }
+        let v = self.expr(&arg.value);
+        let companion = self.index.host(&Type::Content(String::new())).unwrap_or_default();
+        format!("{companion}.{}({v})", yog_script_ids::jvm::OF_MEMBER)
+    }
+
     pub(crate) fn new_object(
         &mut self,
         e: &Expr,
@@ -504,6 +519,9 @@ impl Gen<'_> {
         args: &[Arg],
         (init, items): (&[(Name, Expr)], &[Stmt]),
     ) -> String {
+        if let Some(Type::Content(_)) = self.types.of(e) {
+            return self.new_content_id(args);
+        }
         let a = self.new_args(e, args);
         let t = match ty {
             Some(t) => self.written(t, true),

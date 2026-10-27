@@ -53,6 +53,10 @@ pub const ROUND: &str = "Round";
 
 // `string`.
 pub const LENGTH: &str = "Length";
+/// A content id's parts (`ContentId<TSelf>`'s): its whole id, its namespace, its path.
+pub const ID: &str = "Id";
+pub const NAMESPACE: &str = "Namespace";
+pub const PATH: &str = "Path";
 pub const TO_UPPER: &str = "ToUpper";
 pub const TO_LOWER: &str = "ToLower";
 pub const TRIM: &str = "Trim";

@@ -200,6 +200,8 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
         &self.src[from..self.pos]
     }
 
+    /// `@kind:id`, Yog Script's old content reference: said to be a
+    /// typed id now (`new ItemId("minecraft:stick")`), read as its text.
     fn content(&mut self, start: usize) {
         self.bump();
         let kind = self.word();
@@ -209,15 +211,14 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
         } else {
             ""
         };
-        if id.is_empty() {
-            let span = Span::new(start, self.pos);
-            self.report.error(
-                script_problem::BAD_REFERENCE,
-                span,
-                "a content reference is `@<kind>:<namespace>:<path>` (`@item:minecraft:stick`)",
-            );
-        }
-        self.push(Tok::Content(kind.to_string(), id.to_string()), start);
+        let typed = format!("{}{}", yog_codegen::pascal(kind), yog_script_ids::system::CONTENT_ID_SUFFIX);
+        let span = Span::new(start, self.pos);
+        self.report.error(
+            script_problem::BAD_REFERENCE,
+            span,
+            format!("content is named by a typed id: `new {typed}(\"{id}\")`; `@` starts a verbatim string or name"),
+        );
+        self.push(Tok::Str(vec![crate::source::token::StrPart::Text(id.to_string())]), start);
     }
 
     fn tag(&mut self, start: usize) {

@@ -545,6 +545,11 @@ impl Checker<'_, '_, '_> {
     /// A built-in type's members' declaration: its type in `System`
     /// (`string`'s `String`, `[Host]`), when the library declares one.
     pub(super) fn hosted(&self, t: &Type) -> Option<Type> {
+        // An `ItemId`: a `ContentId<ItemId>`'s (`Yog`'s).
+        if let Type::Content(_) = t {
+            let of = yog_script_ids::system::CONTENT_ID.to_string();
+            return Some(Type::Own(of, vec![t.clone()]));
+        }
         let name = match t {
             Type::Array(..) => yog_script_ids::system::ARRAY,
             _ => super::builtin::system_name(t)?,

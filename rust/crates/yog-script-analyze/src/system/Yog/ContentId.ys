@@ -1,0 +1,18 @@
+namespace Yog;
+
+/// A content's id, typed by its kind: `ItemId`, `BlockId`, `SoundId`, …
+/// (one each kind of content), each a `ContentId` of itself — so code for
+/// any kind takes a `ContentId<T>`. Made of its text, checked when the mod
+/// builds if it's written out: `new ItemId("minecraft:stick")` (an id
+/// without a namespace is the game's). On the JVM it's its text: nothing
+/// is wrapped, the game's API takes it as it is.
+[Intrinsic]
+[Host]
+public abstract class ContentId<TSelf> {
+    /// Its whole id: `minecraft:stick`.
+    public string Id { get; }
+    /// Whose it is: `minecraft`.
+    public string Namespace { get; }
+    /// What it is in its namespace: `stick`.
+    public string Path { get; }
+}
