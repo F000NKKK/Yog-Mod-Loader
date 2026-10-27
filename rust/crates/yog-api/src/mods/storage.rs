@@ -22,7 +22,10 @@
 //! What's kept with the world is written as the world is saved
 //! (`server::life::Saving`: an autosave, `/save-all`, the server stopping),
 //! so it's saved with the world it belongs to.
+//!
+//! A value kept on a stack, travelling with it, is an [`ItemData`].
 
+mod item;
 mod kept;
 mod records;
 
@@ -31,6 +34,7 @@ use std::path::PathBuf;
 use yog_sync::Mutex;
 use yog_sync::atomic::{AtomicBool, Ordering};
 
+pub use item::ItemData;
 pub use kept::{GameData, PlayerData, WorldData};
 #[doc(hidden)]
 pub use records::__provide_records;
