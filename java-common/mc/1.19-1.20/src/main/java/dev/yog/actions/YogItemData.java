@@ -20,7 +20,11 @@ public final class YogItemData {
 
     @YogServiceHost
     public static YogTypes.Record read(String player, boolean offHand, String key) {
-        ItemStack stack = held(player, offHand);
+        return of(held(player, offHand), key);
+    }
+
+    /** The bytes under {@code key} in {@code stack}'s Yog data (none: no stack, or none there). */
+    public static YogTypes.Record of(ItemStack stack, String key) {
         CompoundTag tag = stack == null ? null : stack.getTag();
         if (tag == null || !tag.contains(YogNames.Ns.YOG, Tag.TAG_COMPOUND)) return null;
         CompoundTag yog = tag.getCompound(YogNames.Ns.YOG);

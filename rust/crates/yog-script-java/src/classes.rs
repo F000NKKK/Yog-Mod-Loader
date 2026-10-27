@@ -68,7 +68,8 @@ impl Gen<'_> {
         // A generic one keeps the type arguments it's made with (`GetType()`).
         let generic = header.generics.iter().any(|g| !g.lifetime);
         let saved_owner = self.saved_owner.take();
-        let also = state_interfaces(also, saved_owner.is_some(), body);
+        let on_stack = std::mem::take(&mut self.on_stack);
+        let also = state_interfaces(also, (saved_owner.is_some(), on_stack), body);
         let head = self.class_head(d, (name, header), (struct_, generic), also.as_deref());
         self.code.open(head);
         self.describe(d);
@@ -97,7 +98,7 @@ impl Gen<'_> {
         let tail = self.ctor_tail.take();
         self.constructors(name, header, body, tail.as_deref());
         if let Some(owner) = saved_owner {
-            self.saved_state(&owner, body, "");
+            self.saved_state(&owner, body, ("", on_stack));
         }
         self.members(body, Place::Class);
         self.inherited_getters(&(ys.to_string(), arity), body);
@@ -522,13 +523,18 @@ fn captured<'h>(header: &'h TypeHeader, body: &[Decl]) -> Vec<&'h Param> {
 
 /// What a class implements besides `also`: when it keeps declared state
 /// (`owns`, a mod's or a block's), `State.Saved` for its `saved` members
-/// and `SyncedState.Synced` for its `synced` ones.
-fn state_interfaces(also: Option<&str>, owns: bool, body: &[Decl]) -> Option<String> {
+/// and `SyncedState.Synced` for its `synced` ones — an item's (`on_stack`)
+/// all in its stack's data, which the game sends its clients.
+fn state_interfaces(also: Option<&str>, (owns, on_stack): (bool, bool), body: &[Decl]) -> Option<String> {
     let mut interfaces: Vec<String> = also.map(str::to_string).into_iter().collect();
-    if owns && !crate::saved::saved_members(body).is_empty() {
+    let (saved, synced) = (
+        !crate::saved::saved_members(body).is_empty(),
+        !crate::saved::synced_members(body).is_empty(),
+    );
+    if owns && (saved || on_stack && synced) {
         interfaces.push(format!("{STATE}.{SAVED}"));
     }
-    if owns && !crate::saved::synced_members(body).is_empty() {
+    if owns && synced && !on_stack {
         interfaces.push(format!("{SYNCED_STATE}.{SYNCED_INTERFACE}"));
     }
     (!interfaces.is_empty()).then(|| interfaces.join(", "))

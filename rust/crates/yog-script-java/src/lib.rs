@@ -240,6 +240,8 @@ pub(crate) struct Gen<'c> {
     ctor_tail: Option<String>,
     /// The class being written keeps `saved` members, keyed by this (`saved.rs`).
     saved_owner: Option<String>,
+    /// The class being written is an item's: its declared state is its stack's (`saved.rs`).
+    on_stack: bool,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -305,6 +307,7 @@ impl<'c> Gen<'c> {
             extending: false,
             ctor_tail: None,
             saved_owner: None,
+            on_stack: false,
             this_name: None,
             breaks: Vec::new(),
             statik: true,

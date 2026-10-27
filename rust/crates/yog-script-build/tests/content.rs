@@ -130,3 +130,22 @@ fn synced_block_and_entity_members() {
         assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
     }
 }
+
+/// An item's `synced` members are its stack's data, like its `saved` ones
+/// (the game sends the stack); a client reads them by `ItemObject.Held`.
+#[test]
+fn synced_item_members_are_the_stacks() {
+    let src = "item Wand {\n    public synced i32 Charges = 3;\n}\nclass Hud {\n    public static i32 Shown() {\n        let wand = ItemObject.Held<Wand>(false);\n        return wand?.Charges ?? 0;\n    }\n}\n";
+    let checked = yog_script_analyze::check("A.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static class Wand extends dev.yog.script.yog.ItemObject implements dev.yog.script.yog.State.Saved {",
+        "read.apply(\"Wand.Charges\")",
+        "dev.yog.script.yog.ItemObject.<Wand>Held(Wand.class, false)",
+    ] {
+        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+    }
+    assert!(!java.source.contains("SyncedState"), "{}", java.source);
+}

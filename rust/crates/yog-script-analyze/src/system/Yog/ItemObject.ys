@@ -6,4 +6,10 @@ namespace Yog;
 public abstract class ItemObject {
     /// A player used it (right-clicked holding it).
     public event Action<Player> Use;
+
+    /// The stack this client's player holds (`offHand`: in its other hand)
+    /// as a `T`, its `saved` and `synced` members the stack's (the server's,
+    /// as the game sent it); `null` when it holds no `T`.
+    [Reified]
+    public static T? Held<T>(bool offHand) where T : ItemObject;
 }

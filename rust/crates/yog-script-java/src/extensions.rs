@@ -144,7 +144,7 @@ impl Gen<'_> {
                 let kind = self.code.str(&self.synced_kind(&class));
                 self.on_load.push(format!("{SYNCED_STATE}.{OWNERS}({kind}, {class}{METHOD_REF}{OF});"));
             }
-            self.saved_state(&owner, body, &forget);
+            self.saved_state(&owner, body, (&forget, false));
         }
         self.members(body, Place::Class);
         (self.owner, self.extending) = outer;

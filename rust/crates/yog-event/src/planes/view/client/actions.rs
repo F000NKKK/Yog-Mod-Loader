@@ -11,6 +11,10 @@ actions! {
     StopSound { handle: i32 } -> bool = ids::service_client::STOP_SOUND, "client.YogClientApi.stopSound";
     /// What this client's player holds.
     HeldItem { off_hand: bool } -> Option<Stack> = ids::service_client::HELD_ITEM, "client.YogClientApi.heldItem";
+    /// The bytes under `key` in the data of the stack this client's player
+    /// holds (`off_hand`: in its other hand): an item's `saved` and
+    /// `synced` state as the server last sent the stack.
+    HeldItemData { off_hand: bool, key: String } -> Option<crate::storage::Record> = ids::service_client::HELD_ITEM_DATA, "client.YogClientItemData.read";
     /// Tints the block at `pos` on this client (`0xRRGGBB`; -1 clears it).
     SetBlockTint { dim: String, pos: BlockPos, color: i32 } -> bool = ids::service_client::SET_BLOCK_TINT, "client.YogClientApi.setBlockTint";
     /// Draws only `blocks` (their ids) of the world on this client, every

@@ -49,9 +49,14 @@ impl Gen<'_> {
     /// The members of `body`'s declared state, keyed `owner.Member`: each
     /// `saved` or `synced` one a record; `State.Saved`'s `$load`/`$save`
     /// when some are saved, `SyncedState.Synced`'s `$sync`/`$synced` when
-    /// some are synced; `$forget` doing `forget`.
-    pub(crate) fn saved_state(&mut self, owner: &str, body: &[Decl], forget: &str) {
-        let (saved, synced) = (saved_members(body), synced_members(body));
+    /// some are synced; `$forget` doing `forget`. An item's (`on_stack`)
+    /// `synced` members are its stack's like its `saved` ones: the game
+    /// sends the stack to its clients.
+    pub(crate) fn saved_state(&mut self, owner: &str, body: &[Decl], (forget, on_stack): (&str, bool)) {
+        let (mut saved, mut synced) = (saved_members(body), synced_members(body));
+        if on_stack {
+            saved.append(&mut synced);
+        }
         let (mut load, mut save, mut sync, mut take) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
         let mut done: Vec<&str> = Vec::new();
         for (ty, name) in saved.iter().chain(&synced) {

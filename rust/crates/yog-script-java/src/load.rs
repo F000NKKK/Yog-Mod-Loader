@@ -95,13 +95,11 @@ impl Gen<'_> {
             self.saved_owner = Some(name.to_string());
         }
         // Its `synced` members: a block's and an entity's objects send them
-        // to the clients; an item's stack isn't a live object.
+        // to the clients; an item's are its stack's data, which the game
+        // sends (a client reads them by `ItemObject.Held`).
         if !crate::saved::synced_members(body).is_empty() {
-            if base == yog_script_ids::system::ITEM_OBJECT {
-                self.not_yet("`synced` members of an item (its stack's data travels with it)", crate::decls::decl_span(d));
-            } else {
-                self.saved_owner = Some(name.to_string());
-            }
+            self.saved_owner = Some(name.to_string());
+            self.on_stack = base == yog_script_ids::system::ITEM_OBJECT;
         }
         self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
         let Some(mod_id) = &self.mod_id else {

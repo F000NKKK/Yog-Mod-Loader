@@ -1040,6 +1040,7 @@ public final class YogNames {
         public static final String PLAY_SOUND = "yog:client/play_sound";
         public static final String STOP_SOUND = "yog:client/stop_sound";
         public static final String HELD_ITEM = "yog:client/held_item";
+        public static final String HELD_ITEM_DATA = "yog:client/held_item_data";
         public static final String SET_BLOCK_TINT = "yog:client/set_block_tint";
         public static final String ONLY_BLOCKS = "yog:client/only_blocks";
         public static final String KEY_DOWN = "yog:client/key_down";
@@ -1053,7 +1054,7 @@ public final class YogNames {
         public static final String SCREEN_SLOTS = "yog:client/screen_slots";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, PLAY_SOUND, STOP_SOUND, HELD_ITEM, SET_BLOCK_TINT, ONLY_BLOCKS, KEY_DOWN, KEY_NAME, ATTRIBUTE_VALUE, ADVANCEMENT_DONE, BODY_TRACK, BODY_TRACK_TYPE, SET_DIMENSIONS, ENTITY_DATA, SCREEN_SLOTS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, PLAY_SOUND, STOP_SOUND, HELD_ITEM, HELD_ITEM_DATA, SET_BLOCK_TINT, ONLY_BLOCKS, KEY_DOWN, KEY_NAME, ATTRIBUTE_VALUE, ADVANCEMENT_DONE, BODY_TRACK, BODY_TRACK_TYPE, SET_DIMENSIONS, ENTITY_DATA, SCREEN_SLOTS);
     }
 
     public static final class ServiceClientLocal {

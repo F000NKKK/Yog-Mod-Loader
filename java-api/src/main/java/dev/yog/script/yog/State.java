@@ -76,7 +76,7 @@ public final class State {
     }
 
     /** A record's key in a stack's data: its mod's, then its own. */
-    private static String stackKey(String mod, String key) {
+    static String stackKey(String mod, String key) {
         return mod + YogNames.Sep.NAMESPACE + key;
     }
 

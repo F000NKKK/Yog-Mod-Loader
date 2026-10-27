@@ -1,6 +1,7 @@
 //! Values kept on a stack — the Rust side of a Yog Script item's `saved`
-//! members (`docs/design/storage.md`): bytes by key in the custom data of
-//! what a player holds, so they travel with the stack.
+//! and `synced` members (`docs/design/storage.md`): bytes by key in the
+//! custom data of what a player holds, so they travel with the stack and
+//! reach its clients with it.
 
 use std::marker::PhantomData;
 
@@ -30,6 +31,16 @@ impl<T: Schema + Default> ItemData<T> {
     /// hand); its default when the stack has none (or there's no stack).
     pub fn get(&self, player: &str, off_hand: bool) -> T {
         crate::event::player::held_item_data(player, off_hand, self.stack_key())
+            .and_then(|r| yog_data::read_bytes(&r.bytes).ok())
+            .unwrap_or_default()
+    }
+
+    /// The value on the stack this client's player holds (`off_hand`: in
+    /// its other hand), as the server last sent the stack — the game sends
+    /// stacks, so every `ItemData` is synced; its default when the stack has
+    /// none (or there's no stack).
+    pub fn held_here(&self, off_hand: bool) -> T {
+        crate::event::client::held_item_data(off_hand, self.stack_key())
             .and_then(|r| yog_data::read_bytes(&r.bytes).ok())
             .unwrap_or_default()
     }

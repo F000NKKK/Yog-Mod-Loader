@@ -10,5 +10,6 @@ public final class ItemObjectCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Method("Held", dev.yog.script.reflection.MemberInfo.STATIC, new String[] { "T" }, null).Returns(d.MethodParameter(0)).Takes("offHand", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false).Attribute(() -> new dev.yog.script.Reified());
     }
 }

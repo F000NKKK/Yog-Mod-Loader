@@ -1701,6 +1701,84 @@ public final class YogTypes {
         }
     }
 
+    /** A record's bytes. */
+    public record Record(byte[] bytes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static Record fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Record((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static Record fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBytes(this.bytes);
+            p.end(at);
+        }
+
+        public static Record unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new Record(f_bytes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Record fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Record fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Record readFrame(YogFrame.Unpacker u) {
+            Record v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Record} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                u.leave(end);
+            }
+
+            public byte[] bytes() {
+                if (o0 < 0) return new byte[0];
+                u.seek(o0);
+                return u.getBytes();
+            }
+        }
+    }
+
     /** A slot of an open inventory screen: what it holds, where it's drawn (GUI pixels from the screen's corner). */
     public record ScreenSlot(YogTypes.Stack stack, int x, int y) {
         public java.util.Map<String, Object> toData() {
@@ -4015,84 +4093,6 @@ public final class YogTypes {
                 if (o10 < 0) return null;
                 u.seek(o10);
                 return (u.getBool() ? u.getAtom() : null);
-            }
-        }
-    }
-
-    /** A record's bytes. */
-    public record Record(byte[] bytes) {
-        public java.util.Map<String, Object> toData() {
-            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-            m.put("bytes", bytes);
-            return m;
-        }
-
-        public static Record fromData(Object data) {
-            java.util.Map<String, Object> m = YogData.map(data);
-            return new Record((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
-        }
-
-        public static Record fromBytes(byte[] bytes) {
-            return fromData(YogData.decode(bytes));
-        }
-
-        public void pack(YogFrame.Packer p) {
-            int at = p.begin();
-            p.putBytes(this.bytes);
-            p.end(at);
-        }
-
-        public static Record unpack(YogFrame.Unpacker u) {
-            int end = u.begin();
-            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
-            u.leave(end);
-            return new Record(f_bytes);
-        }
-
-        public byte[] toFrame() {
-            YogFrame.Packer p = new YogFrame.Packer();
-            pack(p);
-            return p.finish();
-        }
-
-        /** Packed by one of this thread's packers: what the bus sends in place. */
-        public YogFrame.Packer packedFrame() {
-            YogFrame.Packer p = YogFrame.Packer.take();
-            pack(p);
-            return p;
-        }
-
-        public static Record fromFrame(byte[] bytes) {
-            return readFrame(new YogFrame.Unpacker(bytes));
-        }
-
-        /** Read where the message is (the arena, in place). */
-        public static Record fromFrame(YogMessage m) {
-            return readFrame(m.frame());
-        }
-
-        private static Record readFrame(YogFrame.Unpacker u) {
-            Record v = unpack(u);
-            u.finish();
-            return v;
-        }
-
-        /** {@code Record} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
-        public static final class View {
-            private final YogFrame.Unpacker u;
-            private final int o0;
-
-            public View(YogFrame.Unpacker u) {
-                this.u = u;
-                int end = u.begin();
-                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
-                u.leave(end);
-            }
-
-            public byte[] bytes() {
-                if (o0 < 0) return new byte[0];
-                u.seek(o0);
-                return u.getBytes();
             }
         }
     }

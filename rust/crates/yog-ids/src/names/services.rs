@@ -235,6 +235,7 @@ names! {
         PLAY_SOUND = crate::concatcp!(DOMAIN, "play_sound"),
         STOP_SOUND = crate::concatcp!(DOMAIN, "stop_sound"),
         HELD_ITEM = crate::concatcp!(DOMAIN, "held_item"),
+        HELD_ITEM_DATA = crate::concatcp!(DOMAIN, "held_item_data"),
         SET_BLOCK_TINT = crate::concatcp!(DOMAIN, "set_block_tint"),
         ONLY_BLOCKS = crate::concatcp!(DOMAIN, "only_blocks"),
         KEY_DOWN = crate::concatcp!(DOMAIN, "key_down"),
