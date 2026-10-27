@@ -37,6 +37,7 @@ fn extensions_hold_each_owners_state() {
 
 const SAVED: &str = r#"using System.Collections.Generic;
 public enum Mode { Idle, Busy }
+public record Spot(i32 X, i32 Y, string Name);
 public static class S {
     public static string Run() => "ok";
 }
@@ -47,6 +48,7 @@ extend Player {
     public saved string? Note = null;
     public saved List<i32> Scores = new List<i32>();
     public saved Mode Mode = Mode.Idle;
+    public saved Spot Home = new Spot(0, 0, "");
     public i32 Unsaved = 0;
 }
 "#;
@@ -68,12 +70,13 @@ fn saved_members_round_trip() {
             ((java.util.List<Integer>) ext.getField("Scores").get(first)).add(5);
             ((java.util.List<Integer>) ext.getField("Scores").get(first)).add(9);
             ext.getField("Mode").set(first, t.SScript.Mode.Busy);
+            ext.getField("Home").set(first, new t.SScript.Spot(3, 4, "base"));
             var store = new java.util.TreeMap<String, byte[]>();
             ((dev.yog.script.yog.State.Saved) first).$save(store::put);
             Object again = make.newInstance("Steve");
             ((dev.yog.script.yog.State.Saved) again).$load(store::get);
             return store.keySet() + " " + ext.getField("Visits").getInt(again) + " " + ext.getField("Title").get(again) + " " + ext.getField("Favourite").get(again)
-                + " " + ext.getField("Note").get(again) + " " + ext.getField("Scores").get(again).getClass().getSimpleName() + ext.getField("Scores").get(again) + " " + ext.getField("Mode").get(again);
+                + " " + ext.getField("Note").get(again) + " " + ext.getField("Scores").get(again).getClass().getSimpleName() + ext.getField("Scores").get(again) + " " + ext.getField("Mode").get(again) + " " + ext.getField("Home").get(again);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -83,7 +86,7 @@ fn saved_members_round_trip() {
     };
     assert_eq!(
         out,
-        "[Player.Favourite, Player.Mode, Player.Note, Player.Scores, Player.Title, Player.Visits] 7 Sir minecraft:stick hi List[5, 9] Busy"
+        "[Player.Favourite, Player.Home, Player.Mode, Player.Note, Player.Scores, Player.Title, Player.Visits] 7 Sir minecraft:stick hi List[5, 9] Busy Spot { X = 3, Y = 4, Name = base }"
     );
 }
 

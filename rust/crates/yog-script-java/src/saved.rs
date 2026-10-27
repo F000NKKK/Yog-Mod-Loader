@@ -4,7 +4,8 @@
 //! `Owner.Member` in its owner's store; `$load` reads them in as the object
 //! is made live, `$save` writes them out as the world saves. What the codec
 //! doesn't keep as it is goes as what it does: a `T?` an `Optional<T>`, a
-//! `List<T>` Java's list (read back into one), an enum its number.
+//! `List<T>` Java's list (read back into one), an enum its number; a
+//! record of what it keeps as it is, as it is.
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Decl, DeclKind, Modifier, Type as Written, TypeKind};
@@ -113,7 +114,7 @@ impl Gen<'_> {
     }
 
     /// Whether the bus's codec keeps a value of `ty` as it is: a number,
-    /// `bool`, `string`, a quantity, an id, a handle.
+    /// `bool`, `string`, a quantity, an id, a handle, a record of those.
     fn plain(&self, ty: &Written) -> bool {
         let TypeKind::Path { path, args } = &ty.kind else {
             return false;
@@ -121,6 +122,9 @@ impl Gen<'_> {
         let Some(name) = path.last().map(|n| n.text.as_str()).filter(|_| args.is_empty()) else {
             return false;
         };
+        if self.index.kind(&(name.to_string(), 0)) == Some(Kind::Record) {
+            return self.index.record_types(name).iter().all(|t| self.plain(t));
+        }
         let t = yog_script_analyze::builtin_type(name)
             .or_else(|| yog_script_analyze::system_type(name))
             .or_else(|| self.index.is_unit(name).then(|| Type::Unit(name.to_string())))
