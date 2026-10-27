@@ -56,3 +56,23 @@ fn content_binds_by_its_files_name() {
         "{java}"
     );
 }
+
+/// A block's `saved` members: its object keeps them as `State.Saved` (a
+/// record a member, keyed `Block.Member`), BlockObject reading them in
+/// from its chunk's store as it makes the object.
+#[test]
+fn saved_block_members() {
+    let src = "block Lamp {\n    public saved i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n}\n";
+    let checked = yog_script_analyze::check("A.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static class Lamp extends dev.yog.script.yog.BlockObject implements dev.yog.script.yog.State.Saved {",
+        "public record $Uses(int value) {}",
+        "read.apply(\"Lamp.Uses\")",
+        "write.accept(\"Lamp.Uses\", dev.yog.api.YogBus.bytes(new $Uses(Uses)));",
+    ] {
+        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+    }
+}

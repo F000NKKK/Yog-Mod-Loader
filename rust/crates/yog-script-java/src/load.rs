@@ -88,6 +88,14 @@ impl Gen<'_> {
         };
         let mut header = header.clone();
         header.bases.insert(0, written_named(base));
+        // Its `saved` members: a block's are its chunk's (BlockObject reads them in).
+        if !crate::saved::saved_members(body).is_empty() {
+            if base == yog_script_ids::system::BLOCK_OBJECT {
+                self.saved_owner = Some(name.to_string());
+            } else {
+                self.not_yet("`saved` members of content of this kind", crate::decls::decl_span(d));
+            }
+        }
         self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
         let Some(mod_id) = &self.mod_id else {
             return;

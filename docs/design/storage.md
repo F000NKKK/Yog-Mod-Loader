@@ -128,6 +128,11 @@ For each type with `synced` members, the build generates a mirror spec
    objects, not Yog Data. ✅ `mod` members: the mod's class reads them from the
    game's store at the end of its constructors.
 3. Blocks (the chunk scope, removal with the block) and entities.
+   ✅ Blocks: a block's object reads its `saved` members from its chunk's
+   store (`<dim>_<cx>_<cz>`, under its place there, `<x>_<y>_<z>`) as
+   BlockObject makes it; its records go when the block is broken or
+   another is placed there, its object made or not. Entities wait for
+   entity objects (content of that kind has none yet).
 4. Item stacks: the host's `yog:item/data` on each version.
 5. `synced` on mirrors.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).

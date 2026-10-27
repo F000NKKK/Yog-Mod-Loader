@@ -69,6 +69,7 @@ public abstract class BlockObject {
         YogEvents.Block.Place.on(0, e -> {
             At at = At.of(e.dimension(), e.pos());
             MADE.remove(at);
+            gone(e.blockId(), at);
             raised(found(e.blockId(), at), o -> o.Place, e.playerName());
             return null;
         });
@@ -76,6 +77,7 @@ public abstract class BlockObject {
             At at = At.of(e.dimension(), e.pos());
             raised(found(e.blockId(), at), o -> o.Break, e.playerName());
             MADE.remove(at);
+            gone(e.blockId(), at);
             return null;
         });
     }
@@ -89,11 +91,29 @@ public abstract class BlockObject {
         return MADE.computeIfAbsent(at, p -> {
             MAKING.set(p);
             try {
-                return make.get();
+                BlockObject o = make.get();
+                // Its `saved` members: read in from its chunk's store.
+                if (o instanceof State.Saved s) {
+                    State.block(s, namespace(id), p.dimension(), p.x(), p.y(), p.z());
+                }
+                return o;
             } finally {
                 MAKING.remove();
             }
         });
+    }
+
+    /** A block of {@code id}'s mod gone from {@code at}: its records with it. */
+    private static void gone(String id, At at) {
+        if (MAKERS.containsKey(id)) {
+            State.blockGone(namespace(id), at.dimension(), at.x(), at.y(), at.z());
+        }
+    }
+
+    /** The mod an id is of: its namespace ({@code mymod:lamp}'s {@code mymod}). */
+    private static String namespace(String id) {
+        int sep = id.indexOf(dev.yog.YogNames.Sep.NAMESPACE);
+        return sep < 0 ? id : id.substring(0, sep);
     }
 
     /** {@code o}'s event {@code which} raised with {@code player}; a panic logged, the game going on. */

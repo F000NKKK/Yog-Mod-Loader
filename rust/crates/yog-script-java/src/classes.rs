@@ -24,18 +24,12 @@ impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
     pub(crate) fn mod_class(&mut self, d: &Decl, name: &str, body: &[Decl]) {
         // Its `saved` members: the game's store's, read in as it's made.
-        let saved = !crate::saved::saved_members(body).is_empty();
-        let also = if saved {
+        if !crate::saved::saved_members(body).is_empty() {
             let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
             self.ctor_tail = Some(format!("{STATE}.{GAME}({THIS}, {module});"));
-            format!("{}, {STATE}.{SAVED}", crate::MOD_INTERFACE)
-        } else {
-            crate::MOD_INTERFACE.to_string()
-        };
-        self.class_with(d, (name, &TypeHeader::default()), body, Some(&also));
-        if saved {
-            self.ctor_tail = None;
+            self.saved_owner = Some(name.to_string());
         }
+        self.class_with(d, (name, &TypeHeader::default()), body, Some(crate::MOD_INTERFACE));
     }
 
     pub(crate) fn class(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
@@ -58,7 +52,15 @@ impl Gen<'_> {
         let name = java.as_str();
         // A generic one keeps the type arguments it's made with (`GetType()`).
         let generic = header.generics.iter().any(|g| !g.lifetime);
-        let head = self.class_head(d, (name, header), (struct_, generic), also);
+        // Its `saved` members, keyed by `saved_owner` (a mod's, a block's).
+        let saved_owner = self.saved_owner.take();
+        let saved_as = format!("{STATE}.{SAVED}");
+        let also = match (also, &saved_owner) {
+            (Some(a), Some(_)) => Some(format!("{a}, {saved_as}")),
+            (None, Some(_)) => Some(saved_as),
+            (a, None) => a.map(str::to_string),
+        };
+        let head = self.class_head(d, (name, header), (struct_, generic), also.as_deref());
         self.code.open(head);
         self.describe(d);
         self.constants(body);
@@ -85,8 +87,8 @@ impl Gen<'_> {
         // What ends its constructors (a mod's state made live) is theirs alone.
         let tail = self.ctor_tail.take();
         self.constructors(name, header, body, tail.as_deref());
-        if tail.is_some() {
-            self.saved_state(ys, body, "");
+        if let Some(owner) = saved_owner {
+            self.saved_state(&owner, body, "");
         }
         self.members(body, Place::Class);
         self.inherited_getters(&(ys.to_string(), arity), body);

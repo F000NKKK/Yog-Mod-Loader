@@ -238,6 +238,8 @@ pub(crate) struct Gen<'c> {
     /// What ends the constructors of the class being written: a mod's
     /// state made live (`saved.rs`).
     ctor_tail: Option<String>,
+    /// The class being written keeps `saved` members, keyed by this (`saved.rs`).
+    saved_owner: Option<String>,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -302,6 +304,7 @@ impl<'c> Gen<'c> {
             checked: false,
             extending: false,
             ctor_tail: None,
+            saved_owner: None,
             this_name: None,
             breaks: Vec::new(),
             statik: true,

@@ -30,8 +30,10 @@ public final class State {
         void $forget();
     }
 
-    /** Where an object's records are: its mod's store of a scope's instance. */
-    private record Place(String mod, String scope, String instance) {
+    /** Where an object's records are: its mod's store of a scope's
+     * instance, under its owner there (a block's place in its chunk; empty
+     * when the store is its own). */
+    private record Place(String mod, String scope, String instance, String owner) {
         YogTypes.Where where() {
             return new YogTypes.Where(scope, instance);
         }
@@ -42,25 +44,51 @@ public final class State {
 
     /** {@code made} (mod {@code mod}'s, of the game's store): read in, live. */
     public static <T extends Saved> T game(T made, String mod) {
-        return live(made, new Place(mod, YogNames.Storage.GAME, ""));
+        return live(made, new Place(mod, YogNames.Storage.GAME, "", ""));
     }
 
     /** {@code made} (mod {@code mod}'s, of the world's store): read in, live. */
     public static <T extends Saved> T world(T made, String mod) {
-        return live(made, new Place(mod, YogNames.Storage.WORLD, ""));
+        return live(made, new Place(mod, YogNames.Storage.WORLD, "", ""));
     }
 
     /** {@code made} (of player {@code name}'s store, by its uuid): read in, live. */
     public static <T extends Saved> T player(T made, String mod, String name) {
         YogTypes.PlayerInfo info = new YogServices.Player.Info(name).call();
         String uuid = info == null ? name : info.uuid();
-        return live(made, new Place(mod, YogNames.Storage.PLAYER, uuid));
+        return live(made, new Place(mod, YogNames.Storage.PLAYER, uuid, ""));
     }
+
+    /** {@code made} (a block's object at {@code x y z} in {@code dimension}):
+     * read in from its chunk's store, under its place there; live. */
+    public static <T extends Saved> T block(T made, String mod, String dimension, int x, int y, int z) {
+        return live(made, chunkAt(mod, dimension, x, y, z));
+    }
+
+    /** The block at {@code x y z} gone (broken, or another placed there): its
+     * records removed, its object (if made) no longer live. */
+    public static void blockGone(String mod, String dimension, int x, int y, int z) {
+        Place at = chunkAt(mod, dimension, x, y, z);
+        LIVE.entrySet().removeIf(e -> e.getValue().equals(at));
+        new YogServices.Storage.Remove(at.mod(), at.where(), at.owner(), null).call();
+    }
+
+    /** Block {@code x y z}'s records' place: its chunk's store, its place in it. */
+    private static Place chunkAt(String mod, String dimension, int x, int y, int z) {
+        String sep = YogNames.Storage.SEP;
+        String chunk = dimension + sep + (x >> CHUNK_BITS) + sep + (z >> CHUNK_BITS);
+        String owner = (x & CHUNK_MASK) + sep + y + sep + (z & CHUNK_MASK);
+        return new Place(mod, YogNames.Storage.CHUNK, chunk, owner);
+    }
+
+    /** A chunk's width, as bits of a block's coordinate (16 blocks), and the mask of a block's place in it. */
+    private static final int CHUNK_BITS = 4;
+    private static final int CHUNK_MASK = (1 << CHUNK_BITS) - 1;
 
     private static <T extends Saved> T live(T made, Place at) {
         listen();
         made.$load(key -> {
-            YogTypes.Record r = new YogServices.Storage.Read(at.mod(), at.where(), "", key).call();
+            YogTypes.Record r = new YogServices.Storage.Read(at.mod(), at.where(), at.owner(), key).call();
             return r == null ? null : r.bytes();
         });
         LIVE.put(made, at);
@@ -73,7 +101,7 @@ public final class State {
     }
 
     private static void save(Saved o, Place at) {
-        o.$save((key, bytes) -> new YogServices.Storage.Write(at.mod(), at.where(), "", key, bytes).call());
+        o.$save((key, bytes) -> new YogServices.Storage.Write(at.mod(), at.where(), at.owner(), key, bytes).call());
     }
 
     /** The world saving writes them; a player leaving writes and drops theirs. */
