@@ -2481,7 +2481,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "serde_json",
  "yog-body",
