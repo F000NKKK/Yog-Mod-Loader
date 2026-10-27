@@ -12,6 +12,7 @@ use super::types::MethodUse;
 use crate::ast::{Arg, Expr, ExprKind, StrSeg};
 use yog_ids::script_problem;
 use yog_script_ids::system::{LOGGER_EXTENSIONS, LOGGER_MESSAGE};
+use crate::lexer::VERBATIM;
 use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE};
 
 /// A string written for a message template: its text as written (holes
@@ -153,7 +154,13 @@ fn hole_value(h: &Expr) -> &Expr {
 /// A string literal's text as written (`"…"`), its escapes read, its holes
 /// kept: what a template is (a brace escaped, doubled as the template has it).
 fn template_text(written: &str) -> String {
-    let inner = written.strip_prefix(QUOTE).and_then(|s| s.strip_suffix(QUOTE)).unwrap_or(written);
+    let verbatim = written.strip_prefix(VERBATIM);
+    let quoted = verbatim.unwrap_or(written);
+    let inner = quoted.strip_prefix(QUOTE).and_then(|s| s.strip_suffix(QUOTE)).unwrap_or(quoted);
+    // `@"…"`: no escapes, a `""` its quote.
+    if verbatim.is_some() {
+        return inner.replace(&format!("{QUOTE}{QUOTE}"), &QUOTE.to_string());
+    }
     let mut out = String::new();
     let mut chars = inner.chars();
     while let Some(c) = chars.next() {

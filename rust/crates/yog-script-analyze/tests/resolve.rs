@@ -195,3 +195,19 @@ fn await_needs_an_async_lambda_too() {
         "{codes:?}"
     );
 }
+
+/// `goto` reaches a label of its block or one around it, never one inside
+/// another block nor out of a lambda; a label once; `goto case` in a `switch`.
+#[test]
+fn gotos_reach_their_labels() {
+    let fine = "void F(i32 n) {\n    start:\n    if (n > 0) { goto start; }\n    switch (n) { case 1: goto case 2; case 2: goto default; default: break; }\n}\n";
+    assert!(codes("a.ys", fine).is_empty(), "{:?}", codes("a.ys", fine));
+    let inside = "void F() {\n    goto deep;\n    { deep: return; }\n}\n";
+    assert_eq!(codes("a.ys", inside), [script_problem::GOTO]);
+    let twice = "void F() {\n    a: ;\n    { a: ; }\n}\n";
+    assert_eq!(codes("a.ys", twice), [script_problem::GOTO]);
+    let no_switch = "void F() {\n    goto default;\n}\n";
+    assert_eq!(codes("a.ys", no_switch), [script_problem::GOTO]);
+    let lambda = "void F() {\n    outside:\n    Action a = () => { goto outside; };\n}\n";
+    assert_eq!(codes("a.ys", lambda), [script_problem::GOTO]);
+}

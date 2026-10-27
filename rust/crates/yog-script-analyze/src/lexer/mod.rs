@@ -102,7 +102,12 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             '/' if self.rest().starts_with(BLOCK_OPEN) => self.block_comment(start),
             '0'..='9' => self.number(start),
             '"' if self.rest().starts_with(RAW_QUOTES) => self.raw_block(start),
-            '"' => self.string(start),
+            '"' => self.string(start, false),
+            // `@"C:\mods\{name}"`: C#'s verbatim string (`$@`, as every string interpolates).
+            VERBATIM if self.peek_at(1) == Some('"') => {
+                self.bump();
+                self.string(start, true);
+            }
             CHAR_QUOTE if self.lifetime_follows() => self.lifetime(start),
             CHAR_QUOTE => self.char_literal(start),
             't' if self.rest().starts_with(TEXT_PREFIX) => {

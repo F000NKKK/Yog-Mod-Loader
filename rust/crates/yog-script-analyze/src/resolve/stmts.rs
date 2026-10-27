@@ -16,9 +16,12 @@ impl Resolver<'_, '_> {
         for f in crate::ast::local_functions(stmts) {
             self.bind(&f.name, DefKind::Method);
         }
-        for s in stmts {
-            self.stmt(s);
-        }
+        // Its labels are reached from anywhere in it, before them too.
+        self.labeled(stmts, |r| {
+            for s in stmts {
+                r.stmt(s);
+            }
+        });
     }
 
     /// A statement standing as a branch or a body: its own scope.
@@ -92,6 +95,8 @@ impl Resolver<'_, '_> {
                 "`break` goes in a loop or a `switch`",
             ),
             Stmt::Continue(at) => self.leaving(*at, self.cx.loops, "`continue` goes in a loop"),
+            Stmt::Label(_) => {}
+            Stmt::Goto(to, at) => self.goto_stmt(to, *at),
             Stmt::Return(value, _) | Stmt::Yield(value, _) => self.opt_expr(value.as_ref()),
             Stmt::Lock {
                 target,

@@ -81,6 +81,8 @@ impl Seen {
     fn stmt(&mut self, s: &Stmt, inside: bool) {
         match s {
             Stmt::Function(d) => self.local_function(d),
+            Stmt::Goto(yog_script_analyze::ast::Goto::Case(v), _) => self.expr(v, inside),
+            Stmt::Goto(..) | Stmt::Label(_) => {}
             Stmt::Switch { expr, sections } => self.switch(expr, sections, inside),
             Stmt::Local { binding, value, .. } => {
                 match binding {

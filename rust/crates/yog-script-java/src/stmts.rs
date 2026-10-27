@@ -24,6 +24,9 @@ impl Gen<'_> {
     /// `stmts` in order; what a local holds dropped at the block's end
     /// (`drops`).
     fn stmts_dropping(&mut self, stmts: &[Stmt]) {
+        if stmts.iter().any(|s| matches!(s, Stmt::Label(_))) {
+            return self.labeled_dropping(stmts);
+        }
         for (i, s) in stmts.iter().enumerate() {
             self.stmt(s);
             let rest = &stmts[i + 1..];
@@ -32,6 +35,24 @@ impl Gen<'_> {
                 return;
             }
         }
+    }
+
+    /// A block's `stmts` with labels: nothing of theirs dropped at its end
+    /// yet (a jump would leave a drop's `try`).
+    fn labeled_dropping(&mut self, stmts: &[Stmt]) {
+        for (i, s) in stmts.iter().enumerate() {
+            if self.dropped_local(s, &stmts[i + 1..]).is_some() {
+                let at = match s {
+                    Stmt::Local {
+                        binding: Binding::One(n),
+                        ..
+                    } => n.span,
+                    _ => yog_script_analyze::token::Span::default(),
+                };
+                self.not_yet("a value dropped at the end of a block with labels", at);
+            }
+        }
+        self.labeled_stmts(stmts);
     }
 
     fn branch(&mut self, head: &str, s: &Stmt) {
@@ -129,6 +150,14 @@ impl Gen<'_> {
             modifier(FINAL)
         };
         let name = Self::ident(&n.text);
+        // Declared before its block's dispatch loop: set here.
+        if self.hoisted.contains(&n.text) {
+            if let Some(v) = value {
+                let v = self.handed_expr(v);
+                self.code.line(format!("{name} = {v};"));
+            }
+            return;
+        }
         if self.boxed.contains(&n.text) {
             return self.boxed_local(n, (written, value));
         }
@@ -191,6 +220,9 @@ impl Gen<'_> {
                 self.block_stmts(b);
                 self.code.close("");
             }
+            Stmt::Goto(to, at) => self.goto_stmt(to, *at),
+            // Its block's dispatch loop's `case` (`goto.rs`).
+            Stmt::Label(_) => {}
             Stmt::Break(_) => match self.breaks.last().cloned().flatten() {
                 Some(jump) => {
                     self.code.line(jump);

@@ -130,7 +130,7 @@ fn matched_not_null(p: &Pattern) -> Option<bool> {
 /// `yield break`, a panic), so what follows runs only when it doesn't run.
 pub fn leaves(s: &Stmt) -> bool {
     match s {
-        Stmt::Return(..) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::Skip(..) => true,
+        Stmt::Return(..) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::Skip(..) | Stmt::Goto(..) => true,
         Stmt::Yield(None, _) => true,
         Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.last().is_some_and(leaves),
         Stmt::If {

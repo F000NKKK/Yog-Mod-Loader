@@ -2,6 +2,7 @@
 //! labeled block — each arm an `if` on its pattern, its names bound, its
 //! guard, its value; none taking the value panics.
 
+use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Arm, Expr, ExprKind, Pattern, Section, Stmt};
 
 use super::Gen;
@@ -60,36 +61,39 @@ impl Gen<'_> {
     /// one label), its statements, `break` leaving the block; `default`'s
     /// last, when no label took it.
     pub(crate) fn switch_stmt(&mut self, on: &Expr, sections: &[Section]) {
-        let (label, value) = (self.temp(), self.temp());
+        let value = self.temp();
         let v = self.expr(on);
         let matched = self.types.of(on).cloned();
+        self.case_jumping(sections, (&value, &v), |g, to_default| {
+            g.switch_sections(sections, (&value, &v, matched.as_ref()), to_default);
+        });
+    }
+
+    /// A `switch`'s sections over its value (`value`, given `v` unless
+    /// `to_default` says a `goto case` loop holds it), each but `default`'s
+    /// skipped when `to_default` is set.
+    fn switch_sections(
+        &mut self,
+        sections: &[Section],
+        (value, v, matched): (&str, &str, Option<&Type>),
+        to_default: Option<&str>,
+    ) {
+        let label = self.temp();
         self.code.open(format!("{label}:"));
-        self.code.line(format!("{VAR} {value} = {v};"));
+        if to_default.is_none() {
+            self.code.line(format!("{VAR} {value} = {v};"));
+        }
         self.breaks.push(Some(format!("{BREAK} {label};")));
         let leave = format!("{BREAK} {label};");
         let is_default = |s: &Section| s.labels.iter().any(Option::is_none);
+        if let Some(d) = to_default {
+            self.code.open(format!("{IF} (!{d})"));
+        }
         for s in sections.iter().filter(|s| !is_default(s)) {
-            match s.labels.as_slice() {
-                [Some((pattern, guard))] => {
-                    self.labelled((pattern, guard.as_ref()), (&value, matched.as_ref()), |g| {
-                        g.section(&s.body, &leave);
-                    });
-                }
-                labels => {
-                    let hit = self.temp();
-                    self.code.line(format!("{BOOLEAN} {hit} = {FALSE};"));
-                    for (pattern, guard) in labels.iter().flatten() {
-                        self.code.open(format!("{IF} (!{hit})"));
-                        self.labelled((pattern, guard.as_ref()), (&value, matched.as_ref()), |g| {
-                            g.code.line(format!("{hit} = {TRUE};"));
-                        });
-                        self.code.close("");
-                    }
-                    self.code.open(format!("{IF} ({hit})"));
-                    self.section(&s.body, &leave);
-                    self.code.close("");
-                }
-            }
+            self.cased(s, (value, matched), &leave);
+        }
+        if to_default.is_some() {
+            self.code.close("");
         }
         if let Some(d) = sections.iter().find(|s| is_default(s)) {
             self.section(&d.body, &leave);
@@ -98,11 +102,36 @@ impl Gen<'_> {
         self.code.close("");
     }
 
+    /// Section `s` (not `default`): run when a label of its takes the value.
+    fn cased(&mut self, s: &Section, (value, matched): (&str, Option<&Type>), leave: &str) {
+        match s.labels.as_slice() {
+            [Some((pattern, guard))] => {
+                self.labelled((pattern, guard.as_ref()), (value, matched), |g| {
+                    g.section(&s.body, leave);
+                });
+            }
+            labels => {
+                let hit = self.temp();
+                self.code.line(format!("{BOOLEAN} {hit} = {FALSE};"));
+                for (pattern, guard) in labels.iter().flatten() {
+                    self.code.open(format!("{IF} (!{hit})"));
+                    self.labelled((pattern, guard.as_ref()), (value, matched), |g| {
+                        g.code.line(format!("{hit} = {TRUE};"));
+                    });
+                    self.code.close("");
+                }
+                self.code.open(format!("{IF} ({hit})"));
+                self.section(&s.body, leave);
+                self.code.close("");
+            }
+        }
+    }
+
     /// `then` where `pattern` (and `guard`) takes `value` (of `matched`).
     fn labelled(
         &mut self,
         (pattern, guard): (&Pattern, Option<&Expr>),
-        (value, matched): (&str, Option<&yog_script_analyze::Type>),
+        (value, matched): (&str, Option<&Type>),
         then: impl FnOnce(&mut Self),
     ) {
         let depth = self.pattern_open(pattern, (value, matched));
@@ -122,7 +151,7 @@ impl Gen<'_> {
     /// A section's statements, leaving the switch after them (unless they
     /// leave already).
     fn section(&mut self, body: &[Stmt], leave: &str) {
-        body.iter().for_each(|s| self.stmt(s));
+        self.labeled_stmts(body);
         if !body.last().is_some_and(yog_script_analyze::leaves) {
             self.code.line(leave);
         }

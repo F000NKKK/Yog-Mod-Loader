@@ -137,7 +137,7 @@ words! {
     void, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, decimal, bool, char, string, object,
     dynamic,
     // Statements.
-    r#let, r#mut, r#if, r#else, foreach, r#for, r#while, r#do, r#break, r#continue, r#return, skip, r#yield, lock, r#unsafe, case,
+    r#let, r#mut, r#if, r#else, foreach, r#for, r#while, r#do, r#break, r#continue, goto, r#return, skip, r#yield, lock, r#unsafe, case,
     // Expressions.
     new, this, base, r#ref, r#move, r#typeof, nameof, default, r#true, r#false, null, r#await, r#try, is, r#as, r#in, switch, with, and, or, not,
     // Patches: items, points, selectors.

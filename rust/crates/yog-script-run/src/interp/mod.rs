@@ -5,6 +5,7 @@ mod arrays;
 mod calls;
 mod ctors;
 mod exprs;
+mod goto;
 mod macros;
 mod objects;
 mod ops;
@@ -12,6 +13,7 @@ mod patterns;
 mod properties;
 mod statics;
 mod stmts;
+mod switch;
 
 use std::collections::HashMap;
 
@@ -34,6 +36,8 @@ pub(crate) enum Stop {
     Return(Value),
     Break,
     Continue,
+    /// A `goto`: the block of its label, or its `switch`, goes on from there.
+    Goto(goto::Jump),
 }
 
 pub(crate) type Run<T> = Result<T, Stop>;

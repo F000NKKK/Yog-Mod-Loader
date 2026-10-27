@@ -488,7 +488,7 @@ impl Gen<'_> {
     }
 
     /// Written type `t`'s value before one's set.
-    fn zero_of_written(&self, t: &Type) -> &'static str {
+    pub(crate) fn zero_of_written(&self, t: &Type) -> &'static str {
         match &t.kind {
             yog_script_analyze::ast::TypeKind::Path { path, args } if args.is_empty() => path
                 .last()

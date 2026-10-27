@@ -8,6 +8,7 @@
 
 mod decls;
 mod exprs;
+mod goto;
 mod naming;
 mod patches;
 mod patterns;
@@ -53,6 +54,9 @@ pub(crate) struct Resolver<'r, 's> {
     scopes: Vec<Scope>,
     symbols: Symbols,
     cx: Context,
+    /// The labels of the blocks around the code (in its method or lambda),
+    /// innermost last: what a `goto` reaches.
+    labels: Vec<Vec<String>>,
 }
 
 /// `file`'s names resolved, what's out of place reported.
@@ -62,6 +66,7 @@ pub(crate) fn resolve(file: &ast::File, report: &mut Report<'_>) -> Symbols {
         scopes: vec![Scope::default()],
         symbols: Symbols::default(),
         cx: Context::default(),
+        labels: Vec::new(),
     };
     r.decls(&file.decls);
     r.symbols

@@ -14,7 +14,7 @@ impl<'p> Interp<'p> {
                 Stmt::Function(d) => Some(std::rc::Rc::new((**d).clone())),
                 _ => None,
             }));
-            let ran = b.stmts.iter().try_for_each(|s| i.stmt(s));
+            let ran = i.run_stmts(&b.stmts);
             i.local_fns.truncate(depth);
             ran
         })
@@ -94,6 +94,7 @@ impl<'p> Interp<'p> {
         match s {
             Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
             Stmt::Break(_) => Err(Stop::Break),
+            Stmt::Goto(to, _) => Err(Stop::Goto(self.jump(to)?)),
             Stmt::Continue(_) => Err(Stop::Continue),
             Stmt::Return(value, _) | Stmt::Skip(value, _) => {
                 let v = match value {
@@ -223,60 +224,10 @@ impl<'p> Interp<'p> {
 
 /// After a loop's turn: whether to go on (`break` ends it; `continue` and
 /// the end of the body go on; a return or a panic goes up).
-fn keep_looping(turn: Run<()>) -> Run<bool> {
+pub(super) fn keep_looping(turn: Run<()>) -> Run<bool> {
     match turn {
         Ok(()) | Err(Stop::Continue) => Ok(true),
         Err(Stop::Break) => Ok(false),
         Err(other) => Err(other),
-    }
-}
-
-impl Interp<'_> {
-    /// `switch (expr) { sections }`: the first section a label of takes the
-    /// value (`default`'s when none does) run; its `break` leaves the switch.
-    fn switch_stmt(
-        &mut self,
-        expr: &Expr,
-        sections: &[yog_script_analyze::ast::Section],
-    ) -> Run<()> {
-        let v = self.eval(expr)?;
-        let mut chosen = None;
-        'sections: for s in sections {
-            for (pattern, guard) in s.labels.iter().flatten() {
-                let taken = self.scoped(|i| -> Run<bool> {
-                    if !i.fits(pattern, &v)? {
-                        return Ok(false);
-                    }
-                    match guard {
-                        Some(g) => Ok(i.eval(g)? == Value::Bool(true)),
-                        None => Ok(true),
-                    }
-                })?;
-                if taken {
-                    chosen = Some((s, Some((pattern, &v))));
-                    break 'sections;
-                }
-            }
-        }
-        let chosen = chosen.or_else(|| {
-            sections
-                .iter()
-                .find(|s| s.labels.iter().any(Option::is_none))
-                .map(|s| (s, None))
-        });
-        let Some((section, label)) = chosen else {
-            return Ok(());
-        };
-        let ran = self.scoped(|i| {
-            // Its label's names, bound again for its statements.
-            if let Some((pattern, v)) = label {
-                i.fits(pattern, v)?;
-            }
-            section.body.iter().try_for_each(|s| i.stmt(s))
-        });
-        match ran {
-            Err(Stop::Break) => Ok(()),
-            other => other,
-        }
     }
 }

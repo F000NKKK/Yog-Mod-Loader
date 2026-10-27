@@ -232,7 +232,7 @@ impl Resolver<'_, '_> {
                 r.opt_ty(m.explicit.as_ref());
                 r.constraints(&m.constraints);
                 r.opt_expr(m.requires.as_ref());
-                r.body(m.body.as_ref(), awaits);
+                r.own_labels(|r| r.body(m.body.as_ref(), awaits));
             });
         });
     }

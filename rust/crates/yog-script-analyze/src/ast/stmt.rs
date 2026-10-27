@@ -3,6 +3,17 @@
 use super::{Expr, Name, Type};
 use crate::source::token::Span;
 
+/// Where a `goto` goes.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Goto {
+    /// A label of its block or one around it.
+    Label(Name),
+    /// The `switch` section around it whose label takes this value.
+    Case(Expr),
+    /// The `switch` section around it that's `default`.
+    Default,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
     pub stmts: Vec<Stmt>,
@@ -77,6 +88,11 @@ pub enum Stmt {
         cond: Expr,
     },
     Block(Block),
+    /// `name:` (C#'s label): where a `goto name;` in its block (or one
+    /// inside it) goes on from.
+    Label(Name),
+    /// `goto name;`, `goto case value;`, `goto default;`.
+    Goto(Goto, Span),
     Break(Span),
     Continue(Span),
     Return(Option<Expr>, Span),

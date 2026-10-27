@@ -191,7 +191,49 @@ impl Stmt {
                 body.each_expr(f);
             }
             Stmt::Expr(e) | Stmt::Value(e) => f(e),
-            Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Goto(crate::ast::Goto::Case(e), _) => f(e),
+            Stmt::Break(_) | Stmt::Continue(_) | Stmt::Label(_) | Stmt::Goto(..) => {}
         }
+    }
+}
+
+impl Stmt {
+    /// The statements directly inside it (a local function's aside: its own code).
+    pub fn inner(&self) -> Vec<&Stmt> {
+        match self {
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().collect(),
+            Stmt::If {
+                then, otherwise, ..
+            } => std::iter::once(&**then).chain(otherwise.as_deref()).collect(),
+            Stmt::Foreach { body, .. }
+            | Stmt::While { body, .. }
+            | Stmt::DoWhile { body, .. }
+            | Stmt::Lock { body, .. } => vec![&**body],
+            Stmt::For {
+                init, step, body, ..
+            } => init.as_deref().into_iter().chain(step.as_deref()).chain([&**body]).collect(),
+            Stmt::Switch { sections, .. } => sections.iter().flat_map(|s| &s.body).collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Whether it or a statement inside it is `found` (looking into a
+    /// statement only when `enter` lets it).
+    pub fn any_inside(&self, found: &dyn Fn(&Stmt) -> bool, enter: &dyn Fn(&Stmt) -> bool) -> bool {
+        found(self) || (enter(self) && self.inner().iter().any(|s| s.any_inside(found, enter)))
+    }
+
+    /// Whether a label is in it: a `goto` may jump there.
+    pub fn has_labels(&self) -> bool {
+        self.any_inside(&|s| matches!(s, Stmt::Label(_)), &|_| true)
+    }
+
+    /// Whether a `goto case` or `goto default` of the `switch` it's in is
+    /// in it (not one of a `switch` inside it).
+    pub fn goes_to_case(&self) -> bool {
+        self.any_inside(
+            &|s| matches!(s, Stmt::Goto(super::Goto::Case(_) | super::Goto::Default, _)),
+            &|s| !matches!(s, Stmt::Switch { .. }),
+        )
     }
 }

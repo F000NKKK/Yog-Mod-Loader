@@ -24,20 +24,9 @@ impl Checker<'_, '_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Switch { expr, sections } => {
-                let t = self.expr(expr);
-                for s in sections {
-                    self.scoped(|c| {
-                        for (pattern, guard) in s.labels.iter().flatten() {
-                            c.bind_arm(pattern, &t);
-                            if let Some(g) = guard {
-                                c.condition(g);
-                            }
-                        }
-                        c.stmts(&s.body);
-                    });
-                }
-            }
+            Stmt::Switch { expr, sections } => self.switch_stmt(expr, sections),
+            Stmt::Goto(crate::ast::Goto::Case(value), _) => self.goto_case(value),
+            Stmt::Goto(..) | Stmt::Label(_) => {}
             Stmt::Function(d) => {
                 if let crate::ast::DeclKind::Method(m) = &d.kind {
                     let side = self.side;
@@ -369,6 +358,35 @@ impl Checker<'_, '_, '_> {
                 .and_then(|(_, args)| args.into_iter().next())
                 .unwrap_or(Type::Unknown),
             _ => Type::Unknown,
+        }
+    }
+
+    /// `switch (expr) { sections }`: each section's labels on its value,
+    /// their names for its statements.
+    fn switch_stmt(&mut self, expr: &Expr, sections: &[crate::ast::Section]) {
+        let t = self.expr(expr);
+        self.switched.push(t.clone());
+        for s in sections {
+            self.scoped(|c| {
+                for (pattern, guard) in s.labels.iter().flatten() {
+                    c.bind_arm(pattern, &t);
+                    if let Some(g) = guard {
+                        c.condition(g);
+                    }
+                }
+                c.stmts(&s.body);
+            });
+        }
+        self.switched.pop();
+    }
+
+    /// `goto case value`: a value of what its `switch` matches.
+    fn goto_case(&mut self, value: &Expr) {
+        match self.switched.last().cloned() {
+            Some(t) => self.fits(value, &t),
+            None => {
+                self.expr(value);
+            }
         }
     }
 }

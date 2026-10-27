@@ -92,6 +92,18 @@ impl Parser<'_, '_, '_> {
         if self.at(Punct::LBrace) {
             return self.block().map(Stmt::Block);
         }
+        // `name:`: a label.
+        if let Tok::Ident(name) = self.tok()
+            && self.nth_is(1, Punct::Colon)
+        {
+            let name = crate::ast::Name {
+                text: name.clone(),
+                span: self.span(),
+            };
+            self.bump();
+            self.bump();
+            return Ok(Stmt::Label(name));
+        }
         if self.await_using_ahead() {
             return self.await_using_stmt();
         }

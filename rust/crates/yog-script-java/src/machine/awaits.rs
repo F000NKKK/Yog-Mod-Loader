@@ -93,6 +93,8 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
     let all = |stmts: &[Stmt]| stmts.iter().any(stmt_awaits);
     match s {
         Stmt::Local { value, .. } => value.as_ref().is_some_and(awaits),
+        Stmt::Goto(yog_script_analyze::ast::Goto::Case(v), _) => awaits(v),
+        Stmt::Goto(..) | Stmt::Label(_) => false,
         Stmt::Assign { place, value, .. } => awaits(place) || awaits(value),
         Stmt::If {
             cond,

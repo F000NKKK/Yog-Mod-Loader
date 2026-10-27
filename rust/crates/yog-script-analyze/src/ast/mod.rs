@@ -26,7 +26,7 @@ pub use operator::{Operator, OperatorKind};
 pub use pass::Pass;
 pub use patch::{Callee, Local, Patch, PatchItem, Point, Selector, Target};
 pub use pattern::{Pattern, Type, TypeKind};
-pub use stmt::{Binding, Block, Section, Stmt, local_functions};
+pub use stmt::{Binding, Block, Goto, Section, Stmt, local_functions};
 
 use crate::source::token::Span;
 

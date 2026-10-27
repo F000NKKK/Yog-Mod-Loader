@@ -22,6 +22,7 @@ mod drops;
 mod enums;
 mod events;
 mod exprs;
+mod goto;
 mod groups;
 mod identity;
 mod index;
@@ -217,6 +218,14 @@ pub(crate) struct Gen<'c> {
     /// The method's names a pattern binds to a generic type (`x is
     /// List<T> xs`): Java binds them raw, so each is read cast back.
     raw_bound: std::collections::HashSet<String>,
+    /// The labels in reach of the code (`goto.rs`), innermost last.
+    goto_labels: Vec<goto::LabelPlace>,
+    /// The locals declared before a dispatch loop of labels: their
+    /// declarations set them.
+    hoisted: std::collections::HashSet<String>,
+    /// The `switch` statements around the code, innermost last: one with
+    /// `goto case` how it's run again.
+    case_jumps: Vec<Option<goto::CaseJump>>,
     /// Where `this` is when the code is the machine's: its method's class's.
     this_name: Option<String>,
     /// The loops being written, innermost last: a loop split in states
@@ -275,6 +284,9 @@ impl<'c> Gen<'c> {
             machine: None,
             renamed: Vec::new(),
             raw_bound: std::collections::HashSet::new(),
+            goto_labels: Vec::new(),
+            hoisted: std::collections::HashSet::new(),
+            case_jumps: Vec::new(),
             this_name: None,
             breaks: Vec::new(),
             statik: true,

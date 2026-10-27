@@ -182,6 +182,7 @@ impl Resolver<'_, '_> {
     fn lambda(&mut self, params: &[LambdaParam], body: &LambdaBody, asynchronous: bool) {
         let cx = Context {
             loops: 0,
+            switches: 0,
             awaits: asynchronous,
             it: params.is_empty() || self.cx.it,
             before: false,
@@ -193,10 +194,10 @@ impl Resolver<'_, '_> {
                     r.opt_ty(p.ty.as_ref());
                     r.bind(&p.name, DefKind::Param);
                 }
-                match body {
+                r.own_labels(|r| match body {
                     LambdaBody::Expr(e) => r.expr(e),
                     LambdaBody::Block(stmts) => r.stmts(stmts),
-                }
+                });
             });
         });
     }

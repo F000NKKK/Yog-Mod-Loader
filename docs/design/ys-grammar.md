@@ -35,6 +35,7 @@ UNIT       = (INT | FLOAT) unit_suffix ;
 unit_suffix = 't' | 's' | 'ms' | 'm' | 'h' | 'b' | IDENT ;   (* t ticks, s seconds, b blocks; a mod's own units by name *)
 STRING     = '"' (char | '\' escape | '{' expr '}')* '"' ;   (* {expr} interpolates; {{ }} are braces *)
 RAW_STRING = '"""' char* '"""' ;                    (* as written, lines included *)
+VERBATIM   = '@"' (char | '""' | '{' expr '}')* '"' ;  (* C#'s $@: no escapes, "" a quote, lines included *)
 CHAR       = "'" (char | '\' escape) "'" ;
 LIFETIME   = "'" IDENT ;                              (* 'a, 'static: no closing quote, unlike a CHAR *)
 TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
@@ -58,7 +59,7 @@ public private internal protected static const readonly new this base
 abstract sealed virtual override typeof nameof default
 void let mut i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 decimal bool char string object dynamic
 ref out move typeof nameof default
-if else switch foreach for in while do break continue return
+if else switch foreach for in while do break continue goto return
 true false null is as and or not when
 async await try
 server client shared saved synced was tune test extern
@@ -358,7 +359,9 @@ version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VE
 block       = '{' stmt* '}' ;
 stmt        = local_decl ';' | expr ';' | assign ';' | block
             | if_stmt | foreach_stmt | for_stmt | while_stmt | do_stmt
-            | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';' ;
+            | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';'
+            | IDENT ':'                                              (* a label *)
+            | 'goto' (IDENT | 'case' expr | 'default') ';' ;         (* a label of its block or one around it *)
 local_decl  = 'let' 'mut'? binding (':' type)? ('=' expr)?
             | type IDENT ('=' expr)? ;                               (* C#'s typed local: assignable *)
 binding     = IDENT | '(' IDENT (',' IDENT)+ ')' ;                   (* deconstruction *)

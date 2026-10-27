@@ -22,7 +22,9 @@ pub const UNICODE_OPEN: &str = "u{";
 pub const ESCAPES: [(char, char); 4] = [('n', '\n'), ('t', '\t'), ('r', '\r'), ('0', '\0')];
 
 impl Lexer<'_, '_, '_> {
-    pub(super) fn string(&mut self, start: usize) {
+    /// `"…"`, or (`verbatim`, after its `@`) `@"…"`: no escapes in it, a
+    /// `""` its quote, its lines as written.
+    pub(super) fn string(&mut self, start: usize, verbatim: bool) {
         self.bump();
         let mut parts = Vec::new();
         let mut text = String::new();
@@ -31,8 +33,12 @@ impl Lexer<'_, '_, '_> {
                 return self.unterminated(start, Tok::Str(parts));
             };
             match c {
+                QUOTE if verbatim && self.peek() == Some(QUOTE) => {
+                    self.bump();
+                    text.push(QUOTE);
+                }
                 QUOTE => break,
-                ESCAPE => self.escape(&mut text),
+                ESCAPE if !verbatim => self.escape(&mut text),
                 OPEN | CLOSE if self.peek() == Some(c) => {
                     self.bump();
                     text.push(c);

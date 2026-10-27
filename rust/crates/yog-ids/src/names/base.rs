@@ -388,6 +388,9 @@ names! {
         LOG_BY_METHOD = "YS0044",
         /// A name nothing declares where it's read (C#'s CS0103).
         UNKNOWN_NAME = "YS0045",
+        /// A `goto` to a label not in its block nor one around it, a
+        /// label declared twice, `goto case`/`goto default` outside a `switch`.
+        GOTO = "YS0046",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
