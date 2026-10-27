@@ -87,14 +87,16 @@ pub(crate) fn awaits(e: &Expr) -> bool {
     found
 }
 
-/// Whether statement `s` leaves its machine anywhere in it: awaits, or
-/// (an iterator's) yields.
+/// Whether statement `s` is split in states anywhere in it: it leaves its
+/// machine (awaits, or an iterator's yields), or holds a label (a state a
+/// `goto` enters: `goto.rs`).
 pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
     let all = |stmts: &[Stmt]| stmts.iter().any(stmt_awaits);
     match s {
         Stmt::Local { value, .. } => value.as_ref().is_some_and(awaits),
         Stmt::Goto(yog_script_analyze::ast::Goto::Case(v), _) => awaits(v),
-        Stmt::Goto(..) | Stmt::Label(_) => false,
+        Stmt::Label(_) => true,
+        Stmt::Goto(..) => false,
         Stmt::Assign { place, value, .. } => awaits(place) || awaits(value),
         Stmt::If {
             cond,

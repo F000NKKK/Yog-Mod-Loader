@@ -29,17 +29,20 @@ impl Gen<'_> {
     /// gives a value (`gives_value`).
     pub(crate) fn machine_stmts(&mut self, stmts: &[Stmt], gives_value: bool) {
         let depth = self.renamed.len();
-        for (i, s) in stmts.iter().enumerate() {
-            match s {
-                Stmt::Value(v) if gives_value && i + 1 == stmts.len() => {
-                    if !self.await_unwritable(v) {
-                        let v = self.handed_expr(v);
-                        self.async_return(Some(v));
+        self.machine_labels(stmts, |g| {
+            for (i, s) in stmts.iter().enumerate() {
+                match s {
+                    Stmt::Value(v) if gives_value && i + 1 == stmts.len() => {
+                        if !g.await_unwritable(v) {
+                            let v = g.handed_expr(v);
+                            g.async_return(Some(v));
+                        }
                     }
+                    Stmt::Label(n) => g.machine_label(&n.text),
+                    s => g.machine_stmt(s),
                 }
-                s => self.machine_stmt(s),
             }
-        }
+        });
         self.renamed.truncate(depth);
     }
 

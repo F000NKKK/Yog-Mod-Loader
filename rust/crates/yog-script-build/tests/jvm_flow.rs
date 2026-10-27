@@ -71,3 +71,51 @@ fn gotos_and_verbatim_strings() {
     };
     assert_eq!(out, r#"3 2,3 10 02 one two end|end|C:\mods\x\"q""#);
 }
+
+const MACHINES: &str = r#"using System.Collections.Generic;
+using System.Threading.Tasks;
+public static class A {
+    static async Task<i32> Retry() {
+        let mut tries = 0;
+    again:
+        await Task.Yield();
+        tries += 1;
+        if (tries < 3) goto again;
+        return tries;
+    }
+    static IEnumerable<i32> Evens() {
+        let mut i = 0;
+    top:
+        if (i > 6) yield break;
+        if (i % 2 == 0) yield return i;
+        i += 1;
+        goto top;
+    }
+    static async Task<string> Found() {
+        foreach (let x in 0..5) {
+            await Task.Yield();
+            if (x == 3) goto done;
+        }
+        return "none";
+    done:
+        return "three";
+    }
+    public static string Run() {
+        let mut evens = "";
+        foreach (let e in Evens()) {
+            evens = evens + e;
+        }
+        return Retry().Result + " " + evens + " " + Found().Result;
+    }
+}
+"#;
+
+/// `goto` in an `async` method's and an iterator's machine: back across an
+/// `await`, round a `yield`, forward out of a loop that awaits.
+#[test]
+fn gotos_in_machines() {
+    let Some(out) = support::run(&[("A.ys", MACHINES)], "t.AScript.A.Run()") else {
+        return;
+    };
+    assert_eq!(out, "3 0246 three");
+}

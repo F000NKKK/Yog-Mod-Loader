@@ -79,9 +79,6 @@ impl Gen<'_> {
         {
             return self.not_yet("an `async` method taking `ref` or `out`", m.name.span);
         }
-        if jumps(m) {
-            return self.not_yet("`goto` in an `async` method", m.name.span);
-        }
         let body = match &m.body {
             Some(MethodBody::Block(b)) => Body::Block(&b.stmts),
             Some(MethodBody::Expr(e)) => Body::Expr(e),
@@ -117,9 +114,6 @@ impl Gen<'_> {
         let Some(MethodBody::Block(b)) = &m.body else {
             return self.not_yet("an iterator without a block", m.name.span);
         };
-        if jumps(m) {
-            return self.not_yet("`goto` in an iterator", m.name.span);
-        }
         let (item, enumerator) = match m.ret.as_ref().map(|t| &t.kind) {
             Some(TypeKind::Path { args, path }) => (
                 args.first(),
@@ -382,13 +376,3 @@ impl Gen<'_> {
     }
 }
 
-/// Whether `m`'s body has a label or a `goto` (its machine's states aren't
-/// a dispatch loop's yet).
-fn jumps(m: &Method) -> bool {
-    let Some(MethodBody::Block(b)) = &m.body else {
-        return false;
-    };
-    b.stmts
-        .iter()
-        .any(|s| s.any_inside(&|i| matches!(i, Stmt::Label(_) | Stmt::Goto(..)), &|_| true))
-}

@@ -29,11 +29,12 @@ struct Leave {
     outer_continue: Option<Option<String>>,
 }
 
-/// A label in reach: its state, of which dispatch loop and state variable.
+/// A label in reach: its state, of which dispatch loop and state variable
+/// — or (`dispatch` none) of an `async` method's or an iterator's machine.
 pub(crate) struct LabelPlace {
     name: String,
     state: String,
-    dispatch: String,
+    dispatch: Option<String>,
     index: usize,
 }
 
@@ -73,7 +74,7 @@ impl Gen<'_> {
             .map(|(index, name)| LabelPlace {
                 name,
                 state: state.clone(),
-                dispatch: dispatch.clone(),
+                dispatch: Some(dispatch.clone()),
                 index: start + index,
             })
             .collect();
@@ -167,13 +168,48 @@ impl Gen<'_> {
         names
     }
 
+    /// The labels of `stmts` (a block of an `async` method's or an
+    /// iterator's machine): each a state of its own, in reach of `f`.
+    pub(crate) fn machine_labels(&mut self, stmts: &[Stmt], f: impl FnOnce(&mut Self)) {
+        let depth = self.goto_labels.len();
+        for s in stmts {
+            if let Stmt::Label(n) = s {
+                let index = self.new_state();
+                self.goto_labels.push(LabelPlace {
+                    name: n.text.clone(),
+                    state: String::new(),
+                    dispatch: None,
+                    index,
+                });
+            }
+        }
+        f(self);
+        self.goto_labels.truncate(depth);
+    }
+
+    /// Where label `name` of a machine starts: its state.
+    pub(crate) fn machine_label(&mut self, name: &str) {
+        if let Some(l) = self.goto_labels.iter().rev().find(|l| l.name == name) {
+            let state = l.index;
+            self.state_starts(state);
+        }
+    }
+
     /// `goto to;` (at `at`).
     pub(crate) fn goto_stmt(&mut self, to: &Goto, at: Span) {
         let line = match to {
-            Goto::Label(n) => match self.goto_labels.iter().rev().find(|l| l.name == n.text) {
-                Some(l) => format!("{} = {}; {CONTINUE} {};", l.state, l.index, l.dispatch),
-                None => return self.not_yet("a `goto` out of a lambda", at),
-            },
+            Goto::Label(n) => {
+                let found = self.goto_labels.iter().rev().find(|l| l.name == n.text);
+                match found.map(|l| (l.state.clone(), l.dispatch.clone(), l.index)) {
+                    // A machine's state: its jump.
+                    Some((_, None, index)) => {
+                        self.code.line(Self::jump(index));
+                        return;
+                    }
+                    Some((state, Some(dispatch), index)) => format!("{state} = {index}; {CONTINUE} {dispatch};"),
+                    None => return self.not_yet("a `goto` out of a lambda", at),
+                }
+            }
             Goto::Case(v) => match self.case_jumps.last().cloned().flatten() {
                 Some(j) => {
                     let v = self.expr(v);
