@@ -162,3 +162,13 @@ fn ends_and_slices() {
     let src = "i32 Run() { let xs = [1, 2, 3, 4]; let part = xs[1..2]; return xs[^1] * 100 + part[0] * 10 + part.Count; }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(422)));
 }
+
+#[test]
+fn properties_run_their_accessors() {
+    let src = "class C { public i32 X { get => field; set => field = value * 2; } \
+               public i32 Z { get; set => field = Math.Max(value, 0); } = 5; \
+               private i32 _y; public i32 Y { get => _y + 1; set => _y = value; } \
+               public i32 Sum => X + Y + Z; }\n\
+               i32 Run() { let mut c = new C(); let first = c.Z; c.X = 3; c.Y = 4; c.Z = -7; return first * 1000 + c.Sum * 10 + c.Z; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(5110)));
+}

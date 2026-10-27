@@ -367,7 +367,7 @@ impl Gen<'_> {
                     value,
                     accessors,
                     ..
-                } if crate::backing::keeps_value(accessors) => {
+                } if yog_script_analyze::ast::keeps_value(accessors) => {
                     if let Some(v) = value {
                         let v = self.handed_expr(v);
                         let field = crate::backing::backing_name(&name.text);

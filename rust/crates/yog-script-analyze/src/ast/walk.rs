@@ -1,7 +1,7 @@
 //! Walking the tree: an expression's direct sub-expressions, a
 //! declaration's members — for passes that look at every one.
 
-use super::{Decl, DeclKind, Element, Expr, ExprKind, Name, Pattern, StrSeg};
+use super::{Decl, DeclKind, Element, Expr, ExprKind, Name, Pattern, Stmt, StrSeg};
 
 impl Expr {
     /// Each expression directly inside this one, in reading order; a
@@ -125,6 +125,73 @@ impl Pattern {
             }
             Pattern::Not(p) => p.each_binding(f),
             _ => {}
+        }
+    }
+}
+
+impl Stmt {
+    /// Each expression it holds, its inner statements' too (a local
+    /// function's code aside: its own).
+    pub fn each_expr(&self, f: &mut dyn FnMut(&Expr)) {
+        match self {
+            // Its own code, apart: what it uses isn't the block's statements'.
+            Stmt::Function(_) => {}
+            Stmt::Switch { expr, sections } => {
+                f(expr);
+                for s in sections {
+                    for (_, guard) in s.labels.iter().flatten() {
+                        guard.iter().for_each(&mut *f);
+                    }
+                    s.body.iter().for_each(|x| x.each_expr(f));
+                }
+            }
+            Stmt::Local { value, .. } => value.iter().for_each(&mut *f),
+            Stmt::Assign { place, value, .. } => {
+                f(place);
+                f(value);
+            }
+            Stmt::If {
+                cond,
+                then,
+                otherwise,
+            } => {
+                f(cond);
+                then.each_expr(f);
+                if let Some(o) = otherwise {
+                    o.each_expr(f);
+                }
+            }
+            Stmt::Foreach { iter, body, .. } => {
+                f(iter);
+                body.each_expr(f);
+            }
+            Stmt::For {
+                init,
+                cond,
+                step,
+                body,
+            } => {
+                if let Some(i) = init {
+                    i.each_expr(f);
+                }
+                cond.iter().for_each(&mut *f);
+                if let Some(st) = step {
+                    st.each_expr(f);
+                }
+                body.each_expr(f);
+            }
+            Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => {
+                f(cond);
+                body.each_expr(f);
+            }
+            Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().for_each(|s| s.each_expr(f)),
+            Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
+            Stmt::Lock { target, body, .. } => {
+                f(target);
+                body.each_expr(f);
+            }
+            Stmt::Expr(e) | Stmt::Value(e) => f(e),
+            Stmt::Break(_) | Stmt::Continue(_) => {}
         }
     }
 }

@@ -9,6 +9,7 @@ mod macros;
 mod objects;
 mod ops;
 mod patterns;
+mod properties;
 mod statics;
 mod stmts;
 

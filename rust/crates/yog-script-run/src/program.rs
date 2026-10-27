@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use yog_script_analyze::ast::{
-    Ctor, Decl, DeclKind, Expr, Method, MethodBody, Modifier, Param, Variant,
+    Ctor, Decl, DeclKind, Expr, Method, MethodBody, Modifier, Param, Variant, keeps_value,
 };
 use yog_script_analyze::words;
 
@@ -26,10 +26,18 @@ pub struct TypeDef<'a> {
     pub ctors: Vec<&'a Ctor>,
     /// Its static fields and constants, with their first values: one each.
     pub statics: Vec<(&'a str, Option<&'a Expr>)>,
-    /// Properties computed on reading (`T X => …;`), by name.
-    pub computed: HashMap<&'a str, &'a MethodBody>,
+    /// Properties whose accessors have bodies, by name.
+    pub properties: HashMap<&'a str, Property<'a>>,
     pub methods: HashMap<&'a str, Vec<Member<'a>>>,
     pub variants: Vec<&'a Variant>,
+}
+
+/// A property whose accessors have bodies: its getter's and setter's (none:
+/// its own value read or written as it is, under its name).
+#[derive(Clone, Copy, Default)]
+pub struct Property<'a> {
+    pub get: Option<&'a MethodBody>,
+    pub set: Option<&'a MethodBody>,
 }
 
 /// A method and whether it's the type's (`static`) or its objects'.
@@ -238,12 +246,27 @@ fn members<'a>(body: &'a [Decl]) -> TypeDef<'a> {
                 accessors,
                 value,
                 ..
-            } => match accessors.iter().find_map(|a| a.body.as_ref()) {
-                Some(get) => {
-                    def.computed.insert(&name.text, get);
+            } => {
+                let body_of = |word: &str| {
+                    accessors
+                        .iter()
+                        .find(|a| a.name.text == word)
+                        .and_then(|a| a.body.as_ref())
+                };
+                if accessors.iter().any(|a| a.body.is_some()) {
+                    def.properties.insert(
+                        &name.text,
+                        Property {
+                            get: body_of(words::get::WORD.text),
+                            set: body_of(words::set::WORD.text),
+                        },
+                    );
                 }
-                None => def.fields.push((&name.text, value.as_ref())),
-            },
+                // Its own value, kept under its name (`field` in its accessors).
+                if !accessors.iter().any(|a| a.body.is_some()) || keeps_value(accessors) {
+                    def.fields.push((&name.text, value.as_ref()));
+                }
+            }
             _ => {}
         }
     }

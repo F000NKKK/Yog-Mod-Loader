@@ -38,3 +38,39 @@ fn named(text: &str, ty: &Type, at: &Name) -> Param {
         default: None,
     }
 }
+
+/// Whether a property of `accessors` keeps a value of its own (C#'s
+/// `field`): one with a body reaches `field`, or one has no body beside one
+/// that has. A property of none with bodies is all its own value.
+pub fn keeps_value(accessors: &[Accessor]) -> bool {
+    let bodies = accessors.iter().filter(|a| a.body.is_some()).count();
+    if bodies == 0 {
+        return false;
+    }
+    bodies < accessors.len()
+        || accessors
+            .iter()
+            .filter_map(|a| a.body.as_ref())
+            .any(reaches_field)
+}
+
+fn reaches_field(body: &super::MethodBody) -> bool {
+    let mut found = false;
+    match body {
+        super::MethodBody::Expr(e) => found = names_field(e),
+        super::MethodBody::Block(b) => b
+            .stmts
+            .iter()
+            .for_each(|s| s.each_expr(&mut |e| found |= names_field(e))),
+    }
+    found
+}
+
+fn names_field(e: &super::Expr) -> bool {
+    if matches!(&e.kind, super::ExprKind::Ident(n) if n == field::WORD.text) {
+        return true;
+    }
+    let mut found = false;
+    e.each_child(|c| found |= names_field(c));
+    found
+}

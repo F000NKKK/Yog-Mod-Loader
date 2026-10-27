@@ -229,7 +229,7 @@ impl Gen<'_> {
                 .and_then(|a| a.body.as_ref())
         };
         // Its own value's field, when it keeps one (`backing.rs`).
-        let kept = crate::backing::keeps_value(accessors)
+        let kept = yog_script_analyze::ast::keeps_value(accessors)
             .then(|| format!("{THIS}.{}", crate::backing::backing_name(n)));
         self.with_backing(n, accessors, |g| {
             let getter = format!("{lead}{t} {n}()");

@@ -62,7 +62,7 @@ const DISPOSE: &str = yog_script_ids::members::DISPOSE;
 /// `return name`.
 fn hands_on(s: &Stmt, name: &str) -> bool {
     let mut found = false;
-    each_expr(s, &mut |e| found |= moves(e, name));
+    s.each_expr(&mut |e| found |= moves(e, name));
     if let Stmt::Return(Some(e), _) = s
         && matches!(&e.kind, ExprKind::Ident(n) if n == name)
     {
@@ -87,71 +87,7 @@ fn moves(e: &Expr, name: &str) -> bool {
 pub(crate) fn each_body_expr(body: Option<&MethodBody>, f: &mut dyn FnMut(&Expr)) {
     match body {
         Some(MethodBody::Expr(e)) => f(e),
-        Some(MethodBody::Block(b)) => b.stmts.iter().for_each(|s| each_expr(s, f)),
+        Some(MethodBody::Block(b)) => b.stmts.iter().for_each(|s| s.each_expr(f)),
         None => {}
-    }
-}
-
-/// Each expression statement `s` holds, its inner statements' too.
-fn each_expr(s: &Stmt, f: &mut dyn FnMut(&Expr)) {
-    match s {
-        // Its own code, apart: what it uses isn't the block's statements'.
-        Stmt::Function(_) => {}
-        Stmt::Switch { expr, sections } => {
-            f(expr);
-            for s in sections {
-                for (_, guard) in s.labels.iter().flatten() {
-                    guard.iter().for_each(&mut *f);
-                }
-                s.body.iter().for_each(|x| each_expr(x, f));
-            }
-        }
-        Stmt::Local { value, .. } => value.iter().for_each(&mut *f),
-        Stmt::Assign { place, value, .. } => {
-            f(place);
-            f(value);
-        }
-        Stmt::If {
-            cond,
-            then,
-            otherwise,
-        } => {
-            f(cond);
-            each_expr(then, f);
-            if let Some(o) = otherwise {
-                each_expr(o, f);
-            }
-        }
-        Stmt::Foreach { iter, body, .. } => {
-            f(iter);
-            each_expr(body, f);
-        }
-        Stmt::For {
-            init,
-            cond,
-            step,
-            body,
-        } => {
-            if let Some(i) = init {
-                each_expr(i, f);
-            }
-            cond.iter().for_each(&mut *f);
-            if let Some(st) = step {
-                each_expr(st, f);
-            }
-            each_expr(body, f);
-        }
-        Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => {
-            f(cond);
-            each_expr(body, f);
-        }
-        Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().for_each(|s| each_expr(s, f)),
-        Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
-        Stmt::Lock { target, body, .. } => {
-            f(target);
-            each_expr(body, f);
-        }
-        Stmt::Expr(e) | Stmt::Value(e) => f(e),
-        Stmt::Break(_) | Stmt::Continue(_) => {}
     }
 }

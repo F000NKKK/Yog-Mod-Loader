@@ -12,7 +12,7 @@ mod pattern;
 mod stmt;
 mod walk;
 
-pub use accessor::{accessor_scope, value_param};
+pub use accessor::{accessor_scope, keeps_value, value_param};
 pub use decl::{
     Accessor, Attribute, Chain, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param,
     Prop, TypeHeader, Variant, VersionCond,

@@ -68,7 +68,11 @@ impl<'p> Interp<'p> {
                         Some(e) => i.eval(e)?.copied(),
                         None => Value::Null,
                     };
-                    i.set_field(Some(&object), field, v, at)?;
+                    // Straight into it: a property's first value isn't set
+                    // through its setter (C#'s).
+                    if let Value::Object(o) = &object {
+                        o.borrow_mut().fields.insert((*field).to_string(), v);
+                    }
                 }
             }
             Ok(())
@@ -111,32 +115,16 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// An object's field or computed property `name`, if it has one.
+    /// An object's field or property `name`, if it has one: a property's
+    /// getter run (its own value as `field`), else the value kept.
     pub(crate) fn field(&mut self, on: &Value, name: &str) -> Run<Option<Value>> {
         let Value::Object(o) = on else {
             return Ok(None);
         };
-        if let Some(v) = o.borrow().fields.get(name) {
-            return Ok(Some(v.clone()));
+        if let Some(get) = self.property(on, name).and_then(|p| p.get) {
+            return self.accessor(on, name, get, None).map(Some);
         }
-        let class = o.borrow().class.clone();
-        let Some((key, _)) = self.program.types.get_key_value(class.as_str()) else {
-            return Ok(None);
-        };
-        let getter = self
-            .program
-            .lineage(key)
-            .into_iter()
-            .find_map(|t| self.program.types[t].computed.get(name).copied());
-        let Some(body) = getter else { return Ok(None) };
-        let outer = (
-            std::mem::take(&mut self.scopes),
-            self.this.replace(on.clone()),
-        );
-        self.scopes.push(HashMap::new());
-        let v = self.body(Some(body));
-        (self.scopes, self.this) = outer;
-        v.map(Some)
+        Ok(o.borrow().fields.get(name).cloned())
     }
 
     pub(crate) fn set_field(
@@ -147,7 +135,11 @@ impl<'p> Interp<'p> {
         at: Span,
     ) -> Run<()> {
         match on {
-            Some(Value::Object(o)) => {
+            Some(object @ Value::Object(o)) => {
+                // A property's setter runs, `value` what's set.
+                if let Some(set) = self.property(object, name).and_then(|p| p.set) {
+                    return self.accessor(object, name, set, Some(v)).map(drop);
+                }
                 o.borrow_mut().fields.insert(name.to_string(), v);
                 Ok(())
             }
