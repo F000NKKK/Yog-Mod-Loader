@@ -101,6 +101,8 @@ fn java_reads_and_writes_the_same_bytes() {
         .arg("-d")
         .arg(&dir)
         .arg(root.join("../../../java-api/src/main/java/dev/yog/data/YogData.java"))
+        // The words it spells typed values with.
+        .arg(root.join("../../../java-api/src/main/java/dev/yog/YogNames.java"))
         .arg(root.join("tests/java/RoundTrip.java"))
         .status()
         .expect("javac");
