@@ -124,8 +124,9 @@ For each type with `synced` members, the build generates a mirror spec
    (as an `Optional`), `List<T>` of those, enums without data (by their
    number), records of what's kept as it is, `Dictionary<K, V>` of those
    (a list of its entries), enums with data (their case by name, its data
-   a record). `Text` is said not compiled yet: its arguments are any
-   objects, not Yog Data. ✅ `mod` members: the mod's class reads them from the
+   a record), `Text` as its own Yog Data (its key, plainness and
+   arguments: numbers, `bool`s, strings and texts as they are, anything
+   else as its words). ✅ `mod` members: the mod's class reads them from the
    game's store at the end of its constructors.
 3. Blocks (the chunk scope, removal with the block) and entities.
    ✅ Blocks: a block's object reads its `saved` members from its chunk's

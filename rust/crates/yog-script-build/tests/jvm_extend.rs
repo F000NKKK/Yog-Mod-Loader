@@ -53,6 +53,7 @@ extend Player {
     public saved Dictionary<Spot, i32> Marks = new Dictionary<Spot, i32>();
     public saved Shape Drawn = Shape.Dot;
     public saved Shape Kept = Shape.Dot;
+    public saved Text Greeting = Text.Of("m.hello").With(3, "Steve", Text.Of("m.inner"));
     public i32 Unsaved = 0;
 }
 "#;
@@ -82,7 +83,8 @@ fn saved_members_round_trip() {
             Object again = make.newInstance("Steve");
             ((dev.yog.script.yog.State.Saved) again).$load(store::get);
             return store.keySet() + " " + ext.getField("Visits").getInt(again) + " " + ext.getField("Title").get(again) + " " + ext.getField("Favourite").get(again)
-                + " " + ext.getField("Note").get(again) + " " + ext.getField("Scores").get(again).getClass().getSimpleName() + ext.getField("Scores").get(again) + " " + ext.getField("Mode").get(again) + " " + ext.getField("Home").get(again) + " " + ext.getField("Marks").get(again) + " " + ext.getField("Drawn").get(again) + " " + ext.getField("Kept").get(again);
+                + " " + ext.getField("Note").get(again) + " " + ext.getField("Scores").get(again).getClass().getSimpleName() + ext.getField("Scores").get(again) + " " + ext.getField("Mode").get(again) + " " + ext.getField("Home").get(again) + " " + ext.getField("Marks").get(again) + " " + ext.getField("Drawn").get(again) + " " + ext.getField("Kept").get(again)
+                + " " + ((dev.yog.script.yog.Text) ext.getField("Greeting").get(again)).json();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -92,7 +94,7 @@ fn saved_members_round_trip() {
     };
     assert_eq!(
         out,
-        "[Player.Drawn, Player.Favourite, Player.Home, Player.Kept, Player.Marks, Player.Mode, Player.Note, Player.Scores, Player.Title, Player.Visits] 7 Sir minecraft:stick hi List[5, 9] Busy Spot { X = 3, Y = 4, Name = base } {Spot { X = 1, Y = 2, Name = x }=8} Line(4, edge) Dot"
+        "[Player.Drawn, Player.Favourite, Player.Greeting, Player.Home, Player.Kept, Player.Marks, Player.Mode, Player.Note, Player.Scores, Player.Title, Player.Visits] 7 Sir minecraft:stick hi List[5, 9] Busy Spot { X = 3, Y = 4, Name = base } {Spot { X = 1, Y = 2, Name = x }=8} Line(4, edge) Dot {\"translate\":\"m.hello\",\"with\":[\"3\",\"Steve\",{\"translate\":\"m.inner\"}]}"
     );
 }
 

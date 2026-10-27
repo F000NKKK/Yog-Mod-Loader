@@ -5,17 +5,17 @@
 //! is made live, `$save` writes them out as the world saves. What the codec
 //! doesn't keep as it is goes as what it does: a `T?` an `Optional<T>`, a
 //! `List<T>` Java's list (read back into one), a `Dictionary<K, V>` a list
-//! of its entries, an enum its number; a record of what it keeps as it
-//! is, as it is.
+//! of its entries, an enum its number, a `Text` its own Yog Data; a
+//! record of what it keeps as it is, as it is.
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Decl, DeclKind, Modifier, Type as Written, TypeKind};
 use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, VOID};
-use yog_script_ids::system::{DICTIONARY, LIST};
+use yog_script_ids::system::{DICTIONARY, LIST, TEXT_TYPE};
 use yog_script_ids::jvm::state::{
     ACCEPT, ADD_ALL, APPLY, BYTES, ENTRIES, ENTRY_KEY, ENTRY_SUFFIX, ENTRY_VALUE, ENTRY_VAR, ENUM_OF, ENUM_VALUE, FORGET, FROM_BYTES,
     GET_KEY, GET_VALUE, JAVA_LIST, LOAD, MAP, OF_NULLABLE, OPTIONAL, OR_ELSE, READ, READ_TYPE, RECORD_PREFIX, SAVE, SET_ITEM,
-    TO_LIST, VALUE, WRITE, WRITE_TYPE,
+    TEXT_BYTES_TYPE, TEXT_FROM_BYTES, TEXT_TO_BYTES, TO_LIST, VALUE, WRITE, WRITE_TYPE,
 };
 
 use super::Gen;
@@ -96,6 +96,15 @@ impl Gen<'_> {
             }
             TypeKind::Path { path, args } if args.len() == 2 && path.last().is_some_and(|n| n.text == DICTIONARY) => {
                 self.dictionary_form(ty, (&args[0], &args[1]), name)
+            }
+            TypeKind::Path { path, args } if args.is_empty() && path.last().is_some_and(|n| n.text == TEXT_TYPE) => {
+                let text = self.written(ty, false);
+                Some(Kept {
+                    declared: Vec::new(),
+                    java: TEXT_BYTES_TYPE.to_string(),
+                    save: Box::new(|f| format!("{f}.{TEXT_TO_BYTES}()")),
+                    load: Box::new(move |f, v| format!("{f} = {text}.{TEXT_FROM_BYTES}({v});")),
+                })
             }
             _ if let Some(e) = self.data_enum_of(ty) => self.data_enum_form(ty, &e, name),
             _ if self.enum_of(ty).is_some() => {

@@ -49,6 +49,49 @@ public final class Text {
         return plain;
     }
 
+    /** What a text's Yog Data form names its parts by. */
+    private static final String KEY = "key";
+    private static final String PLAIN = "plain";
+    private static final String ARGS = "args";
+
+    /**
+     * This text as Yog Data (a {@code saved} member's): its key, whether
+     * it's plain, its arguments — a number, a {@code bool}, a string as it
+     * is, a text as its own, anything else as its words.
+     */
+    public byte[] toBytes() {
+        return dev.yog.data.YogData.encode(data());
+    }
+
+    private java.util.Map<String, Object> data() {
+        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put(KEY, key);
+        m.put(PLAIN, plain);
+        java.util.List<Object> kept = new java.util.ArrayList<>();
+        for (Object a : args) {
+            if (a instanceof Text t) kept.add(t.data());
+            else if (a instanceof Number || a instanceof Boolean || a instanceof String) kept.add(a);
+            else kept.add(String.valueOf(a));
+        }
+        m.put(ARGS, kept);
+        return m;
+    }
+
+    /** A text read back from its Yog Data ({@link #toBytes}). */
+    public static Text fromBytes(byte[] bytes) {
+        return of(dev.yog.data.YogData.map(dev.yog.data.YogData.decode(bytes)));
+    }
+
+    private static Text of(java.util.Map<String, Object> m) {
+        java.util.List<Object> read = dev.yog.data.YogData.list(m.get(ARGS));
+        Object[] back = new Object[read.size()];
+        for (int i = 0; i < back.length; i++) {
+            Object a = read.get(i);
+            back[i] = a instanceof java.util.Map<?, ?> inner ? of(dev.yog.data.YogData.map(inner)) : a;
+        }
+        return new Text(dev.yog.data.YogData.str(m.get(KEY), ""), back, dev.yog.data.YogData.bool(m.get(PLAIN), false));
+    }
+
     /** Its arguments (a copy). */
     public Object[] args() {
         return args.clone();

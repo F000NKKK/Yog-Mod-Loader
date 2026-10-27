@@ -557,4 +557,8 @@ pub mod state {
     /// A case's value's record (`$ModeValue`), and what its helpers take.
     pub const VALUE_SUFFIX: &str = "Value";
     pub const VALUE_VAR: &str = "$v";
+    /// A `Text` as its Yog Data bytes, and one read back (`Text.java`'s).
+    pub const TEXT_BYTES_TYPE: &str = "byte[]";
+    pub const TEXT_TO_BYTES: &str = "toBytes";
+    pub const TEXT_FROM_BYTES: &str = "fromBytes";
 }
