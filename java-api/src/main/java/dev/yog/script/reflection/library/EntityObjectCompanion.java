@@ -12,5 +12,6 @@ public final class EntityObjectCompanion {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Uuid", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.yog.EntityObject) o).Uuid(), null);
         d.Property("Dimension", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.yog.EntityObject) o).Dimension(), null);
+        d.Method("Seen", dev.yog.script.reflection.MemberInfo.STATIC, new String[] { "T" }, null).Returns(d.MethodParameter(0)).Takes("uuid", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Attribute(() -> new dev.yog.script.Reified());
     }
 }

@@ -69,7 +69,7 @@ public abstract class ItemObject {
         if (o instanceof State.Saved s) {
             String mod = namespace(held.item());
             s.$load(key -> {
-                YogTypes.Record r = new YogServices.Client.HeldItemData(offHand, State.stackKey(mod, key)).call();
+                YogTypes.Record r = new YogServices.Client.HeldItemData(offHand, State.modKey(mod, key)).call();
                 return r == null ? null : r.bytes();
             });
         }

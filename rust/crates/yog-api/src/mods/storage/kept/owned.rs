@@ -1,4 +1,4 @@
-//! Values kept for each owner — the world, a player, an entity, a block —
+//! Values kept for each owner — the world, a player, a block —
 //! in the owner's store: the Rust side of a Yog Script object's `saved`
 //! and `synced` members (`docs/design/storage.md`), at the same keys.
 
@@ -213,21 +213,6 @@ owned!(
 );
 
 owned!(
-    /// A value kept for each entity, by uuid (its own store, at its key):
-    /// removed as it dies.
-    EntityData, String, &str, str::to_owned,
-    &Owners {
-        place: |uuid, key| Some((crate::storage::entity(uuid)?, key.to_owned())),
-        whose: |gone| match gone {
-            Gone::Entity(uuid) => Some((*uuid).to_owned()),
-            Gone::Block(..) => None,
-        },
-        text: String::clone,
-    },
-    Audience::All
-);
-
-owned!(
     /// A value kept for each block, by dimension and place (its chunk's
     /// store, as `<x>_<y>_<z>.<key>` within the chunk): removed as it's
     /// broken or another is put there.
@@ -235,10 +220,7 @@ owned!(
     |(dim, pos): (&str, BlockPos)| (dim.to_owned(), [pos.x, pos.y, pos.z]),
     &Owners {
         place: block_place,
-        whose: |gone| match gone {
-            Gone::Block(dim, pos) => Some(((*dim).to_owned(), [pos.x, pos.y, pos.z])),
-            Gone::Entity(_) => None,
-        },
+        whose: |Gone::Block(dim, pos)| Some(((*dim).to_owned(), [pos.x, pos.y, pos.z])),
         text: |(dim, [x, y, z])| format!("{dim}{SEP}{x}{SEP}{y}{SEP}{z}"),
     },
     Audience::All

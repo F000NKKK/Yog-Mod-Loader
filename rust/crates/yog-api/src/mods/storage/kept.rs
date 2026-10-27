@@ -8,7 +8,7 @@ use yog_core::BlockPos;
 use yog_data::Schema;
 use yog_sync::Mutex;
 
-pub use owned::{BlockData, EntityData, PlayerData, WorldData};
+pub use owned::{BlockData, PlayerData, WorldData};
 
 /// What's kept, as the saving sees it.
 trait Kept: Sync {
@@ -29,8 +29,6 @@ trait Kept: Sync {
 
 /// An owner gone for good: what it kept goes with it.
 pub(super) enum Gone<'a> {
-    /// An entity dead (by its uuid).
-    Entity(&'a str),
     /// The block at a place broken, or another put there: its dimension, its place.
     Block(&'a str, BlockPos),
 }

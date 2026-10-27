@@ -23,7 +23,7 @@ implemented), F3 mirrors (`yog-mirror`, implemented), and ys.md §4.2
 | Owner (YS) | Scope | Store (`yog-storage`) | Key in it | Loaded / written |
 |---|---|---|---|---|
 | `block X` object, `extend Block` | chunk | `chunk/<dim>_<cx>_<cz>` | the position in the chunk, then the type | with the chunk / as the world saves; removed with the block |
-| `entity X`, `extend Entity` | entity | `entity/<uuid>` | the type | as the entity loads / saves; removed when it dies for good |
+| `entity X`, `extend Entity` | the entity | the runtime's entity data (saved with the entity, sent to who sees it) | `<mod>:<type>` | as its object is made; written as it changes (once a tick); gone with the entity |
 | `extend Player` | player | `player/<uuid>` | the type | at join / at save and leave |
 | `extend World` | world | `world` | the type | at world load / save |
 | `extend Dimension` | dimension | `dimension/<dim>` | the type | as the dimension loads / saves |
@@ -134,8 +134,8 @@ For each type with `synced` members, the build generates a mirror spec
    BlockObject makes it; its records go when the block is broken or
    another is placed there, its object made or not. ✅ Entities: content
    of that kind has an object now (`EntityObject`: `Spawn`, `Damage`,
-   `Death`), its `saved` members in the entity's store (`entity/<uuid>`),
-   read in as it's made, removed when it dies.
+   `Death`), its `saved` members the runtime's entity data
+   (`mod:Entity.Member`, persisted), read in as it's made, gone with it.
 4. Item stacks: the host's `yog:item/data` on each version. ✅ The
    player services `HeldItemData`/`SetHeldItemData` (bytes by key in the
    held stack's `yog` compound: its tag on 1.19–1.20, its
@@ -148,12 +148,18 @@ For each type with `synced` members, the build generates a mirror spec
    saved members' codec) on `yog:synced` — each tick the changed ones, a
    joining player every one; a player's `extend` to that player, the
    world's and the mod's to all. A client's object of the owner (by its
-   kind's `$of`) takes the row, its reads plain field reads. ✅ Blocks and
-   entities: their objects' rows (`block:<id>` at a place, `entity:<id>`
-   by uuid) go to every player for now (not yet only those tracking the
-   owner); an item's stack has no live object, its `synced` members said
-   not compiled. ✅ The analyzer's check: a client's write of a synced
-   member is WRONG_SIDE.
+   kind's `$of`) takes the row, its reads plain field reads. ✅ Blocks:
+   their objects' rows (`block:<id>` at a place) go to every player for
+   now (not yet only those tracking the chunk). ✅ Entities: their
+   `synced` members are entity data too (not persisted unless `saved`),
+   which the runtime sends to the players who see the entity; a client
+   reads them by `EntityObject.Seen<T>(uuid)`. ✅ Items: their `synced`
+   members are the stack's data like their `saved` ones (the game sends
+   stacks); a client reads them by `ItemObject.Held<T>(offHand)` (client
+   service `HeldItemData`). ✅ The analyzer's check: a client's write of a
+   synced member is WRONG_SIDE.
 6. `was` migrations, hot reload through `session` (S8), saved tasks (S9).
-7. The Rust API's parity: `#[saved]` and `#[synced]` on a component
-   struct, made from the same model.
+7. The Rust API's parity. ✅ `WorldData`/`PlayerData`/`BlockData` (their
+   stores, the same keys; `::synced` on the same rows), `EntityData` (the
+   runtime's entity data; `::session` not saved), `ItemData` (the stack;
+   `held_here` on a client), `CommandContext.permission`/`op`.

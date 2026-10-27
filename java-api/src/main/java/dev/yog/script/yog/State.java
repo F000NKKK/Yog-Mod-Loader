@@ -65,31 +65,19 @@ public final class State {
      * no store, and nothing live. */
     public static void heldLoad(Saved made, String mod, String player, boolean offHand) {
         made.$load(key -> {
-            YogTypes.Record r = new YogServices.Player.HeldItemData(player, offHand, stackKey(mod, key)).call();
+            YogTypes.Record r = new YogServices.Player.HeldItemData(player, offHand, modKey(mod, key)).call();
             return r == null ? null : r.bytes();
         });
     }
 
     /** {@code made}'s {@code saved} members written to the stack's data, as it's changed. */
     public static void heldSave(Saved made, String mod, String player, boolean offHand) {
-        made.$save((key, bytes) -> new YogServices.Player.SetHeldItemData(player, offHand, stackKey(mod, key), bytes).call());
+        made.$save((key, bytes) -> new YogServices.Player.SetHeldItemData(player, offHand, modKey(mod, key), bytes).call());
     }
 
-    /** A record's key in a stack's data: its mod's, then its own. */
-    static String stackKey(String mod, String key) {
+    /** A record's key where the game keeps it (a stack's data, an entity's): its mod's, then its own. */
+    static String modKey(String mod, String key) {
         return mod + YogNames.Sep.NAMESPACE + key;
-    }
-
-    /** {@code made} (entity {@code uuid}'s object): read in from its own store, live. */
-    public static <T extends Saved> T entity(T made, String mod, String uuid) {
-        return live(made, new Place(mod, YogNames.Storage.ENTITY, uuid, ""));
-    }
-
-    /** Entity {@code uuid} dead for good: its records removed, its object no longer live. */
-    public static void entityGone(String mod, String uuid) {
-        Place at = new Place(mod, YogNames.Storage.ENTITY, uuid, "");
-        LIVE.entrySet().removeIf(e -> e.getValue().equals(at));
-        new YogServices.Storage.Remove(at.mod(), at.where(), at.owner(), null).call();
     }
 
     /** {@code made} (a block's object at {@code x y z} in {@code dimension}):

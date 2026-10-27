@@ -3,7 +3,8 @@ namespace Yog;
 /// An entity a mod declares (`entity Golem { … }`), one object an entity
 /// of it: made the first time something happens to it (its constructor
 /// subscribes), kept while the server runs, gone when it dies. Its fields
-/// are the server's memory (`saved` ones are kept with the entity).
+/// are the server's memory (`saved` ones are kept with the entity, they and
+/// `synced` ones reach the players who see it).
 [Intrinsic]
 public abstract class EntityObject {
     /// The entity's uuid.
@@ -17,4 +18,10 @@ public abstract class EntityObject {
     public event Action<f32> Damage;
     /// It died (it's gone after).
     public event Action Death;
+
+    /// Entity `uuid` as a `T`, on a client: its `saved` and `synced`
+    /// members as the server sent them to the players who see it (their
+    /// defaults for one it hasn't); `null` when no mod declares `T`.
+    [Reified]
+    public static T? Seen<T>(string uuid) where T : EntityObject;
 }

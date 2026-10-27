@@ -23,11 +23,12 @@
 //! (`server::life::Saving`: an autosave, `/save-all`, the server stopping),
 //! so it's saved with the world it belongs to.
 //!
-//! A value kept for each owner — [`PlayerData`], [`EntityData`] (gone as it
-//! dies), [`BlockData`] (gone as it's broken) — is in the owner's store, at
-//! the keys a Yog Script object's `saved` members have; a value kept on a
-//! stack, travelling with it, is an [`ItemData`].
+//! A value kept for each owner — [`PlayerData`], [`BlockData`] (gone as
+//! it's broken) — is in the owner's store, at the keys a Yog Script
+//! object's `saved` members have; one kept on an entity ([`EntityData`]) or
+//! a stack ([`ItemData`]) is the game's, travelling with it.
 
+mod entity;
 mod item;
 mod kept;
 mod records;
@@ -37,15 +38,15 @@ use std::path::PathBuf;
 use yog_sync::Mutex;
 use yog_sync::atomic::{AtomicBool, Ordering};
 
+pub use entity::EntityData;
 pub use item::ItemData;
-pub use kept::{BlockData, EntityData, GameData, PlayerData, WorldData};
+pub use kept::{BlockData, GameData, PlayerData, WorldData};
 #[doc(hidden)]
 pub use records::__provide_records;
 pub use yog_storage::{Scope, Store, close_under, flush_all};
 
 use crate::Registry;
 use crate::event::block::{Break, Place};
-use crate::event::entity::life::Death;
 use crate::event::server::life::{Saving, Started, Stopping};
 use kept::Gone;
 
@@ -124,7 +125,6 @@ pub fn __save_with_world(registry: &mut Registry) {
     registry.on::<Saving, _>(|_, _| saving());
     // Gone after the mod's handlers: theirs still read what it kept.
     registry.on::<Break, _>(|e, _| kept::gone(&Gone::Block(&e.dimension, e.pos)));
-    registry.on::<Death, _>(|e, _| kept::gone(&Gone::Entity(&e.uuid)));
     kept::synced::listen(registry);
 }
 

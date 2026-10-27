@@ -14,13 +14,11 @@ import java.util.function.Supplier;
  * Yog Script's {@code Yog.EntityObject}: an entity a mod declares, one
  * object an entity of it — made the first time something happens to it
  * (its constructor subscribes), kept while the server runs, gone when it
- * dies (its {@code saved} members' records with it). A handler's panic is
+ * dies (its {@code saved} and {@code synced} members, the entity's data,
+ * with it). A handler's panic is
  * logged: the game goes on.
  */
 public abstract class EntityObject {
-    /** What an entity's synced rows say they're of, before its id. */
-    private static final String SYNCED_KIND = dev.yog.YogNames.Kind.ENTITY + dev.yog.YogNames.Sep.NAMESPACE;
-
     /** Each declared entity's maker, by its id. */
     private static final Map<String, Supplier<? extends EntityObject>> MAKERS = new ConcurrentHashMap<>();
     /** The objects made so far, by their entities' uuids. */
@@ -53,8 +51,6 @@ public abstract class EntityObject {
     public static void register(String id, Supplier<? extends EntityObject> make) {
         boolean first = MAKERS.isEmpty();
         MAKERS.put(id, make);
-        // A client's object of an entity: what its synced rows go to.
-        SyncedState.owners(SYNCED_KIND + id, uuid -> found(id, uuid, "") instanceof SyncedState.Synced s ? s : null);
         if (first) {
             listen();
         }
@@ -71,11 +67,9 @@ public abstract class EntityObject {
         });
         YogEvents.Entity.Life.Death.on(0, e -> {
             raised(found(e.entityType(), e.uuid(), e.dimension()), o -> o.Death.handlers().forEach(Action::Invoke));
-            if (MADE.remove(e.uuid()) instanceof SyncedState.Synced s) {
-                SyncedState.forget(s);
-            }
-            if (MAKERS.containsKey(e.entityType())) {
-                State.entityGone(namespace(e.entityType()), e.uuid());
+            EntityObject gone = MADE.remove(e.uuid());
+            if (gone != null) {
+                EntityState.gone(gone);
             }
             return null;
         });
@@ -91,18 +85,36 @@ public abstract class EntityObject {
             MAKING.set(new String[] {u, dimension});
             try {
                 EntityObject o = make.get();
-                // Its `saved` members: read in from its own store.
-                if (o instanceof State.Saved s) {
-                    State.entity(s, namespace(id), u);
-                }
-                if (o instanceof SyncedState.Synced s) {
-                    SyncedState.toAll(s, SYNCED_KIND + id, u);
-                }
+                // Its `saved` and `synced` members: the entity's data.
+                EntityState.live(o, namespace(id), u);
                 return o;
             } finally {
                 MAKING.remove();
             }
         });
+    }
+
+    /**
+     * Entity {@code uuid} as a {@code type}, on a client: made now, its
+     * {@code saved} and {@code synced} members as the server sent them (to
+     * the players who see it; their defaults for one it hasn't); none when
+     * no mod declares {@code type}. Its {@code Dimension} is unknown here.
+     */
+    public static <T extends EntityObject> T Seen(Class<T> type, String uuid) {
+        for (Map.Entry<String, Supplier<? extends EntityObject>> m : MAKERS.entrySet()) {
+            MAKING.set(new String[] {uuid, ""});
+            EntityObject o;
+            try {
+                o = m.getValue().get();
+            } finally {
+                MAKING.remove();
+            }
+            if (type.isInstance(o)) {
+                EntityState.seen(o, namespace(m.getKey()), uuid);
+                return type.cast(o);
+            }
+        }
+        return null;
     }
 
     /** The mod an id is of: its namespace ({@code mymod:golem}'s {@code mymod}). */
