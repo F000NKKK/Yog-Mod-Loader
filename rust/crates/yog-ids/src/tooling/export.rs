@@ -83,6 +83,13 @@ pub fn java(package: &str, class: &str) -> String {
         ));
         c.close("");
     }
+    c.blank().doc("The game's units (`units`).");
+    c.open("public static final class Units");
+    c.line("private Units() {}").blank();
+    for (name, value) in crate::units::ALL {
+        c.line(format!("public static final int {name} = {value};"));
+    }
+    c.close("");
     c.blank().doc("Yog's file formats' extensions (`Format`).");
     c.open("public static final class Ext");
     c.line("private Ext() {}").blank();

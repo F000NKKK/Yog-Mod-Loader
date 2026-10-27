@@ -115,7 +115,7 @@ public final class State {
     }
 
     /** A chunk's width, as bits of a block's coordinate (16 blocks), and the mask of a block's place in it. */
-    private static final int CHUNK_BITS = 4;
+    private static final int CHUNK_BITS = YogNames.Units.CHUNK_BITS;
     private static final int CHUNK_MASK = (1 << CHUNK_BITS) - 1;
 
     private static <T extends Saved> T live(T made, Place at) {

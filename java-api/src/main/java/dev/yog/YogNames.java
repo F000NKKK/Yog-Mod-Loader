@@ -2568,6 +2568,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(TEXT, NUMBER, INT, BOOL, COLOR, CHOICE, EVENT, IMAGE);
     }
 
+    /** The game's units (`units`). */
+    public static final class Units {
+        private Units() {}
+
+        public static final int BLOCK_PIXELS = 16;
+        public static final int ITEM_PIXELS = 16;
+        public static final int MAX_STACK = 64;
+        public static final int CHUNK_BITS = 4;
+    }
+
     /** Yog's file formats' extensions (`Format`). */
     public static final class Ext {
         private Ext() {}

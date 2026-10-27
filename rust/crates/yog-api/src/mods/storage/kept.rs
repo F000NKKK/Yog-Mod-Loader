@@ -1,10 +1,13 @@
 //! Values the mod keeps: loaded from their store when first used, written
 //! back as the world is saved — no loading and saving by hand.
 
-use std::collections::HashMap;
+mod owned;
 
+use yog_core::BlockPos;
 use yog_data::Schema;
 use yog_sync::Mutex;
+
+pub use owned::{BlockData, EntityData, PlayerData};
 
 /// What's kept, as the saving sees it.
 trait Kept: Sync {
@@ -12,6 +15,16 @@ trait Kept: Sync {
     fn keep(&self);
     /// The world closed: what belongs to it is forgotten (the next world loads its own).
     fn forget(&self);
+    /// `owner` is gone for good: what it kept removed.
+    fn gone(&self, _owner: &Gone<'_>) {}
+}
+
+/// An owner gone for good: what it kept goes with it.
+pub(super) enum Gone<'a> {
+    /// An entity dead (by its uuid).
+    Entity(&'a str),
+    /// The block at a place broken, or another put there: its dimension, its place.
+    Block(&'a str, BlockPos),
 }
 
 /// Every kept value used so far.
@@ -27,6 +40,12 @@ fn register(kept: &'static dyn Kept) {
 pub(super) fn keep_all() {
     for kept in KEPT.lock().iter() {
         kept.keep();
+    }
+}
+
+pub(super) fn gone(owner: &Gone<'_>) {
+    for kept in KEPT.lock().iter() {
+        kept.gone(owner);
     }
 }
 
@@ -96,65 +115,6 @@ impl<T: Schema + Default + Send + 'static> Kept for WorldData<T> {
 
     fn forget(&self) {
         *self.slot.lock() = None;
-    }
-}
-
-/// A value kept for each player of the world (`<world>/yog-data/<mod>/player/<uuid>.ydata`, at its key).
-pub struct PlayerData<T> {
-    key: &'static str,
-    slots: Mutex<Option<HashMap<String, Slot<T>>>>,
-}
-
-impl<T: Schema + Default + Send + 'static> PlayerData<T> {
-    pub const fn new(key: &'static str) -> Self {
-        PlayerData {
-            key,
-            slots: Mutex::new(None),
-        }
-    }
-
-    /// What `read` makes of player `uuid`'s value.
-    pub fn with<R>(&'static self, uuid: &str, read: impl FnOnce(&T) -> R) -> R {
-        self.at(uuid, |slot| read(&slot.value))
-    }
-
-    /// Player `uuid`'s value changed by `change` (saved with the world).
-    pub fn with_mut<R>(&'static self, uuid: &str, change: impl FnOnce(&mut T) -> R) -> R {
-        self.at(uuid, |slot| {
-            slot.changed = true;
-            change(&mut slot.value)
-        })
-    }
-
-    fn at<R>(&'static self, uuid: &str, f: impl FnOnce(&mut Slot<T>) -> R) -> R {
-        register(self);
-        let mut slots = self.slots.lock();
-        let slot = slots
-            .get_or_insert_with(HashMap::new)
-            .entry(uuid.to_owned())
-            .or_insert_with(|| Slot {
-                value: super::player(uuid)
-                    .and_then(|store| store.get(self.key))
-                    .unwrap_or_default(),
-                changed: false,
-            });
-        f(slot)
-    }
-}
-
-impl<T: Schema + Default + Send + 'static> Kept for PlayerData<T> {
-    fn keep(&self) {
-        let mut slots = self.slots.lock();
-        for (uuid, slot) in slots.iter_mut().flatten().filter(|(_, s)| s.changed) {
-            if let Some(store) = super::player(uuid) {
-                store.set(self.key, &slot.value);
-                slot.changed = false;
-            }
-        }
-    }
-
-    fn forget(&self) {
-        *self.slots.lock() = None;
     }
 }
 

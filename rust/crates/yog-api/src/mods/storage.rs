@@ -23,7 +23,10 @@
 //! (`server::life::Saving`: an autosave, `/save-all`, the server stopping),
 //! so it's saved with the world it belongs to.
 //!
-//! A value kept on a stack, travelling with it, is an [`ItemData`].
+//! A value kept for each owner — [`PlayerData`], [`EntityData`] (gone as it
+//! dies), [`BlockData`] (gone as it's broken) — is in the owner's store, at
+//! the keys a Yog Script object's `saved` members have; a value kept on a
+//! stack, travelling with it, is an [`ItemData`].
 
 mod item;
 mod kept;
@@ -35,13 +38,16 @@ use yog_sync::Mutex;
 use yog_sync::atomic::{AtomicBool, Ordering};
 
 pub use item::ItemData;
-pub use kept::{GameData, PlayerData, WorldData};
+pub use kept::{BlockData, EntityData, GameData, PlayerData, WorldData};
 #[doc(hidden)]
 pub use records::__provide_records;
 pub use yog_storage::{Scope, Store, close_under, flush_all};
 
 use crate::Registry;
+use crate::event::block::{Break, Place};
+use crate::event::entity::life::Death;
 use crate::event::server::life::{Saving, Started, Stopping};
+use kept::Gone;
 
 /// The open world's folder (none on a client of another's server, or at the title screen).
 static WORLD: Mutex<Option<PathBuf>> = Mutex::new(None);
@@ -100,6 +106,9 @@ pub fn __know_world(registry: &mut Registry) {
     registry.on::<Started, _>(|e, _| {
         *WORLD.lock() = Some(PathBuf::from(&e.world_dir));
     });
+    // A block put in place starts fresh: what the one before kept is gone
+    // before the mod's handlers set its own.
+    registry.on::<Place, _>(|e, _| kept::gone(&Gone::Block(&e.dimension, e.pos)));
 }
 
 /// What's kept saved with the world — registered by `export_mod!` after
@@ -108,6 +117,9 @@ pub fn __know_world(registry: &mut Registry) {
 pub fn __save_with_world(registry: &mut Registry) {
     registry.on::<Stopping, _>(|_, _| CLOSING.store(true, Ordering::Release));
     registry.on::<Saving, _>(|_, _| saving());
+    // Gone after the mod's handlers: theirs still read what it kept.
+    registry.on::<Break, _>(|e, _| kept::gone(&Gone::Block(&e.dimension, e.pos)));
+    registry.on::<Death, _>(|e, _| kept::gone(&Gone::Entity(&e.uuid)));
 }
 
 /// The world being saved: what's kept written; the world's last save closes it.
