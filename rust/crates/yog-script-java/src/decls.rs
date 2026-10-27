@@ -88,7 +88,7 @@ impl Gen<'_> {
                 if d.has(Modifier::Abstract) {
                     self.abstract_accessors((&t, &n), accessors);
                 } else {
-                    self.property_accessors(place, (&t, &n), accessors);
+                    self.property_accessors(d, place, (&t, &n), accessors);
                 }
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
@@ -238,10 +238,19 @@ impl Gen<'_> {
         }
     }
 
-    fn property_accessors(&mut self, place: Place, (t, n): (&str, &str), accessors: &[Accessor]) {
+    /// Property `d` (`place`'s) of Java type `t`, named `n`: its accessors as methods.
+    fn property_accessors(
+        &mut self,
+        d: &Decl,
+        place: Place,
+        (t, n): (&str, &str),
+        accessors: &[Accessor],
+    ) {
         let interface = place == Place::Interface;
         let lead = if interface {
             DEFAULT.to_string()
+        } else if d.has(Modifier::Static) {
+            format!("{PUBLIC} {}", modifier(STATIC))
         } else {
             format!("{PUBLIC} {}", stat(place))
         };

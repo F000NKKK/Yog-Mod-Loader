@@ -733,3 +733,16 @@ fn arrow_accessors() {
     };
     assert_eq!(out, "565");
 }
+
+/// A static property of a nested class (as `.yres` bindings have them,
+/// `Res.Strings.Title`) is static in Java too: its class's description
+/// reads it with no object, and javac takes it.
+#[test]
+fn static_properties_of_nested_classes() {
+    let src = "public static class Res {\n    public static class Strings {\n        public static string Title => \"a.b\";\n    }\n}\npublic static class S {\n    public static string Run() => \"ok\";\n}\n";
+    let java = "t.RScript.S.Run() + \" \" + t.RScript.Res.Strings.Title()";
+    let Some(out) = support::run(&[("R.ys", src)], java) else {
+        return;
+    };
+    assert_eq!(out, "ok a.b");
+}
