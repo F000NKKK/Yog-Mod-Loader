@@ -190,3 +190,12 @@ string Run() => Retry() + " " + Find() + " " + Hoisted() + " " + Outer() + " " +
         Ok(Value::str(r#"3 2,3 10 02 one two end|end|C:\m\"q""#))
     );
 }
+
+/// List patterns: lengths, items from both ends, `.. let rest` a slice.
+#[test]
+fn list_patterns_match_items() {
+    let src = r#"string Shape(i32[] xs) => xs switch { [] => "empty", [let one] => "one {one}", [0, ..] => "zero", [let a, .. let mid, let z] => "{a}+{mid.Length}+{z}" };
+string Run() => Shape(new i32[0]) + "|" + Shape(new i32[] { 7 }) + "|" + Shape(new i32[] { 0, 5 }) + "|" + Shape(new i32[] { 1, 2, 3, 4 }) + "|" + ("ab" is ['a', ..]);
+"#;
+    assert_eq!(run(src, "Run", vec![]), Ok(Value::str("empty|one 7|zero|1+2+4|True")));
+}

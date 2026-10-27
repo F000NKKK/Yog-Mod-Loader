@@ -138,7 +138,12 @@ impl fmt::Display for Value {
         match self {
             Value::Void => Ok(()),
             Value::Null => write!(f, "null"),
-            Value::Bool(b) => write!(f, "{b}"),
+            // As .NET writes one: `True`, `False`.
+            Value::Bool(b) => f.write_str(if *b {
+                yog_script_ids::members::TRUE_TEXT
+            } else {
+                yog_script_ids::members::FALSE_TEXT
+            }),
             Value::Int(n) => write!(f, "{n}"),
             Value::Float(x) => write!(f, "{x}"),
             Value::Char(c) => write!(f, "{c}"),

@@ -117,9 +117,10 @@ impl Gen<'_> {
 fn bound_names(p: &Pattern) -> Vec<&yog_script_analyze::ast::Name> {
     match p {
         Pattern::Let(n) => vec![n],
-        Pattern::Variant { args, .. } | Pattern::Tuple(args) => {
+        Pattern::Variant { args, .. } | Pattern::Tuple(args) | Pattern::List(args, _) => {
             args.iter().flat_map(bound_names).collect()
         }
+        Pattern::Slice(Some(inner)) => bound_names(inner),
         Pattern::Property { fields, .. } => {
             fields.iter().flat_map(|(_, f)| bound_names(f)).collect()
         }

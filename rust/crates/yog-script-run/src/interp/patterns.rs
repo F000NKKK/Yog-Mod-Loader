@@ -113,8 +113,46 @@ impl<'p> Interp<'p> {
             Pattern::Or(a, b) => self.fits(a, v)? || self.fits(b, v)?,
             Pattern::And(a, b) => self.fits(a, v)? && self.fits(b, v)?,
             Pattern::Not(a) => !self.fits(a, v)?,
+            Pattern::List(items, _) => self.fits_list(items, v)?,
             _ => false,
         })
+    }
+
+    /// `[items]` on `v`: a list's or a string's items, each its pattern's,
+    /// `.. let rest` the items between of its kind.
+    fn fits_list(&mut self, items: &[Pattern], v: &Value) -> Run<bool> {
+        let (all, text) = match v {
+            Value::List(l) => (l.borrow().clone(), false),
+            Value::Str(s) => (s.chars().map(Value::Char).collect(), true),
+            _ => return Ok(false),
+        };
+        let slice = items.iter().position(|p| matches!(p, Pattern::Slice(_)));
+        let fixed = items.len() - usize::from(slice.is_some());
+        if all.len() < fixed || (slice.is_none() && all.len() != fixed) {
+            return Ok(false);
+        }
+        let before = slice.unwrap_or(items.len());
+        let after = items.len() - before - usize::from(slice.is_some());
+        for (i, p) in items.iter().enumerate() {
+            let fits = match p {
+                Pattern::Slice(None) => true,
+                Pattern::Slice(Some(rest)) => {
+                    let middle = all[before..all.len() - after].to_vec();
+                    let made = if text {
+                        Value::str(&middle.iter().map(Value::to_string).collect::<String>())
+                    } else {
+                        Value::list(middle)
+                    };
+                    self.fits(rest, &made)?
+                }
+                _ if i < before => self.fits(p, &all[i])?,
+                _ => self.fits(p, &all[all.len() - (items.len() - i)])?,
+            };
+            if !fits {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
     /// `Mode.Idle` written as a type: the enum (if named) and the case.

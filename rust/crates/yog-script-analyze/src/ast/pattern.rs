@@ -31,6 +31,12 @@ pub enum Pattern {
         to: Expr,
     },
     Tuple(Vec<Pattern>),
+    /// `[1, let second, .., let last]` (C#'s list pattern): an array's, a
+    /// string's or a list's items, a `..` among them at most once.
+    List(Vec<Pattern>, Span),
+    /// `..` in a list pattern: the items it doesn't name, `.. let rest`
+    /// matching them as a slice.
+    Slice(Option<Box<Pattern>>),
     /// `{ Health: < 5 }`, `Monster { Health: < 5 }`.
     Property {
         ty: Option<Type>,

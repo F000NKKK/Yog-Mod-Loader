@@ -27,7 +27,12 @@ impl Resolver<'_, '_> {
                 self.expr(from);
                 self.expr(to);
             }
-            Pattern::Tuple(ps) => ps.iter().for_each(|a| self.bind_pattern(a)),
+            Pattern::Tuple(ps) | Pattern::List(ps, _) => ps.iter().for_each(|a| self.bind_pattern(a)),
+            Pattern::Slice(inner) => {
+                if let Some(p) = inner {
+                    self.bind_pattern(p);
+                }
+            }
             Pattern::Property { ty, fields } => {
                 self.opt_ty(ty.as_ref());
                 fields.iter().for_each(|(_, p)| self.bind_pattern(p));

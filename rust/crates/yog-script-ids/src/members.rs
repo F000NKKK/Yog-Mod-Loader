@@ -6,6 +6,9 @@
 pub const EQUALS: &str = "Equals";
 pub const GET_HASH_CODE: &str = "GetHashCode";
 pub const TO_STRING: &str = "ToString";
+/// How a `bool` is written as text (.NET's `bool.ToString()`).
+pub const TRUE_TEXT: &str = "True";
+pub const FALSE_TEXT: &str = "False";
 /// `string`'s padding: what a hole's alignment (`{n,5}`) is written as.
 pub const PAD_LEFT: &str = "PadLeft";
 pub const PAD_RIGHT: &str = "PadRight";

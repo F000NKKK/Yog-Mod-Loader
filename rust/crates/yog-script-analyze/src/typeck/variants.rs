@@ -111,6 +111,7 @@ impl Checker<'_, '_, '_> {
                     self.bind_arm(item, &t);
                 }
             }
+            Pattern::List(items, at) => self.list_pattern(items, on, *at),
             // `Monster { Health: let h }`: each member's pattern on the member.
             Pattern::Property { ty, fields } => {
                 let t = ty.as_ref().map_or_else(|| on.clone(), |t| self.type_of(t));

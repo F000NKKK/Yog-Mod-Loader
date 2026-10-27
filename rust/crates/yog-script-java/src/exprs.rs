@@ -60,7 +60,7 @@ impl Gen<'_> {
             ExprKind::Unit { value, unit } => self.unit(value, unit, e),
             ExprKind::Bool(b) => b.to_string(),
             ExprKind::Null => NULL.into(),
-            ExprKind::Char(c) => format!("'{}'", self.code.str(&c.to_string()).trim_matches('"')),
+            ExprKind::Char(c) => java_char(*c, &self.code.str(&c.to_string())),
             ExprKind::RawStr(s) | ExprKind::Tag(s) => self.code.str(s),
             // `t"key"`: Yog's `Text` of the key.
             ExprKind::Text(key) => format!(
@@ -458,6 +458,18 @@ pub(crate) fn op_text(op: BinOp) -> &'static str {
         BinOp::Shl => "<<",
         BinOp::Shr => ">>",
         BinOp::Coalesce | BinOp::In => "",
+    }
+}
+
+/// Character `c` as a Java `char` literal, of its Java string (`quoted`):
+/// the string's escapes, a quote unescaped, an apostrophe escaped.
+fn java_char(c: char, quoted: &str) -> String {
+    use yog_script_analyze::token::QUOTE as APOSTROPHE;
+    let inner = quoted.strip_prefix('"').and_then(|s| s.strip_suffix('"')).unwrap_or(quoted);
+    match c {
+        '"' => format!("{APOSTROPHE}{c}{APOSTROPHE}"),
+        APOSTROPHE => format!("{APOSTROPHE}\\{APOSTROPHE}{APOSTROPHE}"),
+        _ => format!("{APOSTROPHE}{inner}{APOSTROPHE}"),
     }
 }
 

@@ -442,12 +442,14 @@ a trailing block lambda is the last argument, `it` its one parameter.
 switch_expr = postfix 'switch' '{' arm (',' arm)* ','? '}' ;
 arm         = pattern ('when' expr)? '=>' expr ;
 pattern     = '_' | literal | 'let' IDENT | type_pat | variant_pat | relational_pat | range_pat
-            | tuple_pat | property_pat | pattern 'or' pattern | pattern 'and' pattern | 'not' pattern ;
+            | tuple_pat | list_pat | property_pat | pattern 'or' pattern | pattern 'and' pattern | 'not' pattern ;
 type_pat    = type IDENT? ;                                         (* Monster m *)
 variant_pat = path '(' pattern (',' pattern)* ')' ;                 (* Mode.Charging(let rate) *)
 relational_pat = ('<' | '<=' | '>' | '>=') literal ;
 range_pat   = literal '..' literal ;
 tuple_pat   = '(' pattern (',' pattern)* ')' ;
+list_pat    = '[' (list_item (',' list_item)*)? ']' ;               (* [1, let b, .., let z]: an array's, a string's, a list's items *)
+list_item   = pattern | '..' pattern? ;                             (* '..' once at most; '.. let rest' its slice *)
 property_pat = type? '{' IDENT ':' pattern (',' IDENT ':' pattern)* '}' ;   (* { Health: < 5 } *)
 is_expr     = expr 'is' pattern ;                                   (* if (target is Monster m && m.IsAlive) *)
 ```

@@ -39,7 +39,7 @@ impl Gen<'_> {
 
     /// Pattern `p` on `v` (of type `on`, when known) as a condition, the
     /// names it binds declared before the statement it's in.
-    fn test(&mut self, p: &Pattern, v: &str, on: Option<&Type>) -> Option<String> {
+    pub(crate) fn test(&mut self, p: &Pattern, v: &str, on: Option<&Type>) -> Option<String> {
         Some(match p {
             Pattern::Wild(_) => TRUE.to_string(),
             Pattern::Let(n) => self.bound(n, v),
@@ -88,6 +88,8 @@ impl Gen<'_> {
                 }
                 all.join(" && ")
             }
+            Pattern::List(items, at) => self.list_test(items, v, on, *at)?,
+            Pattern::Slice(_) => return None,
             Pattern::Or(a, b) => format!("({} || {})", self.test(a, v, on)?, self.test(b, v, on)?),
             Pattern::And(a, b) => format!("({} && {})", self.test(a, v, on)?, self.test(b, v, on)?),
             Pattern::Not(inner) => format!("!({})", self.test(inner, v, on)?),
@@ -131,6 +133,7 @@ impl Gen<'_> {
                 }
                 depth
             }
+            Pattern::List(items, at) => self.list_open(items, (v, on), *at),
             Pattern::Property { ty, fields } => {
                 let (tests, of, target) = self.property_target(ty.as_ref(), v, on);
                 let mut depth = 0;
@@ -324,7 +327,8 @@ pub(crate) fn binds(p: &Pattern) -> bool {
     match p {
         Pattern::Let(_) => true,
         Pattern::Variant { args, .. } => args.iter().any(binds),
-        Pattern::Tuple(items) => items.iter().any(binds),
+        Pattern::Tuple(items) | Pattern::List(items, _) => items.iter().any(binds),
+        Pattern::Slice(Some(inner)) => binds(inner),
         Pattern::Property { fields, .. } => fields.iter().any(|(_, f)| binds(f)),
         Pattern::Or(a, b) | Pattern::And(a, b) => binds(a) || binds(b),
         Pattern::Not(inner) => binds(inner),

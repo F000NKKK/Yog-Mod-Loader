@@ -20,7 +20,7 @@ mod typeck;
 pub use typeck::commands::command_arg;
 pub use typeck::{
     Message, MethodUse, OperatorUse, Quoted, Type, Types, body_yields, builtin_type, content_path,
-    MessageTemplate, holes, item_of, leaves, system_name, system_type,
+    MessageTemplate, holes, item_of, list_item, leaves, system_name, system_type,
 };
 pub mod versions;
 pub mod words;

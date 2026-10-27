@@ -116,7 +116,7 @@ const PATH_SEP: char = '.';
 /// matches (`T`, `not null`), `Some(false)` when it doesn't (`null`).
 fn matched_not_null(p: &Pattern) -> Option<bool> {
     match p {
-        Pattern::Type { .. } | Pattern::Property { .. } => Some(true),
+        Pattern::Type { .. } | Pattern::Property { .. } | Pattern::List(..) => Some(true),
         Pattern::Value(Expr {
             kind: ExprKind::Null,
             ..

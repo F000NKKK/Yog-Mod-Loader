@@ -115,9 +115,10 @@ impl Pattern {
     pub fn each_binding<'p>(&'p self, f: &mut impl FnMut(&'p Name)) {
         match self {
             Pattern::Let(n) | Pattern::Type { bind: Some(n), .. } => f(n),
-            Pattern::Variant { args: all, .. } | Pattern::Tuple(all) => {
+            Pattern::Variant { args: all, .. } | Pattern::Tuple(all) | Pattern::List(all, _) => {
                 all.iter().for_each(|p| p.each_binding(f));
             }
+            Pattern::Slice(Some(p)) => p.each_binding(f),
             Pattern::Property { fields, .. } => fields.iter().for_each(|(_, p)| p.each_binding(f)),
             Pattern::Or(a, b) | Pattern::And(a, b) => {
                 a.each_binding(f);

@@ -57,6 +57,11 @@ impl Parser<'_, '_, '_> {
                 Ok(Pattern::Tuple(self.list(Punct::RParen, Self::pattern)?))
             }
             Tok::Punct(Punct::LBrace) => self.property_pattern(None),
+            Tok::Punct(Punct::LBracket) => {
+                let start = self.bump().span;
+                let items = self.list(Punct::RBracket, Self::list_item)?;
+                Ok(Pattern::List(items, start.to(self.prev())))
+            }
             Tok::Ident(_) => self.path_pattern(),
             Tok::Keyword(w) if w.is_type() => self.path_pattern(),
             _ => self.value_pattern(),
@@ -116,6 +121,17 @@ impl Parser<'_, '_, '_> {
             Ok((name, p.pattern()?))
         })?;
         Ok(Pattern::Property { ty, fields })
+    }
+
+    /// A list pattern's item: a pattern, or `..` (`.. let rest`).
+    fn list_item(&mut self) -> PResult<Pattern> {
+        if !self.eat(Punct::Range) {
+            return self.pattern();
+        }
+        if self.at(Punct::Comma) || self.at(Punct::RBracket) {
+            return Ok(Pattern::Slice(None));
+        }
+        Ok(Pattern::Slice(Some(Box::new(self.pattern()?))))
     }
 
     /// A literal, or a range of two.

@@ -29,6 +29,7 @@ mod groups;
 mod indexers;
 mod inherit;
 mod iterators;
+mod list_patterns;
 mod lambdas;
 mod lineage;
 mod macro_calls;
@@ -60,6 +61,7 @@ pub use content::content_path;
 pub use iterators::{body_yields, item_of};
 pub use model::Type;
 pub use nulls::leaves;
+pub use list_patterns::list_item;
 pub use templates::{MessageTemplate, holes};
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 

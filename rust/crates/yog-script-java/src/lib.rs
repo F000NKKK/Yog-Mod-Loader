@@ -31,6 +31,7 @@ mod java_names;
 mod kept;
 mod library;
 mod load;
+mod list_patterns;
 mod local_fns;
 mod locks;
 mod machine;
