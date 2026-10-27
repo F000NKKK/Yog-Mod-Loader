@@ -485,7 +485,10 @@ impl Checker<'_, '_, '_> {
 /// A literal's type: what it is as written.
 fn literal(kind: &ExprKind) -> Option<Type> {
     let t = match kind {
-        ExprKind::Int(_) => Type::I32,
+        // C#'s: the first of `int`, `uint`, `long` its value fits.
+        ExprKind::Int(n) if i32::try_from(*n).is_ok() => Type::I32,
+        ExprKind::Int(n) if u32::try_from(*n).is_ok() => Type::U32,
+        ExprKind::Int(_) => Type::I64,
         ExprKind::Float(_) => Type::F64,
         ExprKind::Unit { unit, .. } => super::builtin::by_word(unit)
             .filter(super::builtin::is_number)

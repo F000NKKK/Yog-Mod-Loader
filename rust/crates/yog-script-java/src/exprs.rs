@@ -256,10 +256,10 @@ impl Gen<'_> {
     }
 
     /// Value `v` of type `t` as Yog Script writes it in text: a number,
-    /// a `bool`, a `decimal` as .NET does (`2`, `True`), boxed too; else Java's.
+    /// a `bool`, a `decimal`, a `u64` as .NET does (`2`, `True`, unsigned), boxed too; else Java's.
     pub(crate) fn text_of(&self, t: Option<&Type>, v: String) -> String {
         match t.map(Type::non_null) {
-            Some(t @ (Type::F32 | Type::F64 | Type::Bool | Type::Decimal)) => {
+            Some(t @ (Type::F32 | Type::F64 | Type::Bool | Type::Decimal | Type::U64)) => {
                 match self.index.host(t) {
                     Some(host) => format!("{host}.{TO_STRING}({v})"),
                     None => v,

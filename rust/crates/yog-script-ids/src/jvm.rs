@@ -478,4 +478,11 @@ pub mod checked {
     pub const SUB: &str = "sub";
     pub const MUL: &str = "mul";
     pub const NEG: &str = "neg";
+    /// `u64`'s: unsigned operations, its range from below and above.
+    pub const UNSIGNED_ADD: &str = "uadd";
+    pub const UNSIGNED_SUB: &str = "usub";
+    pub const UNSIGNED_MUL: &str = "umul";
+    pub const UNSIGNED_NEG: &str = "uneg";
+    pub const UNSIGNED_AT_MOST: &str = "uatMost";
+    pub const UNSIGNED_FROM_FLOAT: &str = "ufromFloat";
 }

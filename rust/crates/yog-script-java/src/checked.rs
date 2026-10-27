@@ -2,12 +2,16 @@
 //! `checked { … }` block, whole numbers' `+ - *`, `-x`, `op=` and
 //! narrowing casts panic on overflow (`dev.yog.script.Checked`) — a
 //! narrower type than `i64` computed in `long` and its range checked,
-//! `i64`'s by exact operations. `unchecked` wraps again, as Java does.
+//! `i64`'s by exact operations, `u64`'s unsigned ones. `unchecked` wraps
+//! again, as Java does.
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Block, Expr};
 use yog_script_analyze::token::Span;
-use yog_script_ids::jvm::checked::{ADD, CLASS, FROM_FLOAT, MUL, NEG, RANGE, SUB};
+use yog_script_ids::jvm::checked::{
+    ADD, CLASS, FROM_FLOAT, MUL, NEG, RANGE, SUB, UNSIGNED_ADD, UNSIGNED_AT_MOST, UNSIGNED_FROM_FLOAT,
+    UNSIGNED_MUL, UNSIGNED_NEG, UNSIGNED_SUB,
+};
 
 use super::Gen;
 use crate::types::primitive;
@@ -41,16 +45,18 @@ impl Gen<'_> {
         if !self.checked {
             return None;
         }
-        let exact = match op {
-            BinOp::Add => ADD,
-            BinOp::Sub => SUB,
-            BinOp::Mul => MUL,
+        let (exact, unsigned) = match op {
+            BinOp::Add => (ADD, UNSIGNED_ADD),
+            BinOp::Sub => (SUB, UNSIGNED_SUB),
+            BinOp::Mul => (MUL, UNSIGNED_MUL),
             _ => return None,
         };
         let t = t?.non_null();
         let at = self.at(at);
-        if *t == Type::I64 {
-            return Some(format!("{CLASS}.{exact}({l}, {r}, {at})"));
+        match t {
+            Type::I64 => return Some(format!("{CLASS}.{exact}({l}, {r}, {at})")),
+            Type::U64 => return Some(format!("{CLASS}.{unsigned}({l}, {r}, {at})")),
+            _ => {}
         }
         let (min, max) = range(t)?;
         let java = primitive(t)?;
@@ -65,8 +71,10 @@ impl Gen<'_> {
         }
         let t = t?.non_null();
         let at = self.at(at);
-        if *t == Type::I64 {
-            return Some(format!("{CLASS}.{NEG}({v}, {at})"));
+        match t {
+            Type::I64 => return Some(format!("{CLASS}.{NEG}({v}, {at})")),
+            Type::U64 => return Some(format!("{CLASS}.{UNSIGNED_NEG}({v}, {at})")),
+            _ => {}
         }
         let (min, max) = range(t)?;
         let java = primitive(t)?;
@@ -80,13 +88,26 @@ impl Gen<'_> {
             return None;
         }
         let (from, to) = (from?.non_null(), to?.non_null());
+        let at = self.at(at);
+        let float = matches!(from, Type::F32 | Type::F64);
+        // To a `u64`: from a float, in its range; from a whole number, not below zero.
+        if *to == Type::U64 {
+            return Some(if float {
+                format!("{CLASS}.{UNSIGNED_FROM_FLOAT}(({DOUBLE}) ({v}), {at})")
+            } else {
+                format!("{CLASS}.{RANGE}(({LONG}) ({v}), 0{LONG_SUFFIX}, {}{LONG_SUFFIX}, {at})", i64::MAX)
+            });
+        }
         let (min, max) = match to {
             Type::I64 => (i64::MIN, i64::MAX),
             other => range(other)?,
         };
         let java = primitive(to)?;
-        let at = self.at(at);
-        let read = if matches!(from, Type::F32 | Type::F64) {
+        // From a `u64`: no more than the type's top (unsigned).
+        if *from == Type::U64 {
+            return Some(format!("(({java}) {CLASS}.{UNSIGNED_AT_MOST}({v}, {max}{LONG_SUFFIX}, {at}))"));
+        }
+        let read = if float {
             format!("{CLASS}.{FROM_FLOAT}(({DOUBLE}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at})")
         } else if range(from).is_some() || *from == Type::I64 {
             format!("{CLASS}.{RANGE}(({LONG}) ({v}), {min}{LONG_SUFFIX}, {max}{LONG_SUFFIX}, {at})")

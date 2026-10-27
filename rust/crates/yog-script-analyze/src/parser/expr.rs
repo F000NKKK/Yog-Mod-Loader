@@ -286,6 +286,8 @@ impl Parser<'_, '_, '_> {
         match self.nth(len + 2) {
             Tok::Ident(_) | Tok::Int(_) | Tok::Float(_) | Tok::Unit(..) | Tok::Str(_) => true,
             Tok::Punct(Punct::LParen) => true,
+            // `(i64) u64.MaxValue`: a built-in type's static.
+            Tok::Keyword(w) if w.is_type() => self.nth_is(len + 3, Punct::Dot),
             Tok::Keyword(w) => w
                 .role(|r| matches!(r, Role::Prefix { .. }).then_some(()))
                 .is_some(),
