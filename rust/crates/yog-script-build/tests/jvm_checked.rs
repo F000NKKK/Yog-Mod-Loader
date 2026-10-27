@@ -43,7 +43,7 @@ fn caught(call: &str) -> String {
 
 #[test]
 fn unchecked_wraps() {
-    let Some(out) = support::run(&[("c.ys", SRC)], &caught("Wraps")) else {
+    let Some(out) = support::run(&[("C.ys", SRC)], &caught("Wraps")) else {
         return;
     };
     assert_eq!(out, "-2147483648 44 2147483646 -2 -2147483648");
@@ -52,7 +52,7 @@ fn unchecked_wraps() {
 #[test]
 fn checked_panics_on_overflow() {
     for call in ["AddOver", "MulOver", "CastOver", "CompoundOver", "Negated"] {
-        let Some(out) = support::run(&[("c.ys", SRC)], &caught(call)) else {
+        let Some(out) = support::run(&[("C.ys", SRC)], &caught(call)) else {
             return;
         };
         assert_eq!(out, "panic", "{call}");

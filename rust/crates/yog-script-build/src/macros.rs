@@ -116,7 +116,7 @@ fn code(out: Result<Value, Panic>) -> Result<String, String> {
 /// The `System.Meta.Item` a derive macro is given for the declaration
 /// written `text`.
 fn item_value(i: &mut Interp<'_>, text: &str) -> Result<Value, String> {
-    let parsed = yog_script_analyze::parse("item.ys", text);
+    let parsed = yog_script_analyze::parse("Item.ys", text);
     let Some((name, kind, fields)) = parsed.file.decls.iter().find_map(|d| shape(d, text)) else {
         return Err("a derive macro is for a type".to_string());
     };

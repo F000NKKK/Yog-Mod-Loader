@@ -241,9 +241,9 @@ fn commands_are_ways_of_running() {
 #[test]
 fn texts_are_yogs_text() {
     let src = "Text Full(i32 n) => t\"m.full\"(n);\nText Words() => \"plain\";\n";
-    let checked = yog_script_analyze::check("t.ys", src);
+    let checked = yog_script_analyze::check("T.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let java = yog_script_java::compile("t.ys", src, &checked, "p")
+    let java = yog_script_java::compile("T.ys", src, &checked, "p")
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     for want in [
@@ -260,9 +260,9 @@ fn texts_are_yogs_text() {
 fn params_are_packed() {
     let src = "i32 Count(string f, params object[] xs) => xs.Length;\n\
                i32 A() => Count(\"x\", 1, \"two\");\ni32 B() => Count(\"x\");\ni32 C(object[] all) => Count(\"x\", move all);\n";
-    let checked = yog_script_analyze::check("p.ys", src);
+    let checked = yog_script_analyze::check("P.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let java = yog_script_java::compile("p.ys", src, &checked, "p")
+    let java = yog_script_java::compile("P.ys", src, &checked, "p")
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     for want in [

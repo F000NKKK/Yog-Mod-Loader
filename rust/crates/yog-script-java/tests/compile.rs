@@ -32,8 +32,8 @@ fn a_program_compiles() {
 #[test]
 fn what_isnt_written_yet_is_said() {
     let src = "i32 F() => await 1;\n";
-    let checked = yog_script_analyze::check("a.ys", src);
-    let err = compile("a.ys", src, &checked, "p")
+    let checked = yog_script_analyze::check("A.ys", src);
+    let err = compile("A.ys", src, &checked, "p")
         .err()
         .unwrap_or_default();
     assert_eq!(

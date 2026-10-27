@@ -5,7 +5,7 @@ use yog_script_analyze::index::{Class, ClassIndex, Member, Side, access};
 use yog_script_analyze::{check, check_with};
 
 fn codes(src: &str) -> Vec<String> {
-    codes_of(check("a.ys", src).problems)
+    codes_of(check("A.ys", src).problems)
 }
 
 fn codes_of(problems: Vec<yog_data::Diagnostic>) -> Vec<String> {
@@ -163,7 +163,7 @@ fn content_binds_to_its_file() {
             content: Some(&content),
             ..Default::default()
         };
-        codes_of(yog_script_analyze::check_in("a.ys", src, env).problems)
+        codes_of(yog_script_analyze::check_in("A.ys", src, env).problems)
     };
     assert!(check("block Lamp {\n    public i32 Uses = 0;\n}\nitem Gem { }\n").is_empty());
     assert_eq!(check("block Glow { }\n"), [script_problem::NO_CONTENT_FILE]);
@@ -270,12 +270,12 @@ fn the_games_classes_are_a_yns_files_only() {
         [script_problem::UNKNOWN_MEMBER]
     );
     // A `.ys` reaches Yog, not the game: `Player` is Yog's there.
-    let ys = codes_of(check_with("a.ys", "i32 F(Player p) => p.Mana;\n", Some(&index)).problems);
+    let ys = codes_of(check_with("A.ys", "i32 F(Player p) => p.Mana;\n", Some(&index)).problems);
     assert_eq!(ys, [script_problem::UNKNOWN_MEMBER]);
     // A `.ys` naming `System.Game` is told the game's classes are a `.yns`'s.
     let ys = codes_of(
         check_with(
-            "a.ys",
+            "A.ys",
             "void F(System.Game.Client.Minecraft mc) { }\n",
             Some(&index),
         )
@@ -531,13 +531,13 @@ fn records_never_change() {
 #[test]
 fn sending_to_the_server_is_declared() {
     let src = "void F(List<u8> bytes) { bool sent = Net.SendToServer(\"m:c\", move bytes); }\n";
-    let undeclared = yog_script_analyze::check_in("a.ys", src, yog_script_analyze::Env::default());
+    let undeclared = yog_script_analyze::check_in("A.ys", src, yog_script_analyze::Env::default());
     assert_eq!(codes_of(undeclared.problems), [script_problem::UNDECLARED]);
     let env = yog_script_analyze::Env {
         to_server: true,
         ..Default::default()
     };
-    let declared = yog_script_analyze::check_in("a.ys", src, env);
+    let declared = yog_script_analyze::check_in("A.ys", src, env);
     assert!(codes_of(declared.problems).is_empty());
 }
 

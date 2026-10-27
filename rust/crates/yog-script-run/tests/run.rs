@@ -5,7 +5,7 @@ use yog_script_run::{Interp, Program, Value};
 
 /// `src` checked cleanly, then `method` called with `args`.
 fn run(src: &str, method: &str, args: Vec<Value>) -> Result<Value, String> {
-    let checked = check("a.ys", src);
+    let checked = check("A.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let program = Program::of(&[&system::DECLS, &checked.file.decls]);
     let mut i = Interp::new(&program);
@@ -78,7 +78,7 @@ fn lambdas_and_out_parameters() {
 #[test]
 fn test_blocks_pass_or_fail() {
     let src = "i32 Twice(i32 x) => x * 2;\ntest \"twice\" { assert_eq!(Twice(2), 4); }\ntest \"wrong\" { assert_eq!(Twice(2), 5); }\n";
-    let checked = check("a.ys", src);
+    let checked = check("A.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let program = Program::of(&[&system::DECLS, &checked.file.decls]);
     let runs = yog_script_run::run_tests(&program, &checked.file.decls);

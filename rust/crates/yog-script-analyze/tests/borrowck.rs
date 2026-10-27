@@ -8,7 +8,7 @@ fn codes(body: &str) -> Vec<String> {
         "class Box {{}}\nclass A {{\n    static void Keep(move Box b) {{}}\n    static void Look(in Box b) {{}}\n    \
          static void Fill(ref Box b) {{}}\n    static void Twice(ref Box a, in Box b) {{}}\n    {body}\n}}\n"
     );
-    check("a.ys", &src)
+    check("A.ys", &src)
         .problems
         .into_iter()
         .filter_map(|d| d.code.map(|c| c.to_string()))

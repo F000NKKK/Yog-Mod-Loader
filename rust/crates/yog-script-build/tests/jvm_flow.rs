@@ -66,7 +66,7 @@ const SRC: &str = r#"public static class G {
 /// What each jump gives, and a verbatim string's backslashes, quotes and hole.
 #[test]
 fn gotos_and_verbatim_strings() {
-    let Some(out) = support::run(&[("g.ys", SRC)], "t.GScript.G.Run()") else {
+    let Some(out) = support::run(&[("G.ys", SRC)], "t.GScript.G.Run()") else {
         return;
     };
     assert_eq!(out, r#"3 2,3 10 02 one two end|end|C:\mods\x\"q""#);

@@ -138,13 +138,13 @@ mod tests {
         let root = std::env::temp_dir().join(format!("yog-script-check-{}", std::process::id()));
         let src = root.join(SOURCES).join("power");
         std::fs::create_dir_all(&src).unwrap();
-        std::fs::write(src.join("ok.ys"), "i32 Area(i32 w, i32 h) => w * h;\n").unwrap();
+        std::fs::write(src.join("Ok.ys"), "i32 Area(i32 w, i32 h) => w * h;\n").unwrap();
         assert_eq!(check(&root, &[]), Ok(()));
         // One source reaches another's types.
-        std::fs::write(src.join("size.ys"), "public record Size(i32 W, i32 H);\n").unwrap();
-        std::fs::write(src.join("use.ys"), "i32 W(Size s) => s.W;\n").unwrap();
+        std::fs::write(src.join("Size.ys"), "public record Size(i32 W, i32 H);\n").unwrap();
+        std::fs::write(src.join("Use.ys"), "i32 W(Size s) => s.W;\n").unwrap();
         assert_eq!(check(&root, &[]), Ok(()));
-        std::fs::write(src.join("bad.ys"), "void F() {\n    break;\n}\n").unwrap();
+        std::fs::write(src.join("Bad.ys"), "void F() {\n    break;\n}\n").unwrap();
         assert!(check(&root, &[]).is_err());
         std::fs::remove_dir_all(&root).unwrap();
     }

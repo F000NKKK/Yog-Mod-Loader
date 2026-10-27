@@ -14,9 +14,9 @@ const TARGET: yog_script_java::Target<'static> = yog_script_java::Target {
 #[test]
 fn content_with_members_is_its_kinds_object() {
     let src = "block Lamp {\n    public i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n    public i32 Height() => Pos.Y;\n}\n";
-    let checked = yog_script_analyze::check("a.ys", src);
+    let checked = yog_script_analyze::check("A.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let java = yog_script_java::compile_in(("a.ys", src), &checked, &TARGET)
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
         .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "public static class Lamp extends dev.yog.script.yog.BlockObject {",
@@ -46,9 +46,9 @@ fn content_with_members_is_its_kinds_object() {
 #[test]
 fn content_binds_by_its_files_name() {
     let src = "item RubyGem {\n    RubyGem() {\n        Use += player => { };\n    }\n}\n";
-    let checked = yog_script_analyze::check("a.ys", src);
+    let checked = yog_script_analyze::check("A.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let java = yog_script_java::compile_in(("a.ys", src), &checked, &TARGET)
+    let java = yog_script_java::compile_in(("A.ys", src), &checked, &TARGET)
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     assert!(

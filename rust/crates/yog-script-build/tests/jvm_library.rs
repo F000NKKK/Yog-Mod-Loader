@@ -19,7 +19,7 @@ fn when_all_gives_results() {
                        return all[0] + all[1] + all[2] + \" \" + names[1] + \" \" + first;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("r.ys", src)], "t.RScript.R.Run()") else {
+    let Some(out) = support::run(&[("R.ys", src)], "t.RScript.R.Run()") else {
         return;
     };
     assert_eq!(out, "12 b 9");
@@ -45,7 +45,7 @@ fn async_linq() {
                    }\n\
                    public static string Run() => Go().Result;\n\
                }\n";
-    let Some(out) = support::run(&[("q.ys", src)], "t.QScript.Q.Run()") else {
+    let Some(out) = support::run(&[("Q.ys", src)], "t.QScript.Q.Run()") else {
         return;
     };
     assert_eq!(out, "20,100 4 1 True 6");
@@ -118,7 +118,7 @@ fn logging() {
                    }\n\
                }\n";
     // `LogInformation` & co. warned of: `[LoggerMessage]` methods are faster.
-    let Some(out) = support::run_warned(&[("l.ys", src)], "t.LScript.L.Run()", &[LOG_BY_METHOD]) else {
+    let Some(out) = support::run_warned(&[("L.ys", src)], "t.LScript.L.Run()", &[LOG_BY_METHOD]) else {
         return;
     };
     assert_eq!(
@@ -178,7 +178,7 @@ fn logger_message_methods() {
                        return text;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("m.ys", src)], "t.MScript.M.Run()") else {
+    let Some(out) = support::run(&[("M.ys", src)], "t.MScript.M.Run()") else {
         return;
     };
     assert_eq!(
@@ -204,7 +204,7 @@ fn game_log_provider() {
                        return \"made\";\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("g.ys", src)], "t.GScript.G.Run()") else {
+    let Some(out) = support::run(&[("G.ys", src)], "t.GScript.G.Run()") else {
         return;
     };
     assert_eq!(out, "made");
@@ -224,7 +224,7 @@ fn formatting() {
                        return a + \" | \" + b + \" | \" + c;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("f.ys", src)], "t.FScript.F.Run()") else {
+    let Some(out) = support::run(&[("F.ys", src)], "t.FScript.F.Run()") else {
         return;
     };
     assert_eq!(
@@ -268,7 +268,7 @@ fn await_using() {
                        return x + \" \" + y + \" \" + text;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("u.ys", src)], "t.UScript.U.Run()") else {
+    let Some(out) = support::run(&[("U.ys", src)], "t.UScript.U.Run()") else {
         return;
     };
     assert_eq!(out, "1 2 body,b,a,body,b,end,a");
@@ -289,7 +289,7 @@ fn content_ids() {
                        return stick.Id + \" \" + stick.Namespace + \" \" + Path(log) + \" \" + made.Id + \" \" + (stick.Id == \"minecraft:stick\");\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("k.ys", src)], "t.KScript.K.Run()") else {
+    let Some(out) = support::run(&[("K.ys", src)], "t.KScript.K.Run()") else {
         return;
     };
     assert_eq!(out, "minecraft:stick minecraft oak_log minecraft:oak_planks True");

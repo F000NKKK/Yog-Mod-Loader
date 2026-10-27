@@ -5,7 +5,7 @@ use yog_script_analyze::ast::DeclKind;
 use yog_script_analyze::{check, system};
 
 fn codes(src: &str) -> Vec<String> {
-    check("a.ys", src)
+    check("A.ys", src)
         .problems
         .into_iter()
         .filter_map(|d| d.code.map(|c| c.to_string()))
@@ -162,7 +162,7 @@ fn types_are_values() {
               string Of(Box<i32> b) {\n    let x = move b;\n    return x.GetType().Name + x.ToString();\n}\n\
               object? Call(System.Reflection.MethodInfo m, object box) => m.Invoke(in box, [\"a\", 3]);\n\
               i32 Hidden(Type t) => t.GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Length;\n";
-    let problems = check("a.ys", ok).problems;
+    let problems = check("A.ys", ok).problems;
     assert!(problems.is_empty(), "{problems:#?}");
     // A type isn't a string.
     assert_eq!(
@@ -178,7 +178,7 @@ fn lambdas_are_quoted_as_expression_trees() {
               bool Run() => Big().Compile()(12) && Big().Body.NodeType == ExpressionType.GreaterThan;\n\
               Expression<Func<i32, i32>> Made() {\n    let x = Expression.Parameter(typeof(i32), \"x\");\n\
               \x20   return Expression.Lambda<Func<i32, i32>>(Expression.Add(x, Expression.Constant(1)), [x]);\n}\n";
-    let problems = check("a.ys", ok).problems;
+    let problems = check("A.ys", ok).problems;
     assert!(problems.is_empty(), "{problems:#?}");
     // A tree is of an expression, not a block (C#'s CS0834).
     let block = "using System.Linq.Expressions;\nExpression<Func<i32, i32>> F() => x => {\n    return x;\n};\n";
@@ -195,14 +195,14 @@ fn enums_are_numbers_their_cases_data() {
               Access[] All() => Enum.GetValues<Access>();\n\
               Maybe<i32> None() => Maybe<i32>.Nothing;\n\
               i32 Or(Maybe<i32> m) => m switch {\n    Maybe.Just(let v) => v + 1,\n    Maybe<i32>.Nothing => 0,\n};\n";
-    let problems = check("a.ys", ok).problems;
+    let problems = check("A.ys", ok).problems;
     assert!(problems.is_empty(), "{problems:#?}");
 }
 
 #[test]
 fn a_stray_brace_ends_its_declaration() {
     // Recovery stopping at a `}` no block opened goes past it, not round.
-    let problems = check("a.ys", "i32 F() => 1;\n}\ni32 G() => 2;\n").problems;
+    let problems = check("A.ys", "i32 F() => 1;\n}\ni32 G() => 2;\n").problems;
     assert!(!problems.is_empty());
 }
 
@@ -218,7 +218,7 @@ fn collections_are_the_librarys_own() {
               HashSet<string> Set() => [\"a\", \"b\"];\n\
               Dictionary<string, i32> Map() => [\"a\" => 1, \"b\" => 2];\n\
               i32 Pairs(Dictionary<string, i32> d) {\n    let mut n = 0;\n    foreach (let kv in d) {\n        n += kv.Value;\n    }\n    return n;\n}\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         "string F(List<i32> xs) => xs[0];\n",
         "void G(List<i32> xs) {\n    xs.Add(\"no\");\n}\n",
@@ -243,7 +243,7 @@ fn strings_have_strings_members() {
               string J(List<string> parts) => String.Join(\", \", in parts);\n\
               i32 K(string s) => s.Split(',').Length + s.IndexOf('x');\n\
               String L(string s) => s;\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("i32 F(string s) => s.Size;\n"),
         [script_problem::UNKNOWN_MEMBER]
@@ -271,7 +271,7 @@ fn arrays_are_csharps() {
               void Grown(i32[] xs) {\n    let mut ys = move xs;\n    Array.Resize(ref ys, 10);\n}\n\
               i32[] None() => Array.Empty<i32>();\n\
               string[] Long(string[] names) => Array.FindAll(in names, n => n.Length > 2);\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         "i32 F(i32[] xs) => xs[\"a\"];\n",
         "i64[] G(i32[] xs) => xs;\n",
@@ -296,7 +296,7 @@ fn variance_is_csharps() {
               IReadOnlyList<object> Read(List<string> xs) => xs;\n\
               Predicate<string> In(Predicate<object> p) => p;\n\
               Func<string, object> Both(Func<object, string> f) => f;\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         // `List<T>` doesn't vary; a value type doesn't either.
         "List<object> F(List<string> xs) => xs;\n",
@@ -315,7 +315,7 @@ fn every_type_is_an_object() {
               struct Pos(i32 x) {\n    public i32 X = x;\n}\n\
               string F(Tag t, Pos p) => t.ToString() + p.ToString() + 5.ToString();\n\
               bool G(Pos a, Pos b) => a.Equals(b) && a.GetHashCode() == b.GetHashCode();\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("class Tag {\n    public override string Name() => \"\";\n}\n"),
         [script_problem::INHERIT]
@@ -336,7 +336,7 @@ fn explicit_implementations_are_csharps() {
               bool Added(HashSet<string> set) => set.Add(\"a\");\n\
               bool Pair(ICollection<KeyValuePair<string, i32>> pairs, Dictionary<string, i32> d) =>\n\
                   pairs.Remove(new KeyValuePair<string, i32>(\"a\", 1)) && d.Remove(\"a\");\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     let shape = "public interface IShape {\n    f64 Area();\n}\n";
     for (body, code) in [
         // Not one of its interfaces; one without the member; an access said.
@@ -375,7 +375,7 @@ fn linq_is_csharps() {
               i32 Squares() => Enumerable.Range(1, 10).Select(x => x * x).Where(x => x % 2 == 0).Sum();\n\
               i32 Total(List<i32> xs) => xs.Aggregate(0, (acc, x) => acc + x);\n\
               string[] Names(List<Player> ps) => ps.Select(p => p.Name).Distinct().ToArray();\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         // `Select` gives strings: no `Level` on them; `Where` wants a `bool`.
         "record P(i32 Level);\ni32 F(List<P> ps) => ps.Select(p => p.Level).Sum(x => x.Level);\n",
@@ -396,7 +396,7 @@ fn the_other_collections_are_dotnets() {
               i32 Order(i32 a, i32 b) => Comparer<i32>.Default.Compare(a, b);\n\
               IComparer<string> ByLength() => Comparer<string>.Create((x, y) => x.Length - y.Length);\n\
               SortedSet<string> Named() => new SortedSet<string>(Comparer<string>.Create((x, y) => x.Length - y.Length));\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         "string F(Queue<i32> q) => q.Dequeue();\n",
         "void G(Stack<i32> s) {\n    s.Push(\"a\");\n}\n",
@@ -411,7 +411,7 @@ fn of_type_and_chunk_know_their_types() {
     let ok = "List<string> Texts(List<object> things) => things.OfType<string>().ToList();\n\
               i32 Firsts(List<i32> xs) {\n    let mut n = 0;\n    foreach (let c in xs.Chunk(3)) {\n        n += c[0] + c.Length;\n    }\n    return n;\n}\n\
               IEnumerable<string> All(List<object> things) => things.Cast<string>();\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
 }
 
 #[test]
@@ -422,7 +422,7 @@ fn numbers_and_chars_have_their_members() {
               i32 K(i64 a, i64 b) => a.CompareTo(b) + u8.MaxValue;\n\
               string L(bool b, i32 n) => b.ToString() + n.ToString() + bool.TrueString;\n\
               decimal M(decimal d) => decimal.Round(d) + Decimal.One;\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("string F(string s) => i32.Parse(s);\n"),
         [script_problem::TYPE_MISMATCH]
@@ -440,7 +440,7 @@ fn random_text_and_lazy_are_dotnets() {
               void Mix(Random rng, i32[] xs) {\n    let mut ys = move xs;\n    rng.Shuffle(ref ys);\n}\n\
               string Text(List<string> names) {\n    let mut b = new StringBuilder();\n    foreach (let n in names) {\n        b.Append(n).Append(',').Append(3);\n    }\n    b.Length = b.Length - 1;\n    b[0] = 'X';\n    return b.AppendLine().ToString();\n}\n\
               i32 Later() {\n    let lazy = new Lazy<i32>(() => 42);\n    return lazy.IsValueCreated ? 0 : lazy.Value;\n}\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("string F(Random r) => r.NextDouble();\n"),
         [script_problem::TYPE_MISMATCH]
@@ -450,7 +450,7 @@ fn random_text_and_lazy_are_dotnets() {
 #[test]
 fn a_constructors_arguments_are_checked() {
     let ok = "class Box(i32 size) {\n    public i32 Size = size;\n}\nBox F() => new Box(3);\nLazy<string> G() => new Lazy<string>(() => \"x\");\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for bad in [
         "class Box(i32 size) {\n    public i32 Size = size;\n}\nBox F() => new Box(\"no\");\n",
         "Lazy<i32> G() => new Lazy<i32>(() => \"x\");\n",
@@ -468,7 +468,7 @@ fn date_times_are_dotnets() {
               string Day(DateTime d) => d.AddMonths(1).ToString(\"yyyy-MM-dd\") + d.Year;\n\
               bool Before(DateTime a, DateTime b) => a < b && DateTime.IsLeapYear(a.Year);\n\
               DateTime New() => new DateTime(2024, 3, 1);\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("DateTime F(DateTime d) => d + 3;\n"),
         [script_problem::TYPE_MISMATCH]
@@ -492,7 +492,7 @@ fn tuples_are_csharps() {
               string Inferred(string name, i32 age) {\n    let t = (name, age);\n    return t.name + t.age;\n}\n\
               (string Key, i32 N) Explicit() => (Key: \"k\", N: 2);\n\
               ValueTuple<i32, i32> Spelled() => (1, 2);\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     for (bad, code) in [
         (
             "(i32, i32) F() => (1, \"a\");\n",
@@ -518,7 +518,7 @@ fn queries_are_linqs_calls() {
               IEnumerable<i32> Sizes(List<Player> ps) => from p in ps group p by p.Team into g select g.Count();\n\
               IEnumerable<i32> Counts(List<Player> ps, List<Team> ts) => from t in ts join p in ps on t.Name equals p.Team into members select members.Count();\n\
               i32 Name(i32 from) => from + 1;\n";
-    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert!(codes(ok).is_empty(), "{:?}", check("A.ys", ok).problems);
     assert_eq!(
         codes("IEnumerable<i32> F(List<string> xs) => from x in xs select x.Length + x;\n"),
         [script_problem::TYPE_MISMATCH]

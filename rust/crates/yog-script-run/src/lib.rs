@@ -3,7 +3,7 @@
 //! tests, and is the meaning compiled code must keep.
 //!
 //! ```
-//! let checked = yog_script_analyze::check("a.ys", "i32 Twice(i32 x) => x * 2;\n");
+//! let checked = yog_script_analyze::check("A.ys", "i32 Twice(i32 x) => x * 2;\n");
 //! let program = yog_script_run::Program::of(&[&yog_script_analyze::system::DECLS, &checked.file.decls]);
 //! let mut run = yog_script_run::Interp::new(&program);
 //! assert_eq!(run.call("Twice", vec![yog_script_run::Value::Int(21)]), Ok(yog_script_run::Value::Int(42)));

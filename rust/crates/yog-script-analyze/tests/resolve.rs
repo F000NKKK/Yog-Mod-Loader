@@ -55,11 +55,11 @@ fn the_examples_resolve_cleanly() {
 #[test]
 fn a_name_declared_twice_is_found() {
     let src = "i32 Charge() => 1;\ni32 Charge() => 2;\n";
-    assert_eq!(codes("a.ys", src), [script_problem::DUPLICATE]);
+    assert_eq!(codes("A.ys", src), [script_problem::DUPLICATE]);
     // A block may bind a name again: the later one hides the earlier.
     assert!(
         codes(
-            "a.ys",
+            "A.ys",
             "void F() {\n    let x = 1;\n    let x = x + 1;\n}\n"
         )
         .is_empty()
@@ -69,12 +69,12 @@ fn a_name_declared_twice_is_found() {
 #[test]
 fn break_belongs_in_a_loop() {
     assert_eq!(
-        codes("a.ys", "void F() {\n    break;\n}\n"),
+        codes("A.ys", "void F() {\n    break;\n}\n"),
         [script_problem::OUTSIDE_LOOP]
     );
     assert!(
         codes(
-            "a.ys",
+            "A.ys",
             "void F() {\n    while (true) {\n        break;\n    }\n}\n"
         )
         .is_empty()
@@ -82,29 +82,29 @@ fn break_belongs_in_a_loop() {
     // A lambda's body is its own: the loop around it isn't.
     let src =
         "void F(List<i32> xs) {\n    while (true) {\n        xs.ForEach { break; };\n    }\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::OUTSIDE_LOOP]);
+    assert_eq!(codes("A.ys", src), [script_problem::OUTSIDE_LOOP]);
 }
 
 #[test]
 fn it_and_this_belong_where_they_mean_something() {
     assert_eq!(
-        codes("a.ys", "i32 F() => it;\n"),
+        codes("A.ys", "i32 F() => it;\n"),
         [script_problem::IT_OUTSIDE_LAMBDA]
     );
     assert!(
         codes(
-            "a.ys",
+            "A.ys",
             "bool F(List<i32> xs) => xs.Exists { it * 2 > 3 };\n"
         )
         .is_empty()
     );
     assert_eq!(
-        codes("a.ys", "i32 F() => this;\n"),
+        codes("A.ys", "i32 F() => this;\n"),
         [script_problem::THIS_OUTSIDE_MEMBER]
     );
     assert!(
         codes(
-            "a.ys",
+            "A.ys",
             "record Pos(i32 X) {\n    i32 Twice() => this.X * 2;\n}\n"
         )
         .is_empty()
@@ -114,21 +114,21 @@ fn it_and_this_belong_where_they_mean_something() {
 #[test]
 fn only_what_can_change_is_assigned() {
     let src = "const i32 Max = 3;\nvoid F() {\n    Max = 2;\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
+    assert_eq!(codes("A.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
     let src = "void F(List<i32> xs) {\n    foreach (let x in xs) x = 1;\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
+    assert_eq!(codes("A.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
     assert!(
         codes(
-            "a.ys",
+            "A.ys",
             "void F(i32 n) {\n    let mut a = 1;\n    a = 2;\n    n += 1;\n}\n"
         )
         .is_empty()
     );
     // `let` is never assigned again; `ref` lends only a `let mut`.
     let src = "void F() {\n    let a = 1;\n    a = 2;\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
+    assert_eq!(codes("A.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
     let src = "void G(ref i32 x) {}\nvoid F() {\n    let a = 1;\n    G(ref a);\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
+    assert_eq!(codes("A.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
 }
 
 #[test]
@@ -146,8 +146,8 @@ fn skip_belongs_in_a_before() {
 #[test]
 fn await_belongs_in_async() {
     let src = "using System.Threading.Tasks;\nvoid Arm() {\n    await Task.Delay(5s);\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::AWAIT_OUTSIDE_ASYNC]);
-    assert!(codes("a.ys", "using System.Threading.Tasks;\nasync void Arm() {\n    await Task.Delay(5s);\n}\n").is_empty());
+    assert_eq!(codes("A.ys", src), [script_problem::AWAIT_OUTSIDE_ASYNC]);
+    assert!(codes("A.ys", "using System.Threading.Tasks;\nasync void Arm() {\n    await Task.Delay(5s);\n}\n").is_empty());
 }
 
 /// Names in C#'s case, warned otherwise.
@@ -155,7 +155,7 @@ fn await_belongs_in_async() {
 fn names_follow_csharps_style() {
     let src = "i32 area(i32 W, i32 h) => W * h;\ninterface Chargeable { }\nclass Box<Item> { }\n";
     assert_eq!(
-        codes("a.ys", src),
+        codes("A.ys", src),
         [
             script_problem::NAMING,
             script_problem::NAMING,
@@ -165,13 +165,13 @@ fn names_follow_csharps_style() {
     );
     let fine = "i32 Area(i32 w, i32 h) => w * h;\ninterface IChargeable { }\nclass Box<TItem> { }\n\
                 record Pos(i32 X, i32 Y);\nvoid F() {\n    let _ = 1;\n    let chargeLevel = 2;\n}\n";
-    assert!(codes("a.ys", fine).is_empty(), "{:?}", codes("a.ys", fine));
+    assert!(codes("A.ys", fine).is_empty(), "{:?}", codes("A.ys", fine));
 }
 
 #[test]
 fn a_use_names_its_definition() {
     let src = "i32 Area(i32 w, i32 h) => w * h;\ni32 Big() => Area(10, 20);\n";
-    let checked = check("a.ys", src);
+    let checked = check("A.ys", src);
     let at = src.find("Area(10").unwrap() as u32;
     let def = checked.symbols.def_at(at).unwrap();
     assert_eq!((def.name.as_str(), def.kind), ("Area", DefKind::Method));
@@ -183,7 +183,7 @@ fn a_use_names_its_definition() {
 #[test]
 fn await_needs_an_async_lambda_too() {
     let src = "using System.Threading.Tasks;\nasync Task F() {\n    Action a = () => {\n        await Task.Yield();\n    };\n}\n";
-    let codes: Vec<_> = yog_script_analyze::check("a.ys", src)
+    let codes: Vec<_> = yog_script_analyze::check("A.ys", src)
         .problems
         .into_iter()
         .filter_map(|d| d.code)
@@ -201,13 +201,13 @@ fn await_needs_an_async_lambda_too() {
 #[test]
 fn gotos_reach_their_labels() {
     let fine = "void F(i32 n) {\n    start:\n    if (n > 0) { goto start; }\n    switch (n) { case 1: goto case 2; case 2: goto default; default: break; }\n}\n";
-    assert!(codes("a.ys", fine).is_empty(), "{:?}", codes("a.ys", fine));
+    assert!(codes("A.ys", fine).is_empty(), "{:?}", codes("A.ys", fine));
     let inside = "void F() {\n    goto deep;\n    { deep: return; }\n}\n";
-    assert_eq!(codes("a.ys", inside), [script_problem::GOTO]);
+    assert_eq!(codes("A.ys", inside), [script_problem::GOTO]);
     let twice = "void F() {\n    a: ;\n    { a: ; }\n}\n";
-    assert_eq!(codes("a.ys", twice), [script_problem::GOTO]);
+    assert_eq!(codes("A.ys", twice), [script_problem::GOTO]);
     let no_switch = "void F() {\n    goto default;\n}\n";
-    assert_eq!(codes("a.ys", no_switch), [script_problem::GOTO]);
+    assert_eq!(codes("A.ys", no_switch), [script_problem::GOTO]);
     let lambda = "void F() {\n    outside:\n    Action a = () => { goto outside; };\n}\n";
-    assert_eq!(codes("a.ys", lambda), [script_problem::GOTO]);
+    assert_eq!(codes("A.ys", lambda), [script_problem::GOTO]);
 }

@@ -4,7 +4,7 @@ use yog_ids::script_problem;
 use yog_script_analyze::check;
 
 fn codes(src: &str) -> Vec<String> {
-    check("a.ys", src)
+    check("A.ys", src)
         .problems
         .into_iter()
         .filter_map(|d| d.code.map(|c| c.to_string()))
@@ -79,12 +79,12 @@ fn include_str_is_the_files_text() {
         ..Default::default()
     };
     let src = "string Help() => include_str!(\"help.txt\");\n";
-    let checked = yog_script_analyze::check_in("a.ys", src, env);
+    let checked = yog_script_analyze::check_in("A.ys", src, env);
     assert!(checked.problems.is_empty(), "{:?}", checked.problems);
     let text = format!("{:?}", checked.file.decls);
     assert!(text.contains("say {hi}"), "{text}");
     let missing = "string Help() => include_str!(\"gone.txt\");\n";
-    let codes: Vec<_> = yog_script_analyze::check_in("a.ys", missing, env)
+    let codes: Vec<_> = yog_script_analyze::check_in("A.ys", missing, env)
         .problems
         .into_iter()
         .filter_map(|d| d.code)

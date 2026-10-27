@@ -4,7 +4,7 @@ use yog_ids::script_problem;
 use yog_script_analyze::check;
 
 fn codes(src: &str) -> Vec<String> {
-    check("a.ys", src)
+    check("A.ys", src)
         .problems
         .into_iter()
         .filter_map(|d| d.code.map(|c| c.to_string()))

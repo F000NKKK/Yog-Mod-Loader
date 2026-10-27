@@ -5,7 +5,7 @@ use yog_ids::script_problem;
 use yog_script_analyze::check;
 
 fn codes(src: &str) -> Vec<String> {
-    check("a.ys", &format!("using System.Threading;\nusing System.Threading.Tasks;\nusing System.Threading.Channels;\n{src}"))
+    check("A.ys", &format!("using System.Threading;\nusing System.Threading.Tasks;\nusing System.Threading.Channels;\n{src}"))
         .problems
         .into_iter()
         .filter_map(|d| d.code.map(|c| c.to_string()))

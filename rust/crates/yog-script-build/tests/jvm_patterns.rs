@@ -26,7 +26,7 @@ public static class P {
 /// on an array; `["hi", .. let rest]` on a list; `['"', .., '"']` on a string.
 #[test]
 fn list_patterns() {
-    let Some(out) = support::run(&[("p.ys", SRC)], "t.PScript.P.Run()") else {
+    let Some(out) = support::run(&[("P.ys", SRC)], "t.PScript.P.Run()") else {
         return;
     };
     assert_eq!(out, "empty|one 7|starts at zero|same ends|1+2+4|greet 2|TrueFalse");

@@ -37,7 +37,7 @@ fn each_version_reads_its_branch() {
 #[test]
 fn directives_are_a_yns_files_and_well_formed() {
     assert_eq!(
-        codes(check("a.ys", "#if MC >= 1.21\n#endif\n").problems),
+        codes(check("A.ys", "#if MC >= 1.21\n#endif\n").problems),
         [script_problem::DIRECTIVE]
     );
     let open = "targets mc 1.20.1..26.2;\n#if MC >= 1.21\n";
@@ -47,5 +47,5 @@ fn directives_are_a_yns_files_and_well_formed() {
     );
     // A tag mid-line is the language's, not a directive.
     let tag = "bool F(Block b) => b in #minecraft:logs;\n";
-    assert!(!codes(check("a.ys", tag).problems).contains(&script_problem::DIRECTIVE.to_string()));
+    assert!(!codes(check("A.ys", tag).problems).contains(&script_problem::DIRECTIVE.to_string()));
 }

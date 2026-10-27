@@ -57,32 +57,32 @@ fn codes(name: &str, src: &str) -> Vec<String> {
 #[test]
 fn a_patch_outside_a_yns_file_is_reported() {
     let src = "patch Player {\n    priority 1;\n}\n";
-    assert_eq!(codes("a.ys", src), [script_problem::PATCH_OUTSIDE_NANITES]);
+    assert_eq!(codes("A.ys", src), [script_problem::PATCH_OUTSIDE_NANITES]);
     assert!(codes("a.yns", &format!("targets mc 1.20.1..26.2;\n{src}")).is_empty());
     // A `.yns` says its versions; a `.ys` doesn't.
     assert_eq!(codes("a.yns", src), [script_problem::TARGETS]);
     assert_eq!(
-        codes("a.ys", "targets mc >= 1.21;\n"),
+        codes("A.ys", "targets mc >= 1.21;\n"),
         [script_problem::TARGETS]
     );
 }
 
 #[test]
 fn lexing_problems_are_found_where_they_are() {
-    let parsed = parse("a.ys", "const string A = \"open;\nconst i32 B = 1;\n");
+    let parsed = parse("A.ys", "const string A = \"open;\nconst i32 B = 1;\n");
     let first = &parsed.problems[0];
     assert_eq!(first.code.as_deref(), Some(script_problem::UNTERMINATED));
     assert_eq!((first.line, first.col), (Some(1), Some(18)));
     assert_eq!(
-        codes("a.ys", "const i32 A = @item:;\n"),
+        codes("A.ys", "const i32 A = @item:;\n"),
         [script_problem::BAD_REFERENCE]
     );
     assert_eq!(
-        codes("a.ys", "const i32 A = 0x;\n"),
+        codes("A.ys", "const i32 A = 0x;\n"),
         [script_problem::BAD_NUMBER]
     );
     assert_eq!(
-        codes("a.ys", "const i32 A = 1 ` 2;\n"),
+        codes("A.ys", "const i32 A = 1 ` 2;\n"),
         [script_problem::UNEXPECTED_CHAR, script_problem::EXPECTED]
     );
 }
@@ -91,7 +91,7 @@ fn lexing_problems_are_found_where_they_are() {
 #[test]
 fn reading_goes_on_after_a_problem() {
     let src = "void A() {\n    let = 1;\n    let b = 2;\n}\ni32 C() => 3;\n";
-    let parsed = parse("a.ys", src);
+    let parsed = parse("A.ys", src);
     assert_eq!(parsed.problems.len(), 1, "{:#?}", parsed.problems);
     assert_eq!(parsed.problems[0].line, Some(2));
     assert_eq!(parsed.file.decls.len(), 2);
@@ -131,7 +131,7 @@ fn every_word_is_described() {
 
 /// The value of `let v = <src>;` in a method.
 fn value(src: &str) -> yog_script_analyze::ast::Expr {
-    let parsed = parse("a.ys", &format!("void F() {{ let v = {src}; }}\n"));
+    let parsed = parse("A.ys", &format!("void F() {{ let v = {src}; }}\n"));
     assert!(parsed.problems.is_empty(), "{src}: {:#?}", parsed.problems);
     let DeclKind::Method(m) = parsed.file.decls.into_iter().next().unwrap().kind else {
         panic!()
@@ -227,7 +227,7 @@ fn members_are_told_by_what_follows_their_name() {
     let src = "class Timer(Ticks every) {\n    Ticks Left = every;\n    public bool Done => Left <= 0t;\n    \
                i32 Count { get; set; } = 0;\n    public Timer() : this(20t) { }\n    \
                List<i32> Ticks<T>(T x) where T : Entity { return []; }\n}\n";
-    let parsed = parse("a.ys", src);
+    let parsed = parse("A.ys", src);
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
     let DeclKind::Type { body, header, .. } = &parsed.file.decls[0].kind else {
         panic!()
@@ -256,7 +256,7 @@ fn the_type_system_reads() {
 #[test]
 fn a_lifetime_is_declared_where_it_is_used() {
     let src = "class A { static in 'b i32 F<'a>(in 'a List<i32> x) => x[0]; }";
-    let checked = yog_script_analyze::check("a.ys", src);
+    let checked = yog_script_analyze::check("A.ys", src);
     let codes: Vec<_> = checked
         .problems
         .iter()
@@ -270,7 +270,7 @@ fn a_stray_closer_is_got_past() {
     // `:` isn't an entry's (`=>` is): reported, and reading goes on past
     // the `]` the failed collection leaves, not round it for ever.
     let found = codes(
-        "a.ys",
+        "A.ys",
         "void F() {\n    let d = [\"a\": 1];\n}\nvoid G() {}\n",
     );
     assert_eq!(found, [script_problem::EXPECTED, script_problem::EXPECTED]);

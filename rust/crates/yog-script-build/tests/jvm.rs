@@ -12,7 +12,7 @@ fn a_project_runs() {
                     public static i32 Run() => new Size(3, 4).Area() + Sum(1, 2, 3);\n\
                 }\n";
     let Some(out) = support::run(
-        &[("size.ys", size), ("main.ys", main)],
+        &[("Size.ys", size), ("Main.ys", main)],
         "t.MainScript.Calc.Run()",
     ) else {
         return;
@@ -36,7 +36,7 @@ fn an_events_arguments_are_computed_once() {
                    }\n\
                }\n\
                public static class E { public static i32 Run() => new Counter().Run(); }\n";
-    let Some(out) = support::run(&[("e.ys", src)], "t.EScript.E.Run()") else {
+    let Some(out) = support::run(&[("E.ys", src)], "t.EScript.E.Run()") else {
         return;
     };
     assert_eq!(out, "12", "one call of Next, both handlers saw 1");
@@ -52,7 +52,7 @@ fn type_parameters_in_constructors_and_statics() {
                }\n\
                public record Part(i32 Size);\n\
                public static class B { public static string Run() => new Box<Part>().Name + \" \" + Box<string>.Of(); }\n";
-    let Some(out) = support::run(&[("b.ys", src)], "t.BScript.B.Run()") else {
+    let Some(out) = support::run(&[("B.ys", src)], "t.BScript.B.Run()") else {
         return;
     };
     assert_eq!(out, "Part String");
@@ -82,7 +82,7 @@ fn type_parameters_handed_on() {
                        return p.Seen + \" \" + p.Again() + \" \" + Base<i64>.Twice() + \" \" + p.N;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("b.ys", src)], "t.BScript.B.Run()") else {
+    let Some(out) = support::run(&[("B.ys", src)], "t.BScript.B.Run()") else {
         return;
     };
     assert_eq!(out, "Part Part Int64Int64 7");
@@ -113,7 +113,7 @@ fn awaits_in_switches_tries_and_withs() {
                    public static string Run() => Pick(1).Result + \" \" + Pick(2).Result + \" \" + Pick(7).Result\n\
                        + \" \" + Withed().Result + \" \" + Tried(true).Result.Unwrap() + \" \" + Tried(false).Result.IsErr();\n\
                }\n";
-    let Some(out) = support::run(&[("a.ys", src)], "t.AScript.A.Run()") else {
+    let Some(out) = support::run(&[("A.ys", src)], "t.AScript.A.Run()") else {
         return;
     };
     assert_eq!(out, "2 20 7 2 6 True");
@@ -137,7 +137,7 @@ fn awaits_around_safe_access() {
                    public static string Run() => Read(true).Result + \" \" + Read(false).Result + \" \"\n\
                        + Call(new Box(5)).Result + \" \" + Call(null).Result + \" \" + Waited;\n\
                }\n";
-    let Some(out) = support::run(&[("s.ys", src)], "t.SScript.S.Run()") else {
+    let Some(out) = support::run(&[("S.ys", src)], "t.SScript.S.Run()") else {
         return;
     };
     assert_eq!(
@@ -166,7 +166,7 @@ fn safe_calls_skip_null() {
                        return (none?.Plus(Arg()) ?? -1) + \" \" + (some?.Plus(Arg()) ?? -1) + \" \" + Made;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("c.ys", src)], "t.CScript.C.Run()") else {
+    let Some(out) = support::run(&[("C.ys", src)], "t.CScript.C.Run()") else {
         return;
     };
     assert_eq!(out, "-1 12 1");
@@ -210,7 +210,7 @@ fn threads_locks_and_atomics() {
                            + first + second + once.Get() + \" \" + cell.Get();\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("p.ys", src)], "t.PScript.P.Run()") else {
+    let Some(out) = support::run(&[("P.ys", src)], "t.PScript.P.Run()") else {
         return;
     };
     assert_eq!(out, "4 4000 4000 15 TrueFalsea 7");
@@ -246,7 +246,7 @@ fn locals_are_dropped_at_their_scopes_end() {
                        return Log;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("d.ys", src)], "t.DScript.D.Run()") else {
+    let Some(out) = support::run(&[("D.ys", src)], "t.DScript.D.Run()") else {
         return;
     };
     assert_eq!(
@@ -283,7 +283,7 @@ fn iterators_yield_their_items() {
                        return text + \" \" + twice + \" \" + first.Count + first[2] + \" \" + Made;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("i.ys", src)], "t.IScript.I.Run()") else {
+    let Some(out) = support::run(&[("I.ys", src)], "t.IScript.I.Run()") else {
         return;
     };
     assert_eq!(out, "1,4,9,16,25,36,49, 28 3x3 14");
@@ -310,7 +310,7 @@ fn async_iterators_and_await_foreach() {
                    }\n\
                    public static string Run() => Walk().Result;\n\
                }\n";
-    let Some(out) = support::run(&[("q.ys", src)], "t.QScript.Q.Run()") else {
+    let Some(out) = support::run(&[("Q.ys", src)], "t.QScript.Q.Run()") else {
         return;
     };
     assert_eq!(out, "2,4,6,8,[2]");
@@ -360,7 +360,7 @@ fn tasks_across_threads_and_contexts() {
                        return a.Result + \" \" + b.Result + \" \" + first + \" \" + Fired + \" \" + off + \" \" + back.Result + \" \" + OnLoop;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("t.ys", src)], "t.TScript.T.Run()") else {
+    let Some(out) = support::run(&[("T.ys", src)], "t.TScript.T.Run()") else {
         return;
     };
     assert_eq!(out, "42 1 0 1 21 5 True");
@@ -413,7 +413,7 @@ fn channels_and_coordination() {
                        return sum + \" \" + (most.Load() <= 2) + \" \" + words.Count + \" \" + waiter.Result + \" \" + flows + \" \" + (Who.Value ?? \"none\");\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("c.ys", src)], "t.CScript.C.Run()") else {
+    let Some(out) = support::run(&[("C.ys", src)], "t.CScript.C.Run()") else {
         return;
     };
     assert_eq!(out, "5050 True 3 7 outer none");
@@ -432,7 +432,7 @@ fn lazy_is_made_once() {
                        return before + \" \" + lazy.Value + \" \" + Made.Load() + \" \" + lazy.IsValueCreated;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("l.ys", src)], "t.LScript.L.Run()") else {
+    let Some(out) = support::run(&[("L.ys", src)], "t.LScript.L.Run()") else {
         return;
     };
     assert_eq!(out, "False v 1 True");
@@ -461,7 +461,7 @@ fn lock_statements_hold_and_write_back() {
                        return after + \" \" + seen;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("k.ys", src)], "t.KScript.K.Run()") else {
+    let Some(out) = support::run(&[("K.ys", src)], "t.KScript.K.Run()") else {
         return;
     };
     assert_eq!(out, "1001 1001");
@@ -484,7 +484,7 @@ fn constructor_params() {
                        return a.Count + \" \" + b.Count + \" \" + c.Count;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("b.ys", src)], "t.BScript.B.Run()") else {
+    let Some(out) = support::run(&[("B.ys", src)], "t.BScript.B.Run()") else {
         return;
     };
     assert_eq!(out, "3 0 2");
@@ -513,7 +513,7 @@ fn statics_per_closed_type() {
                            + \" \" + typeof(Counter<i32>).GetField(\"Made\").GetValue(null);\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("s.ys", src)], "t.SScript.S.Run()") else {
+    let Some(out) = support::run(&[("S.ys", src)], "t.SScript.S.Run()") else {
         return;
     };
     assert_eq!(out, "2 1 1 7 String 2 2");
@@ -542,7 +542,7 @@ fn constraints_give_members() {
                            + \" \" + Max(3, 7) + \" \" + Max(\"b\", \"a\") + \" \" + (Zero<i32>() + 1) + \" \" + Made<i32>();\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("w.ys", src)], "t.WScript.W.Run()") else {
+    let Some(out) = support::run(&[("W.ys", src)], "t.WScript.W.Run()") else {
         return;
     };
     assert_eq!(out, "7 4 0 7 b 1 0");
@@ -561,7 +561,7 @@ fn collection_initializers() {
                        return xs.Count + \" \" + xs[2] + \" \" + ages[\"b\"] + \" \" + named[\"y\"] + \" \" + set.Count;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("c.ys", src)], "t.CScript.C.Run()") else {
+    let Some(out) = support::run(&[("C.ys", src)], "t.CScript.C.Run()") else {
         return;
     };
     assert_eq!(out, "3 3 2 8 2");
@@ -586,7 +586,7 @@ fn defaults_nested_and_null_state() {
                        return Say(\"a\") + \" \" + Say(\"b\", 5) + \" \" + o.N + \" \" + Len(null) + Len(\"xy\") + \" \" + n;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("d.ys", src)], "t.DScript.D.Run()") else {
+    let Some(out) = support::run(&[("D.ys", src)], "t.DScript.D.Run()") else {
         return;
     };
     assert_eq!(out, "a2Fast- b5Fast- 7 -12 1");
@@ -613,7 +613,7 @@ fn indexers_and_enumerators() {
                        return s + v[1] + n;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("z.ys", src)], "t.ZScript.Z.Run()") else {
+    let Some(out) = support::run(&[("Z.ys", src)], "t.ZScript.Z.Run()") else {
         return;
     };
     assert_eq!(out, "1bb1");
@@ -645,7 +645,7 @@ fn local_functions_and_nullables() {
                        return new Counter().Run(4) + \" \" + a.HasValue + b.HasValue + \" \" + a.Value + \" \" + b.GetValueOrDefault() + b.GetValueOrDefault(9) + \" \" + s.Length;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("n.ys", src)], "t.NScript.N.Run()") else {
+    let Some(out) = support::run(&[("N.ys", src)], "t.NScript.N.Run()") else {
         return;
     };
     assert_eq!(out, "125 TrueFalse 5 09 3");
@@ -688,7 +688,7 @@ fn switch_statements() {
                        return Name(1) + \" \" + Name(3) + \" \" + Name(\"abc\") + \" \" + Name(\"x\") + \" \" + Name(2.5) + \" \" + seen;\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("w.ys", src)], "t.WScript.W.Run()") else {
+    let Some(out) = support::run(&[("W.ys", src)], "t.WScript.W.Run()") else {
         return;
     };
     assert_eq!(out, "one few long abc short x other 123!5");
@@ -709,7 +709,7 @@ fn ends_slices_and_safe_indexes() {
                        return xs[^1] + \" \" + s[^2] + \" \" + mid.Length + mid[1] + \" \" + inner.Length + \" \" + s[1..3] + \" \" + l[0..1].Count + \" \" + (none?[0] ?? -1) + \" \" + (xs?[0] ?? -1);\n\
                    }\n\
                }\n";
-    let Some(out) = support::run(&[("e.ys", src)], "t.EScript.E.Run()") else {
+    let Some(out) = support::run(&[("E.ys", src)], "t.EScript.E.Run()") else {
         return;
     };
     assert_eq!(out, "40 l 230 2 ell 2 -1 10");
@@ -728,7 +728,7 @@ fn arrow_accessors() {
                public static class A {\n\
                    public static i32 Run() { let mut c = new C(); c.X = 3; c.Y = 4; let first = c.Z; c.Z = -7; return c.X * 10 + c.Y + first * 100 + c.Z; }\n\
                }\n";
-    let Some(out) = support::run(&[("a.ys", src)], "t.AScript.A.Run()") else {
+    let Some(out) = support::run(&[("A.ys", src)], "t.AScript.A.Run()") else {
         return;
     };
     assert_eq!(out, "565");

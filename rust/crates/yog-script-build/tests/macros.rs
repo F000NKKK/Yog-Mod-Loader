@@ -17,7 +17,7 @@ const LIBRARY: &str = "using System.Meta;\n\
     }\n";
 
 fn library() -> MacroLibrary {
-    match MacroLibrary::load(&[("macros.ys".to_string(), LIBRARY.to_string())]) {
+    match MacroLibrary::load(&[("Macros.ys".to_string(), LIBRARY.to_string())]) {
         Ok(lib) => lib,
         Err(problems) => panic!("{problems:#?}"),
     }
@@ -26,7 +26,7 @@ fn library() -> MacroLibrary {
 fn codes(src: &str) -> Vec<String> {
     let lib = library();
     check_source_using(
-        "a.ys",
+        "A.ys",
         src,
         |_| Err(String::new()),
         Project {

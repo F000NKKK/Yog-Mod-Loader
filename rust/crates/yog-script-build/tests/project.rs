@@ -9,21 +9,21 @@ const MAIN: &str = "i32 Floor() {\n    let s = new Size(3, 4);\n    return s.Are
 
 #[test]
 fn a_source_reaches_another_sources_types() {
-    let shapes: Vec<Decl> = declarations("shapes.ys", SHAPES, Env::default());
+    let shapes: Vec<Decl> = declarations("Shapes.ys", SHAPES, Env::default());
     let others: [&[Decl]; 1] = [&shapes];
     let env = Env {
         others: &others,
         ..Env::default()
     };
-    let checked = check_in("main.ys", MAIN, env);
+    let checked = check_in("Main.ys", MAIN, env);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let named: [(&str, &[Decl]); 1] = [("shapes.ys", &shapes)];
+    let named: [(&str, &[Decl]); 1] = [("Shapes.ys", &shapes)];
     let target = yog_script_java::Target {
         package: "p",
         mod_id: Some("test"),
         others: &named,
     };
-    let java = yog_script_java::compile_in(("main.ys", MAIN), &checked, &target)
+    let java = yog_script_java::compile_in(("Main.ys", MAIN), &checked, &target)
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     assert!(java.contains("new p.ShapesScript.Size(3, 4)"), "{java}");
@@ -31,13 +31,13 @@ fn a_source_reaches_another_sources_types() {
 
 #[test]
 fn another_sources_own_methods_stay_its_own() {
-    let helpers = declarations("helpers.ys", "i32 Twice(i32 x) => x * 2;\n", Env::default());
+    let helpers = declarations("Helpers.ys", "i32 Twice(i32 x) => x * 2;\n", Env::default());
     let others: [&[Decl]; 1] = [&helpers];
     let env = Env {
         others: &others,
         ..Env::default()
     };
-    let checked = check_in("main.ys", "i32 Four() => Twice(2);\n", env);
+    let checked = check_in("Main.ys", "i32 Four() => Twice(2);\n", env);
     assert!(
         !checked.problems.is_empty(),
         "a file's methods aren't another's to call by name"
@@ -58,7 +58,7 @@ fn the_contents_ids_are_reached_by_name() {
         ..Env::default()
     };
     let main = "string LampId() => Blocks.Lamp;\n";
-    let checked = check_in("main.ys", main, env);
+    let checked = check_in("Main.ys", main, env);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let named: [(&str, &[Decl]); 1] = [(name, &content)];
     let target = yog_script_java::Target {
@@ -66,7 +66,7 @@ fn the_contents_ids_are_reached_by_name() {
         mod_id: Some("test"),
         others: &named,
     };
-    let java = yog_script_java::compile_in(("main.ys", main), &checked, &target)
+    let java = yog_script_java::compile_in(("Main.ys", main), &checked, &target)
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     assert!(java.contains(".Blocks.Lamp"), "{java}");
