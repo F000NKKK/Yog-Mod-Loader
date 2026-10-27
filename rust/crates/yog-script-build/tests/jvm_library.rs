@@ -93,16 +93,20 @@ fn logging() {
                        });\n\
                        let log = factory.CreateLogger(\"App\");\n\
                        log.LogTrace(\"hidden\");\n\
-                       log.LogInformation(\"\"\"Moved {Count} items to {Target}\"\"\", 3, \"chest\");\n\
-                       using (let scope = log.BeginScope(\"\"\"Request {Id}\"\"\", 7)) {\n\
+                       log.LogInformation(\"Moved {Count} items to {Target}\", 3, \"chest\");\n\
+                       let count = 4;\n\
+                       let target = \"barrel\";\n\
+                       let weight = 2.25;\n\
+                       log.LogInformation(\"Moved {count} items to {target}, {weight,6:F1} kg\");\n\
+                       using (let scope = log.BeginScope(\"Request {Id}\", 7)) {\n\
                            log.LogWarning(\"inside\");\n\
                        }\n\
                        factory.CreateLogger(\"Noisy.Part\").LogWarning(\"dropped\");\n\
-                       let said = LoggerMessage.Define<i32>(LogLevel.Error, 5, \"\"\"Failed {Code}\"\"\");\n\
+                       let said = LoggerMessage.Define<i32>(LogLevel.Error, 5, \"Failed {Code}\");\n\
                        said(log, 42, null);\n\
                        let memory = new Memory();\n\
                        let queued = memory.CreateLogger(\"Q\");\n\
-                       queued.LogInformation(\"\"\"one {N}\"\"\", 1);\n\
+                       queued.LogInformation(\"one {N}\", 1);\n\
                        queued.LogInformation(\"two\");\n\
                        memory.FlushAsync().Wait();\n\
                        let mut text = \"\";\n\
@@ -116,7 +120,7 @@ fn logging() {
     };
     assert_eq!(
         out,
-        "Information App: Moved 3 items to chest | Warning App[Request 7]: inside | Error App: Failed 42 || one 1,two || False"
+        "Information App: Moved 3 items to chest | Information App: Moved 4 items to barrel,    2.3 kg | Warning App[Request 7]: inside | Error App: Failed 42 || one 1,two || False"
     );
 }
 

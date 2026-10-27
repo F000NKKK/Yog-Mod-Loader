@@ -51,6 +51,8 @@ pub struct Types {
     /// The locals each lambda handed to another thread takes from its
     /// owner (not `Copy`): moved there, by the lambda.
     moved_away: HashMap<usize, Vec<String>>,
+    /// The strings written for message templates, by the string.
+    templates: HashMap<usize, super::templates::MessageTemplate>,
     /// What each lambda captures, by the lambda (`threads/captures.rs`).
     captures: HashMap<usize, Vec<super::threads::Capture>>,
 }
@@ -213,6 +215,16 @@ impl Types {
 
     pub(super) fn set_bounded(&mut self, e: &Expr, t: Type) {
         self.bounded.insert(key(e), t);
+    }
+
+    /// String `e` written for a message template, if it's one.
+    pub fn template(&self, e: &Expr) -> Option<&super::templates::MessageTemplate> {
+        self.templates.get(&key(e))
+    }
+
+    pub(super) fn set_template(&mut self, e: &Expr, t: super::templates::MessageTemplate) {
+        self.set(e, Type::String);
+        self.templates.insert(key(e), t);
     }
 
     pub(super) fn key_of(e: &Expr) -> usize {

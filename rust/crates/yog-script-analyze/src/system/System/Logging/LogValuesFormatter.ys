@@ -5,8 +5,8 @@ using System.Text;
 
 /// A message template read once (.NET's `LogValuesFormatter`): its text and
 /// its holes (`"Moved {Count} items to {Target}"`), each named; `{{` and
-/// `}}` are braces. A hole's alignment (`{Count,5}`) pads its value; a
-/// format (`{Count:N2}`) is kept with the template.
+/// `}}` are braces. A hole's alignment (`{Count,5}`) pads its value, its
+/// format (`{Weight:F1}`) writes it as `ToString(format)` does.
 public readonly sealed class LogValuesFormatter {
     /// What a log entry's state names its template by.
     public const string OriginalFormat = """{OriginalFormat}""";
@@ -18,6 +18,8 @@ public readonly sealed class LogValuesFormatter {
     public readonly List<string> ValueNames = new List<string>();
     private readonly List<string> _texts = new List<string>();
     private readonly List<i32> _alignments = new List<i32>();
+    /// Each hole's format (`""`: none).
+    private readonly List<string> _formats = new List<string>();
 
     public LogValuesFormatter(string format) {
         Template = format;
@@ -57,11 +59,13 @@ public readonly sealed class LogValuesFormatter {
         return -1;
     }
 
-    /// Hole `inside` (`Name`, `Name,5`, `Name:N2`): its name and alignment noted.
+    /// Hole `inside` (`Name`, `Name,5`, `Name:N2`): its name, alignment and format noted.
     private void Hole(string inside) {
         let mut name = inside;
+        let mut format = "";
         let colon = name.IndexOf(':');
         if (colon >= 0) {
+            format = name.Substring(colon + 1);
             name = name.Substring(0, colon);
         }
         let mut alignment = 0;
@@ -72,6 +76,7 @@ public readonly sealed class LogValuesFormatter {
         }
         ValueNames.Add(name.Trim());
         _alignments.Add(alignment);
+        _formats.Add(format);
     }
 
     /// The message: its holes filled with `values`, in order.
@@ -80,11 +85,19 @@ public readonly sealed class LogValuesFormatter {
         for (let mut i = 0; i < _texts.Count; i += 1) {
             written.Append(_texts[i]);
             if (i < ValueNames.Count) {
-                let value = i < values.Length ? FormatValue(values[i]) : "";
+                let value = i < values.Length ? Formatted(values[i], _formats[i]) : "";
                 written.Append(Aligned(value, _alignments[i]));
             }
         }
         return written.ToString();
+    }
+
+    /// `value` written by `format` (`""`: as `FormatValue` does).
+    private static string Formatted(object? value, string format) {
+        if (format.Length == 0 || value == null) {
+            return FormatValue(move value);
+        }
+        return string.Format("""{0:""" + format + """}""", move value);
     }
 
     /// `value` padded to `alignment` (right when positive, left when negative).

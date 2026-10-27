@@ -54,6 +54,10 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 if d.has(ast::Modifier::Static) {
                     t.static_methods.push(m.name.text.clone());
                 }
+                t.templates
+                    .entry(m.name.text.clone())
+                    .or_default()
+                    .push(super::templates::template(d));
                 t.crossings
                     .entry(m.name.text.clone())
                     .or_default()

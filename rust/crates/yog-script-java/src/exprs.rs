@@ -69,7 +69,11 @@ impl Gen<'_> {
                 self.code.str(key)
             ),
             ExprKind::Content { id, .. } => self.code.str(id),
-            ExprKind::Str(segs) => self.interpolated(segs),
+            ExprKind::Str(segs) => match self.types.template(e) {
+                // A message template: its holes are names, not code.
+                Some(t) => self.code.str(&t.text),
+                None => self.interpolated(segs),
+            },
             ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
             ExprKind::Ident(name) if self.cells.contains(name) => {
                 format!("{}.{REF_VALUE}", Self::ident(name))

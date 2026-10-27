@@ -11,10 +11,12 @@ public final class LogValuesFormatter {
         d.Field("ValueNames", dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.collections.generic.List.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) }), o -> ((dev.yog.script.logging.LogValuesFormatter) o).ValueNames, null);
         d.Field("_texts", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.collections.generic.List.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) }), o -> ((dev.yog.script.logging.LogValuesFormatter) o)._texts, null);
         d.Field("_alignments", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.collections.generic.List.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) }), o -> ((dev.yog.script.logging.LogValuesFormatter) o)._alignments, null);
+        d.Field("_formats", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.collections.generic.List.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) }), o -> ((dev.yog.script.logging.LogValuesFormatter) o)._formats, null);
         d.Constructor(0, a -> new dev.yog.script.logging.LogValuesFormatter((String) a[0])).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
         d.Method("HoleEnd", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> dev.yog.script.logging.LogValuesFormatter.HoleEnd((String) a[0], (Integer) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("from", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
         d.Method("Hole", dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> { ((dev.yog.script.logging.LogValuesFormatter) o).Hole((String) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("inside", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
         d.Method("Format", 0, new String[] {  }, (o, a) -> ((dev.yog.script.logging.LogValuesFormatter) o).Format((Object[]) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("values", dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1), false);
+        d.Method("Formatted", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> dev.yog.script.logging.LogValuesFormatter.Formatted((Object) a[0], (String) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
         d.Method("Aligned", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> dev.yog.script.logging.LogValuesFormatter.Aligned((String) a[0], (Integer) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("alignment", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
         d.Method("FormatValue", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.logging.LogValuesFormatter.FormatValue((Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);
     }
@@ -24,11 +26,13 @@ public final class LogValuesFormatter {
     public dev.yog.script.collections.generic.List<String> ValueNames;
     public dev.yog.script.collections.generic.List<String> _texts;
     public dev.yog.script.collections.generic.List<Integer> _alignments;
+    public dev.yog.script.collections.generic.List<String> _formats;
     public LogValuesFormatter(String format) {
         super();
         this.ValueNames = dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<String>(), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) });
         this._texts = dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<String>(), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) });
         this._alignments = dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<Integer>(), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) });
+        this._formats = dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<String>(), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.String.class) });
         Template = format;
         var text = new dev.yog.script.text.StringBuilder();
         var i = 0;
@@ -73,8 +77,10 @@ public final class LogValuesFormatter {
     }
     private void Hole(String inside) {
         var name = inside;
+        var format = "";
         final var colon = dev.yog.script.host.String.IndexOf(name, ':');
         if ((colon >= 0)) {
+            format = dev.yog.script.host.String.Substring(name, (colon + 1));
             name = dev.yog.script.host.String.Substring(name, 0, colon);
         }
         var alignment = 0;
@@ -85,6 +91,7 @@ public final class LogValuesFormatter {
         }
         ValueNames.Add(dev.yog.script.host.String.Trim(name));
         _alignments.Add(alignment);
+        _formats.Add(format);
     }
     public String Format(Object[] values) {
         var written = new dev.yog.script.text.StringBuilder();
@@ -93,12 +100,18 @@ public final class LogValuesFormatter {
             for (; (i < _texts.Count()); i += 1) {
                 written.Append(_texts.get_Item(i));
                 if ((i < ValueNames.Count())) {
-                    final var value = ((i < dev.yog.script.host.Array.Length(values, 1)) ? FormatValue(values[i]) : "");
+                    final var value = ((i < dev.yog.script.host.Array.Length(values, 1)) ? Formatted(values[i], _formats.get_Item(i)) : "");
                     written.Append(Aligned(value, _alignments.get_Item(i)));
                 }
             }
         }
         return written.ToString();
+    }
+    private static String Formatted(Object value, String format) {
+        if (((dev.yog.script.host.String.Length(format) == 0) || java.util.Objects.equals(value, null))) {
+            return FormatValue(value);
+        }
+        return dev.yog.script.host.String.Format((("{0:" + format) + "}"), new Object[] { value });
     }
     private static String Aligned(String value, int alignment) {
         if ((alignment > 0)) {

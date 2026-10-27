@@ -1,0 +1,10 @@
+namespace System.Diagnostics.CodeAnalysis;
+
+/// A method's parameter `parameter` is a message template (.NET's
+/// `StructuredMessageTemplateAttribute`): a string written for it is the
+/// template as written, its holes names (`"Moved {Count} items", count`);
+/// with no values given after it (a `params` parameter left empty) its
+/// holes are the values too (`"Moved {count} items"`: `count`, named so).
+public sealed class StructuredMessageTemplate : Attribute {
+    public StructuredMessageTemplate(string parameter) {}
+}

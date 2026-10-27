@@ -32,11 +32,16 @@ impl Checker<'_, '_, '_> {
             _ => (callee, Vec::new()),
         };
         let target = self.callee(callee);
+        // A message template's holes aren't code until the method's known.
+        let slots = self.template_slots(&target, callee, args);
+        let written = args;
         // A lambda's own type, for choosing the overload only: it's typed
         // against the delegate the chosen one takes (`pick`).
         let mut given: Vec<Type> = args
             .iter()
-            .map(|a| match a.value.kind {
+            .enumerate()
+            .map(|(i, a)| match a.value.kind {
+                _ if slots.contains(&i) => Type::String,
                 ExprKind::Lambda { .. } => self.quietly(|c| c.expr(&a.value)),
                 _ => self.expr(&a.value),
             })
@@ -70,6 +75,7 @@ impl Checker<'_, '_, '_> {
                 self.note_conversion(expr, got, param);
             }
         }
+        self.templates_chosen(used.as_ref(), written, &slots);
         if let Some(used) = used {
             self.crossing_call(&used, &args);
             self.call_meets(&used, callee.span);

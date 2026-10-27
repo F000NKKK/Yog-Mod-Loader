@@ -163,3 +163,7 @@ pub mod threads {
     /// `[ThreadStatic]`: a static field each thread has its own of.
     pub const THREAD_STATIC: &str = "ThreadStatic";
 }
+
+/// `[StructuredMessageTemplate(nameof(message))]`: a method's parameter a
+/// message template (`System.Diagnostics.CodeAnalysis`).
+pub const STRUCTURED_MESSAGE_TEMPLATE: &str = "StructuredMessageTemplate";

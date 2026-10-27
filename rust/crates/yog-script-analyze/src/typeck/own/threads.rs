@@ -38,7 +38,7 @@ pub(super) fn crossings(d: &Decl) -> Vec<(String, String)> {
         .collect()
 }
 
-fn attributes<'d>(d: &'d Decl, name: &'d str) -> impl Iterator<Item = &'d Attribute> {
+pub(super) fn attributes<'d>(d: &'d Decl, name: &'d str) -> impl Iterator<Item = &'d Attribute> {
     d.attributes
         .iter()
         .filter(move |a| a.path.last().is_some_and(|n| n.text == name))
@@ -53,7 +53,7 @@ fn case(e: &ExprKind) -> Option<String> {
 }
 
 /// A plain string's text, or `nameof(x)`'s.
-fn text(e: &ExprKind) -> Option<String> {
+pub(super) fn text(e: &ExprKind) -> Option<String> {
     match e {
         ExprKind::NameOf(of) => match &of.kind {
             ExprKind::Ident(name) => Some(name.clone()),

@@ -45,6 +45,7 @@ mod passing;
 mod pick;
 mod shapes;
 mod stmts;
+mod templates;
 pub(crate) mod surface;
 mod threads;
 mod tuples;
@@ -59,6 +60,7 @@ pub use content::content_path;
 pub use iterators::{body_yields, item_of};
 pub use model::Type;
 pub use nulls::leaves;
+pub use templates::{MessageTemplate, holes};
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
 use crate::ast::File;

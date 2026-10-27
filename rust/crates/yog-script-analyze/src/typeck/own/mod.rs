@@ -6,6 +6,7 @@
 
 mod collect;
 mod members;
+mod templates;
 mod threads;
 
 use std::collections::HashMap;
@@ -111,6 +112,9 @@ pub(crate) struct OwnType {
     pub crossings: HashMap<String, Vec<Vec<(String, String)>>>,
     /// Its type parameters' `where` constraints.
     pub wheres: Vec<ast::Where>,
+    /// Each method's message template parameter (`[StructuredMessageTemplate]`),
+    /// by name and overload as `methods`.
+    pub templates: HashMap<String, Vec<Option<String>>>,
     /// Its body's constructors' crossings, as `ctors`.
     pub ctor_crossings: Vec<Vec<(String, String)>>,
 }

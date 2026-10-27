@@ -91,7 +91,10 @@ impl Gen<'_> {
     fn packed_args(&mut self, args: &[Arg], from: usize, item: &Type) -> String {
         let from = from.min(args.len());
         let head = self.args(&args[..from]);
-        let tail = self.args(&args[from..]);
+        let tail = match self.template_values(&args[..from]) {
+            Some(values) if from == args.len() => values,
+            _ => self.args(&args[from..]),
+        };
         let java = self.java(item, false);
         // A type parameter's array is made as an object one (Java's).
         let array = if crate::reified::names_parameter(item) {
@@ -104,6 +107,17 @@ impl Gen<'_> {
         } else {
             format!("{head}, {array}")
         }
+    }
+
+    /// The values of a message template written last of `head` whose holes
+    /// are its values (`"Moved {count} items"`: `count`), if one is.
+    fn template_values(&mut self, head: &[Arg]) -> Option<String> {
+        let last = &head.last()?.value;
+        if !self.types.template(last)?.values {
+            return None;
+        }
+        let holes = yog_script_analyze::holes(last);
+        Some(holes.into_iter().map(|h| self.expr(h)).collect::<Vec<_>>().join(", "))
     }
 
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
