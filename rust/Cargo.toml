@@ -130,7 +130,7 @@ yog-registry = { version = "0.41.0", path = "crates/yog-registry" }
 yog-mappings = { version = "0.1.1", path = "crates/yog-mappings" }
 yog-script-analyze = { version = "0.2.3", path = "crates/yog-script-analyze" }
 yog-script-ids = { version = "0.1.0", path = "crates/yog-script-ids" }
-yog-script = { version = "0.4.1", path = "crates/yog-script" }
+yog-script = { version = "0.4.2", path = "crates/yog-script" }
 yog-script-build = { version = "0.2.2", path = "crates/yog-script-build" }
 yog-script-run = { version = "0.1.1", path = "crates/yog-script-run" }
 yog-script-java = { version = "0.1.2", path = "crates/yog-script-java" }
