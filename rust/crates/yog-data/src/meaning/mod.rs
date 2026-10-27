@@ -3,6 +3,9 @@
 use substrate_data::{Kind, Ref};
 
 use crate::found::TagRef;
+
+/// What opens a stack's data after an id (a block's state: `yog_ids::sep::STATE_OPEN`).
+const DATA_OPEN: &str = "{";
 use crate::{Res, kinds};
 
 /// What a reference is to Yog: content, a tag of content, a `.yres`
@@ -34,7 +37,13 @@ impl Meaning {
         } else if kind == kinds::Lang::NAME {
             Meaning::Lang(id.to_owned())
         } else {
-            // A content id names the game's when it names no namespace.
+            // A content id is the game's way (`ns:path`, lower case, a block
+            // state or data after it), the game's when it names no namespace.
+            let base = id.split(yog_ids::sep::STATE_OPEN).next().unwrap_or(id);
+            let base = base.split(DATA_OPEN).next().unwrap_or(base);
+            if !yog_ids::valid_id(base) {
+                return None;
+            }
             Meaning::Content(Ref::parse(kind, &yog_ids::qualify(id)).ok()?)
         })
     }

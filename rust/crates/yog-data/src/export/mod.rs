@@ -50,9 +50,38 @@ pub fn typescript() -> String {
         out.push_str(&format!("  {name}: {value},\n"));
     }
     out.push_str("} as const;\n");
+    out.push_str(&problems());
     // The records every tool writes.
     let shapes = [Severity::shape(), Seg::shape(), Diagnostic::shape()];
     out.push('\n');
     out.push_str(&types::declarations(&shapes));
+    out
+}
+
+/// Substrate Data's problem codes, by name (`NOT_A_REFERENCE: "SD0003"`).
+fn problems() -> String {
+    let mut out = String::from(
+        "\n/** What's wrong with data: Substrate Data's codes. */\nexport const dataProblem = {\n",
+    );
+    for p in crate::Problem::ALL {
+        out.push_str(&format!(
+            "  {}: {},\n",
+            constant_name(&format!("{p:?}")),
+            TypeScript::string(p.code())
+        ));
+    }
+    out.push_str("} as const;\n");
+    out
+}
+
+/// `NotAReference` → `NOT_A_REFERENCE`.
+fn constant_name(name: &str) -> String {
+    let mut out = String::new();
+    for (i, c) in name.chars().enumerate() {
+        if c.is_ascii_uppercase() && i > 0 {
+            out.push('_');
+        }
+        out.push(c.to_ascii_uppercase());
+    }
     out
 }

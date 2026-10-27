@@ -119,10 +119,15 @@ fn classified(v: &Value) -> Value {
                 kind: c.kind.as_str().to_owned(),
                 id: c.id.as_str().to_owned(),
             },
-            None => Typed::Ref {
-                kind: r.kind.as_str().to_owned(),
-                id: r.id.as_str().to_owned(),
-            },
+            None => {
+                return NotTyped {
+                    error: format!(
+                        "`{r}`: `{}` isn't an id (lower case `namespace:path`)",
+                        r.id
+                    ),
+                }
+                .write();
+            }
         },
         Ok(Spelled::Bytes(_)) => Typed::Bytes,
         Ok(Spelled::Plain(v)) => Typed::Str { v },
