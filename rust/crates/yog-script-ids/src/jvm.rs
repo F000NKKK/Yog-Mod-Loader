@@ -543,4 +543,18 @@ pub mod state {
     pub const SET_ITEM: &str = "set_Item";
     /// The entry being written or read (`$`: never a Yog Script name).
     pub const ENTRY_VAR: &str = "$e";
+    /// An enum carrying data: its case's name and its data's bytes (a
+    /// record of the case's fields), read back by name.
+    pub const CASE: &str = "name";
+    pub const CASE_DATA: &str = "data";
+    pub const CASE_VAR: &str = "$c";
+    pub const ENUM_PARSE: &str = "dev.yog.script.Enum.Parse";
+    pub const SIMPLE_NAME: &str = "getClass().getSimpleName()";
+    pub const NO_BYTES: &str = "new byte[0]";
+    pub const TO_STRING: &str = "toString";
+    pub const SAVED_CASE: &str = "$saved";
+    pub const LOADED_CASE: &str = "$loaded";
+    /// A case's value's record (`$ModeValue`), and what its helpers take.
+    pub const VALUE_SUFFIX: &str = "Value";
+    pub const VALUE_VAR: &str = "$v";
 }

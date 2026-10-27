@@ -44,8 +44,8 @@ impl Gen<'_> {
                 return self.not_yet("saving a value of this type", ty.span);
             };
             let (field, record) = (Self::ident(name), format!("{RECORD_PREFIX}{name}"));
-            if let Some(entry) = &kept.entry {
-                self.code.line(entry);
+            for line in &kept.declared {
+                self.code.line(line);
             }
             self.code.line(format!("{PUBLIC} {RECORD} {record}({} {VALUE}) {{}}", kept.java));
             let key = self.code.str(&format!("{owner}.{name}"));
@@ -79,7 +79,7 @@ impl Gen<'_> {
             TypeKind::Nullable(inner) => {
                 let java = self.written(inner, true);
                 self.plain(inner).then(|| Kept {
-                    entry: None,
+                    declared: Vec::new(),
                     java: format!("{OPTIONAL}<{java}>"),
                     save: Box::new(|f| format!("{OPTIONAL}.{OF_NULLABLE}({f})")),
                     load: Box::new(|f, v| format!("{f} = {v}.{OR_ELSE}({NULL});")),
@@ -88,7 +88,7 @@ impl Gen<'_> {
             TypeKind::Path { path, args } if args.len() == 1 && path.last().is_some_and(|n| n.text == LIST) => {
                 let (item, made) = (self.written(&args[0], true), self.written(ty, false));
                 self.plain(&args[0]).then(|| Kept {
-                    entry: None,
+                    declared: Vec::new(),
                     java: format!("{JAVA_LIST}<{item}>"),
                     save: Box::new(|f| f.to_string()),
                     load: Box::new(move |f, v| format!("{f} = {NEW} {made}(); {f}.{ADD_ALL}({v});")),
@@ -97,17 +97,18 @@ impl Gen<'_> {
             TypeKind::Path { path, args } if args.len() == 2 && path.last().is_some_and(|n| n.text == DICTIONARY) => {
                 self.dictionary_form(ty, (&args[0], &args[1]), name)
             }
+            _ if let Some(e) = self.data_enum_of(ty) => self.data_enum_form(ty, &e, name),
             _ if self.enum_of(ty).is_some() => {
                 let class = self.written(ty, false);
                 Some(Kept {
-                    entry: None,
+                    declared: Vec::new(),
                     java: LONG.to_string(),
                     save: Box::new(|f| format!("{f}.{ENUM_VALUE}()")),
                     load: Box::new(move |f, v| format!("{f} = {class}.{ENUM_OF}({v});")),
                 })
             }
             _ => self.plain(ty).then(|| Kept {
-                entry: None,
+                declared: Vec::new(),
                 java: self.written(ty, false),
                 save: Box::new(|f| f.to_string()),
                 load: Box::new(|f, v| format!("{f} = {v};")),
@@ -126,7 +127,7 @@ impl Gen<'_> {
         let declared = format!("{PUBLIC} {RECORD} {entry}({kj} {ENTRY_KEY}, {vj} {ENTRY_VALUE}) {{}}");
         let saved_as = entry.clone();
         Some(Kept {
-            entry: Some(declared),
+            declared: vec![declared],
             java: format!("{JAVA_LIST}<{entry}>"),
             save: Box::new(move |f| {
                 format!("{f}.{ENTRIES}.{MAP}({ENTRY_VAR} -> {NEW} {saved_as}({ENTRY_VAR}.{GET_KEY}(), {ENTRY_VAR}.{GET_VALUE}())).{TO_LIST}()")
@@ -149,7 +150,7 @@ impl Gen<'_> {
 
     /// Whether the bus's codec keeps a value of `ty` as it is: a number,
     /// `bool`, `string`, a quantity, an id, a handle, a record of those.
-    fn plain(&self, ty: &Written) -> bool {
+    pub(crate) fn plain(&self, ty: &Written) -> bool {
         let TypeKind::Path { path, args } = &ty.kind else {
             return false;
         };
@@ -189,15 +190,16 @@ impl Gen<'_> {
 
 /// How a member's value goes through the codec: its record's component's
 /// Java type, what's written of the field, what reads it back.
-struct Kept {
-    /// A record its value's parts need declared first (a dictionary's entry).
-    entry: Option<String>,
-    java: String,
-    save: Box<SaveOf>,
-    load: Box<LoadInto>,
+pub(crate) struct Kept {
+    /// What its value's parts need declared first (a dictionary's entry, an
+    /// enum's cases' records and what writes and reads them).
+    pub(crate) declared: Vec<String>,
+    pub(crate) java: String,
+    pub(crate) save: Box<SaveOf>,
+    pub(crate) load: Box<LoadInto>,
 }
 
 /// What's written of a field (`f` → the value packed).
-type SaveOf = dyn Fn(&str) -> String;
+pub(crate) type SaveOf = dyn Fn(&str) -> String;
 /// What reads a field back (`f`, the value read → the statement).
-type LoadInto = dyn Fn(&str, &str) -> String;
+pub(crate) type LoadInto = dyn Fn(&str, &str) -> String;

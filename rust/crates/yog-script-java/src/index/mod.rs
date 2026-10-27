@@ -99,6 +99,8 @@ pub(crate) struct Index {
     /// Each record's constructor's parameters' types, as written, in order
     /// (what saving one needs of its parts: `saved.rs`).
     record_types: HashMap<String, Vec<yog_script_analyze::ast::Type>>,
+    /// Each enum's cases' fields' types, by (enum, case), as written.
+    case_types: HashMap<(String, String), Vec<yog_script_analyze::ast::Type>>,
 }
 
 impl Index {
@@ -346,8 +348,10 @@ impl Index {
         self.declared(&name.text, arity(generics));
         for v in variants {
             let fields = v.fields.iter().map(|f| f.name.text.clone()).collect();
-            self.cases
-                .insert((name.text.clone(), v.name.text.clone()), fields);
+            let key = (name.text.clone(), v.name.text.clone());
+            self.case_types
+                .insert(key.clone(), v.fields.iter().map(|f| f.ty.clone()).collect());
+            self.cases.insert(key, fields);
         }
         let info = Info {
             kind: Kind::Enum,

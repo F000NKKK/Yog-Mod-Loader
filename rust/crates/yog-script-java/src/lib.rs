@@ -48,6 +48,7 @@ mod refs;
 mod reified;
 mod safe_calls;
 mod saved;
+mod saved_enums;
 mod statics;
 mod stmts;
 mod switch;
