@@ -92,13 +92,13 @@ fn disposed_after(x: &Name, stmts: Vec<Stmt>, span: Span) -> Vec<Stmt> {
 fn rewrite(x: &Name, s: Stmt, around: Around) -> Stmt {
     match leaving(x, s, around) {
         Ok(done) => done,
-        Err(s) => nested(x, s, around),
+        Err(s) => nested(x, *s, around),
     }
 }
 
 /// A way out (`return`, `yield break`, a `break`/`continue` leaving):
 /// `x` disposed first; else `s` back.
-fn leaving(x: &Name, s: Stmt, around: Around) -> Result<Stmt, Stmt> {
+fn leaving(x: &Name, s: Stmt, around: Around) -> Result<Stmt, Box<Stmt>> {
     let block = |stmts: Vec<Stmt>, span| Stmt::Block(Block { stmts, span });
     Ok(match s {
         Stmt::Return(Some(v), at) => {
@@ -127,7 +127,7 @@ fn leaving(x: &Name, s: Stmt, around: Around) -> Result<Stmt, Stmt> {
             block(vec![dispose(x, at), Stmt::Break(at)], at)
         }
         Stmt::Continue(at) if !around.loops => block(vec![dispose(x, at), Stmt::Continue(at)], at),
-        other => return Err(other),
+        other => return Err(Box::new(other)),
     })
 }
 
