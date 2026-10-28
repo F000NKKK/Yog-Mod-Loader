@@ -18,6 +18,7 @@ pub(crate) enum ModelOf {
 
 impl Rules for BlockFile {
     fn rules(&self, out: &mut Vec<Diagnostic>) {
+        super::block::block_rules(self, out);
         let main = Path::root().key(field!(BlockFile, model));
         match self
             .kind

@@ -249,3 +249,52 @@ fn a_kinds_block_gives_only_the_kinds_textures() {
             .any(|m| m.contains("needs textures.top"))
     );
 }
+
+/// A cube block with `block` and `kind` (or none).
+fn block_props(kind: &str, block: &str) -> Vec<String> {
+    let kind = if kind.is_empty() {
+        String::new()
+    } else {
+        format!(r#"kind: "{kind}", "#)
+    };
+    let model = if kind.is_empty() {
+        r#"{ parent: "cube_all", textures: { all: "@texture:m:block/x" } }"#
+    } else {
+        r#"{ textures: { bottom: "@texture:m:block/x", top: "@texture:m:block/x", side: "@texture:m:block/x" } }"#
+    };
+    found(
+        Format::Block,
+        &format!("{{ {kind}model: {model}, block: {block} }}"),
+    )
+}
+
+#[test]
+fn a_blocks_fields_go_with_its_kind() {
+    assert!(
+        block_props("", r#"{ tool_level: "iron" }"#)
+            .iter()
+            .any(|m| m.contains("tool_level without tool"))
+    );
+    assert!(
+        block_props("", r#"{ inventory: "chest" }"#)
+            .iter()
+            .any(|m| m.contains("the id of an inventory screen"))
+    );
+    assert!(
+        block_props("", r#"{ base: "@block:m:planks" }"#)
+            .iter()
+            .any(|m| m.contains("only a block of a kind takes it"))
+    );
+    let stairs = block_props("stairs", r#"{ redstone: true }"#);
+    assert!(
+        stairs
+            .iter()
+            .any(|m| m.contains("redstone doesn't go with kind stairs")),
+        "{stairs:?}"
+    );
+    assert!(
+        stairs.iter().any(|m| m.contains("is made from a block")),
+        "{stairs:?}"
+    );
+    assert!(block_props("stairs", r#"{ base: "@block:m:planks" }"#).is_empty());
+}

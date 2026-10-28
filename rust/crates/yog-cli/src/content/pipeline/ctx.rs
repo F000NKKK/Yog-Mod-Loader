@@ -117,11 +117,6 @@ impl Ctx<'_> {
         self.errors.push(found.at_path(path.clone()));
     }
 
-    pub(in crate::content) fn warn_at(&mut self, loc: Loc, path: &At, msg: impl std::fmt::Display) {
-        let found = caveat(msg).in_file(&self.file).at_line(loc(path));
-        self.warnings.push(found.at_path(path.clone()));
-    }
-
     /// Reports the rules a file breaks ([`yog_formats::rules`]): each an
     /// error or a warning, at its line.
     pub(in crate::content) fn broken_rules(&mut self, loc: Loc, broken: Vec<Diagnostic>) {

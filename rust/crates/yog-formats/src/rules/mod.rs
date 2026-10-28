@@ -4,6 +4,7 @@
 //! schema's, so an editor shows them as the file is edited; the build reads
 //! the same.
 
+mod block;
 mod element;
 mod item;
 mod kind;

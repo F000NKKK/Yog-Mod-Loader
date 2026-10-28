@@ -26,9 +26,8 @@ pub(super) fn compile(
     let kind_of = parts.kind.as_deref().and_then(BlockKind::built_in);
     props(cx, loc, &b, kind_of, entry);
     if let Some(k) = kind_of {
-        check_kind(cx, loc, parts, k, entry);
+        kind_props(parts, k, entry);
     }
-    check_kind_fields(cx, loc, &b, kind_of);
     let drops = match &b.drops {
         None | Some(Drops::Itself) => match kind_of {
             Some(k) => kind_drops(&entry.id, k),
@@ -104,95 +103,29 @@ fn props(cx: &mut Ctx, loc: Loc, b: &Props, kind_of: Option<&BlockKind>, entry: 
     if let Some(BlockShape::Box(bx)) = b.shape {
         p.shape = Some(bx);
     }
-    if let Some(inv) = &b.inventory {
+    // An inventory that isn't a screen's id is yog_formats::rules' to report.
+    if let Some(inv) = &b.inventory
+        && valid_id(inv)
+        && inv.contains(yog_ids::sep::NAMESPACE)
+    {
         let at = bat.key(field!(Props, inventory));
-        if valid_id(inv) && inv.contains(yog_ids::sep::NAMESPACE) {
-            p.inventory = Some(inv.clone());
-            cx.inventories
-                .push((cx.file.clone(), loc(&at), inv.clone()));
-        } else {
-            cx.err_at(loc, &at, format!("`{inv}`: the id of an inventory screen — a .yui <Screen id=\"mymod:name\"> with <Slot>s"));
-        }
-    }
-    if p.tool_level.is_some() && p.tools.is_empty() {
-        cx.warn_at(
-            loc,
-            &bat,
-            "tool_level without tool — any tool of that level mines it",
-        );
+        p.inventory = Some(inv.clone());
+        cx.inventories
+            .push((cx.file.clone(), loc(&at), inv.clone()));
     }
 }
 
-/// A kind of the game's: what it's made of and its set; nothing of Yog's own blocks.
-fn check_kind(cx: &mut Ctx, loc: Loc, parts: &Parts, k: &BlockKind, entry: &mut Entry) {
+/// A kind of the game's: what it's made of and its set (what it doesn't
+/// take is yog_formats::rules' to report).
+fn kind_props(parts: &Parts, k: &BlockKind, entry: &mut Entry) {
     let none = Props::default();
     let b = parts.block.as_ref().unwrap_or(&none);
-    let bat = At::root().key(field!(BlockFile, block));
     let p = &mut entry.block;
     p.kind = k.name.clone();
     p.base = b.base.clone();
     p.set = b.set.clone();
     p.press_ticks = b.press_ticks;
     p.mobs_only = b.triggered_by == Some(TriggeredBy::Mobs);
-    let own = [
-        (field!(Props, shape), b.shape.is_some()),
-        (field!(Props, connect_groups), !b.connect_groups.is_empty()),
-        (field!(Props, inventory), b.inventory.is_some()),
-        (field!(Props, redstone), b.redstone),
-        (field!(Props, powered), b.powered.is_some()),
-        (field!(Props, comparator), b.comparator.is_some()),
-        (field!(Props, accepts_items), b.accepts_items),
-    ];
-    for (field, _) in own.iter().filter(|(_, given)| *given) {
-        cx.err_at(
-            loc,
-            &bat.key(field),
-            format!("{field} doesn't go with kind {} (the game's block)", k.name),
-        );
-    }
-    if parts.states.is_some() {
-        cx.err_at(
-            loc,
-            &At::root().key(field!(BlockFile, states)),
-            format!("kind {} has the game's states — leave states out", k.name),
-        );
-    }
-    if k.takes(field!(Props, base)) && b.base.is_none() {
-        cx.err_at(
-            loc,
-            &bat,
-            format!(
-                "kind {} is made from a block — base: \"@block:mymod:planks\"",
-                k.name
-            ),
-        );
-    }
-}
-
-/// The `block` fields only some kinds take, taken only by them.
-fn check_kind_fields(cx: &mut Ctx, loc: Loc, b: &Props, kind_of: Option<&BlockKind>) {
-    let bat = At::root().key(field!(BlockFile, block));
-    let given = [
-        (field!(Props, base), b.base.is_some()),
-        (field!(Props, set), b.set.is_some()),
-        (field!(Props, press_ticks), b.press_ticks.is_some()),
-        (field!(Props, triggered_by), b.triggered_by.is_some()),
-    ];
-    for (field, _) in given.iter().filter(|(_, given)| *given) {
-        match kind_of {
-            Some(k) if k.takes(field) => {}
-            Some(k) => cx.err_at(
-                loc,
-                &bat.key(field),
-                format!("kind {} doesn't take {field}", k.name),
-            ),
-            None => cx.err_at(
-                loc,
-                &bat.key(field),
-                "only a block of a kind takes it (kind: \"stairs\", \"door\"…)",
-            ),
-        }
-    }
 }
 
 /// The item form: the block model (`parent`), or its own.
