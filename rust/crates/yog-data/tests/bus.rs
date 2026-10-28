@@ -112,7 +112,7 @@ fn streams_go_whole_and_read_lazily() {
     let back: Area = yog_data::read_bytes(&bytes).unwrap();
     assert_eq!(back, area);
     assert_eq!(
-        back.blocks.iter().nth(3),
+        back.blocks.iter().nth(3).transpose().unwrap(),
         Some(Placed {
             id: "minecraft:dirt".into(),
             count: 3
