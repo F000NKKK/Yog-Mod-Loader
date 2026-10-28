@@ -157,7 +157,12 @@ public final class State {
     }
 
     /** The world saving writes them; a player leaving writes and drops theirs. */
+    /** The shared dispatchers, once: the loader's own ({@link dev.yog.Generations#unowned}), not the mod's that first needs them. */
     private static void listen() {
+        dev.yog.Generations.unowned(State::listenOnce);
+    }
+
+    private static void listenOnce() {
         if (listening) {
             return;
         }

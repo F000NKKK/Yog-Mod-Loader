@@ -78,7 +78,12 @@ public abstract class BlockObject {
         }
     }
 
+    /** The shared dispatchers, once: the loader's own ({@link dev.yog.Generations#unowned}), not the mod's that first needs them. */
     private static void listen() {
+        dev.yog.Generations.unowned(BlockObject::listenOnce);
+    }
+
+    private static void listenOnce() {
         YogEvents.Block.Use.on(0, e -> {
             raised(found(e.blockId(), At.of(e.dimension(), e.pos())), o -> o.Use, e.playerName());
             return null;

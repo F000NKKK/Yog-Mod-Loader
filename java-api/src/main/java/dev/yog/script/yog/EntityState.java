@@ -80,7 +80,12 @@ final class EntityState {
         new YogServices.Entity.SetData(at.uuid(), State.modKey(at.mod(), key), new YogTypes.DataValue(bytes), persist).call();
     }
 
+    /** The shared dispatchers, once: the loader's own ({@link dev.yog.Generations#unowned}), not the mod's that first needs them. */
     private static void listen() {
+        dev.yog.Generations.unowned(EntityState::listenOnce);
+    }
+
+    private static void listenOnce() {
         if (listening) {
             return;
         }

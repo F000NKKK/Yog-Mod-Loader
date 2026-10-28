@@ -100,6 +100,10 @@ public final class Scheduler {
      * the game runs (the bus is the game's).
      */
     public static void listen() {
+        dev.yog.Generations.unowned(Scheduler::listenOnce);
+    }
+
+    private static void listenOnce() {
         // What's started while the mods load (a mod's constructor) waits on
         // the loading thread: the client's, where a client runs; else (a
         // dedicated server) the server's ticks drive it.

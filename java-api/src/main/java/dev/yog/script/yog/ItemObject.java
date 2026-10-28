@@ -28,7 +28,8 @@ public abstract class ItemObject {
         boolean first = MAKERS.isEmpty();
         MAKERS.put(id, make);
         if (first) {
-            YogEvents.Player.Action.UseItem.on(0, e -> {
+            // The loader's own dispatcher, not the first mod's (dev.yog.Generations#unowned).
+            dev.yog.Generations.unowned(() -> YogEvents.Player.Action.UseItem.on(0, e -> {
                 Supplier<? extends ItemObject> m = MAKERS.get(e.itemId());
                 if (m != null) {
                     try {
@@ -49,7 +50,7 @@ public abstract class ItemObject {
                     }
                 }
                 return null;
-            });
+            }));
         }
     }
 

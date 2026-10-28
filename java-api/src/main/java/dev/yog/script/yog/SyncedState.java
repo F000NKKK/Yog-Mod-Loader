@@ -135,7 +135,12 @@ public final class SyncedState {
         }
     }
 
+    /** The shared dispatchers, once: the loader's own ({@link dev.yog.Generations#unowned}), not the mod's that first needs them. */
     private static void listen() {
+        dev.yog.Generations.unowned(SyncedState::listenOnce);
+    }
+
+    private static void listenOnce() {
         if (listening) {
             return;
         }

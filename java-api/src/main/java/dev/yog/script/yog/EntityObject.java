@@ -56,7 +56,12 @@ public abstract class EntityObject {
         }
     }
 
+    /** The shared dispatchers, once: the loader's own ({@link dev.yog.Generations#unowned}), not the mod's that first needs them. */
     private static void listen() {
+        dev.yog.Generations.unowned(EntityObject::listenOnce);
+    }
+
+    private static void listenOnce() {
         YogEvents.Entity.Life.Spawn.on(0, e -> {
             raised(found(e.entityType(), e.uuid(), e.dimension()), o -> o.Spawn.handlers().forEach(Action::Invoke));
             return null;

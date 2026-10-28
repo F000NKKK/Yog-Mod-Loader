@@ -40,6 +40,16 @@ public final class Generations {
         }
     }
 
+    /** {@code body} run as the loader's own code: what it registers (a
+     * dispatcher every mod shares, made as the first one needs it) is no
+     * mod's, so no mod's reload unsubscribes it. */
+    public static void unowned(Runnable body) {
+        within(null, () -> {
+            body.run();
+            return null;
+        });
+    }
+
     /** {@code owner} replaced by a newer generation: its bus handlers
      * unsubscribed ({@link YogBus#retire}), anything of it still queued (a
      * task's continuation) no longer run. */
