@@ -39,15 +39,21 @@ pub(in crate::content) fn compile_recipe(
     let doc = parse(cx, text)?;
     let loc_fn = |p: &At| doc.locate(text, p).line as usize;
     let loc: Loc = &loc_fn;
+    // Fine while nothing it says is a problem.
+    let problems = cx.errors.len();
     let read = match yog_data::schema::from_doc::<RecipeFile>(text, &doc) {
-        Ok(r) => r,
+        Ok(r) => {
+            // The file's own rules (yog_formats::rules), as an editor shows them.
+            let mut broken = Vec::new();
+            yog_formats::rules::Rules::rules(&r.value, &mut broken);
+            cx.broken_rules(&loc_fn, broken);
+            r
+        }
         Err(errors) => {
             cx.schema_errors(errors);
             return None;
         }
     };
-    // Fine while nothing it says is a problem.
-    let problems = cx.errors.len();
     names_there(
         cx,
         loc,
@@ -57,12 +63,11 @@ pub(in crate::content) fn compile_recipe(
     );
     let RecipeFile { common: c, body } = read.value;
     let ty = body.kind().to_string();
-    let root = At::root();
     let id = check_common(cx, loc, &c, path, against.mod_ns)?;
     let kind = match body {
-        Body::Shaped(s) => body::shaped(cx, loc, s)?,
-        Body::Shapeless(s) => body::shapeless(cx, loc, &s)?,
-        Body::Cooking(ty, k) => body::cooking(cx, loc, &ty, k)?,
+        Body::Shaped(s) => body::shaped(s),
+        Body::Shapeless(s) => body::shapeless(&s),
+        Body::Cooking(ty, k) => body::cooking(&ty, k)?,
         Body::Stonecutting(k) => RecipeKind::Stonecutting(yog_formats::recipe::ids(&k.ingredient)),
         Body::Smithing(k) => RecipeKind::Smithing {
             template: yog_formats::recipe::ids(&k.template),
@@ -70,7 +75,6 @@ pub(in crate::content) fn compile_recipe(
             addition: yog_formats::recipe::ids(&k.addition),
         },
         Body::Brewing(k) => {
-            body::brewing(cx, loc, &c);
             let brew = yog_registry::Brew {
                 from: k.from,
                 with: k.ingredient,
@@ -80,13 +84,7 @@ pub(in crate::content) fn compile_recipe(
             }
             return None;
         }
-        Body::Custom(kind, k) => {
-            if c.category.is_some() {
-                let at = root.key(field!(Common, category));
-                cx.err(loc(&at), format!("category is for the game's recipe types; {kind} takes \"slots\" and \"values\""));
-            }
-            custom::custom(cx, loc, kind, &k, against)?
-        }
+        Body::Custom(kind, k) => custom::custom(cx, loc, kind, &k, against)?,
     };
     (cx.errors.len() == problems).then(|| Recipe {
         id,

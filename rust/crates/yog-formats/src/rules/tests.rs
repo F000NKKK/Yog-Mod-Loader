@@ -298,3 +298,38 @@ fn a_blocks_fields_go_with_its_kind() {
     );
     assert!(block_props("stairs", r#"{ base: "@block:m:planks" }"#).is_empty());
 }
+
+#[test]
+fn a_recipe_body_keeps_the_game_bounds() {
+    let bad = found(
+        Format::Recipe,
+        r#"{ type: "shaped", result: "@item:minecraft:stone", pattern: ["ab"], key: { a: "@item:minecraft:dirt" } }"#,
+    );
+    assert!(
+        bad.iter().any(|m| m.contains("which key doesn't define")),
+        "{bad:?}"
+    );
+    let empty = found(
+        Format::Recipe,
+        r#"{ type: "shapeless", result: "@item:minecraft:stone", ingredients: [] }"#,
+    );
+    assert!(
+        empty.iter().any(|m| m.contains("ingredients must be")),
+        "{empty:?}"
+    );
+    let hot = found(
+        Format::Recipe,
+        r#"{ type: "smelting", result: "@item:minecraft:stone", ingredient: "@item:minecraft:dirt", experience: 5000.0 }"#,
+    );
+    assert!(hot.iter().any(|m| m.contains("experience")), "{hot:?}");
+    let brew = found(
+        Format::Recipe,
+        r#"{ type: "brewing", result: "@item:minecraft:potion", count: 2, from: "@item:minecraft:potion", ingredient: "@item:minecraft:sugar" }"#,
+    );
+    assert!(brew.iter().any(|m| m.contains("one potion")), "{brew:?}");
+    let fine = found(
+        Format::Recipe,
+        r#"{ type: "shaped", result: "@item:minecraft:stone", pattern: ["a"], key: { a: "@item:minecraft:dirt" } }"#,
+    );
+    assert!(fine.is_empty(), "{fine:?}");
+}

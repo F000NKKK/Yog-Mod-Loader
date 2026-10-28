@@ -9,6 +9,7 @@ mod element;
 mod item;
 mod kind;
 mod model;
+mod recipe;
 mod states;
 
 use yog_data::{Atom, Diagnostic, Path};
@@ -36,7 +37,6 @@ macro_rules! no_rules {
 
 no_rules!(
     yog_registry::EntityDef,
-    crate::recipe::RecipeFile,
     crate::sound::SoundFile,
     yog_registry::Particle,
     crate::video::Video,
