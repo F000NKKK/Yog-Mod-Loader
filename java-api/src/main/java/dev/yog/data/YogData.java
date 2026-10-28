@@ -1,56 +1,51 @@
 package dev.yog.data;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import substrate.data.Binary;
+import substrate.data.Bool;
+import substrate.data.Bytes;
+import substrate.data.Int;
+import substrate.data.ListValue;
+import substrate.data.MapValue;
+import substrate.data.Null;
+import substrate.data.Ref;
+import substrate.data.Str;
+import substrate.data.Text;
+import substrate.data.Value;
 
 /**
- * Yog Data's binary form, Substrate Data's (the Rust crate {@code substrate-data}, module
- * {@code binary}): the one format content crosses between the native
- * runtime and the hosts in. Pure Java, no Minecraft types — every host
- * shares it.
+ * Yog Data as the hosts hold it: Substrate Data's binary form (its Java port,
+ * {@code substrate.data}, reads and writes it) with plain Java values. Pure
+ * Java, no Minecraft types — every host shares it.
  *
  * <p>Values decode to: {@code null}, {@link Boolean}, {@link Long},
- * {@link Double}, {@link String}, {@link List}, {@link Map} (insertion
- * ordered), and {@link Ref}. {@link #encode} takes the
- * same (plus {@link Integer}/{@link Float}) and writes exactly what the
- * Rust encoder writes for the same value.
+ * {@link Double}, {@link String} (as spelled: plain text starting with
+ * {@code @} has it doubled), {@link List}, {@link Map} (insertion ordered),
+ * {@link Ref} and {@code byte[]}. {@link #encode} takes the same (plus
+ * {@link Integer}, {@link Short}, {@link Byte}, {@link Float}) and writes
+ * what the Rust encoder writes for the same value.
  */
 public final class YogData {
     private YogData() {}
 
-    /** Substrate Data's binary form ({@code substrate_data::binary::MAGIC}, {@code VERSION}). */
-    public static final byte[] MAGIC = {'S', 'D', 'A', 'T'};
-    public static final int VERSION = 1;
     /** Nested deeper than this is malformed. */
-    public static final int MAX_DEPTH = 256;
+    public static final int MAX_DEPTH = Binary.MAX_DEPTH;
 
-    /** What a typed value's spelling starts with, and what ends its kind ({@code @item:x}). */
-    private static final String TYPED = dev.yog.YogNames.Sep.TYPED, KIND_END = dev.yog.YogNames.Sep.NAMESPACE;
-
-    /** A string's varint: a new one's is odd (its length), a reference even (its index). */
-    private static final long NEW_STRING = 1;
-
-    private static final int NULL = 0, FALSE = 1, TRUE = 2, INT = 3, FLOAT = 4, STR = 5, LIST = 6, MAP = 7,
-            REF = 8, BYTES = 9,
-            /** A list of ints, packed: no tag each. */
-            INTS = 10,
-            /** A list in a body of its own: a u32 length, then its count and values with their own strings. */
-            STREAM = 11,
-            /** A 32-bit float; lists of floats and of 32-bit floats, packed (no tag each). */
-            FLOAT32 = 12, FLOATS = 13, FLOATS32 = 14;
-
-    /** A reference: its kind ({@code item}, {@code tag}, {@code res}, ...) and id. */
-    public record Ref(String kind, String id) {}
+    /** What a typed value's spelling starts with ({@code @item:x}). */
+    private static final String TYPED = dev.yog.YogNames.Sep.TYPED;
 
     /** Malformed binary data. */
     public static final class DecodeException extends RuntimeException {
         public final int offset;
+
+        DecodeException(substrate.data.DecodeException cause) {
+            super(cause.getMessage(), cause);
+            this.offset = cause.offset();
+        }
 
         DecodeException(String message, int offset) {
             super("byte " + offset + ": " + message);
@@ -58,304 +53,86 @@ public final class YogData {
         }
     }
 
-    // ── Decoding ─────────────────────────────────────────────────────────
+    // ── The binary form ──────────────────────────────────────────────────
 
     /** Reads the binary form; throws {@link DecodeException} on malformed bytes. */
     public static Object decode(byte[] bytes) {
-        Reader r = new Reader(bytes);
-        for (int i = 0; i < 4; i++) {
-            if (bytes.length <= i || bytes[i] != MAGIC[i]) throw new DecodeException("not Yog Data (no `SDAT` header)", 0);
+        try {
+            return plain(Binary.decode(bytes));
+        } catch (substrate.data.DecodeException e) {
+            throw new DecodeException(e);
         }
-        r.i = 4;
-        int version = r.u8();
-        if (version != VERSION) throw new DecodeException("Yog Data version " + version + ", this reads version " + VERSION, 4);
-        Object v = r.value(0);
-        if (r.i != bytes.length) throw new DecodeException("bytes after the value", r.i);
-        return v;
     }
 
     /** A value's binary form without the header: what a frame holds of a value it doesn't pack ({@link YogFrame}). */
     public static Object decodeBody(byte[] bytes) {
-        Reader r = new Reader(bytes);
-        Object v = r.value(0);
-        if (r.i != bytes.length) throw new DecodeException("bytes after the value", r.i);
-        return v;
-    }
-
-    private static final class Reader {
-        final byte[] b;
-        int i;
-        /** The strings met so far: a string is written where first used, referred to after. */
-        final List<String> strings = new ArrayList<>();
-
-        Reader(byte[] b) {
-            this.b = b;
-        }
-
-        int u8() {
-            if (i >= b.length) throw new DecodeException("unexpected end", i);
-            return b[i++] & 0xFF;
-        }
-
-        long varint() {
-            long n = 0;
-            for (int shift = 0; shift < 64; shift += 7) {
-                int x = u8();
-                n |= (long) (x & 0x7F) << shift;
-                if ((x & 0x80) == 0) return n;
-            }
-            throw new DecodeException("varint longer than 64 bits", i);
-        }
-
-        int count(int min) {
-            long n = varint();
-            int left = b.length - i;
-            if (n < 0 || n > left / Math.max(1, min)) throw new DecodeException("length " + n + " past the end (" + left + " bytes left)", i);
-            return (int) n;
-        }
-
-        String string() {
-            long v = varint();
-            if ((v & NEW_STRING) != 0) {
-                long len = v >>> 1;
-                if (len > b.length - i) throw new DecodeException("length " + len + " past the end (" + (b.length - i) + " bytes left)", i);
-                String s = new String(b, i, (int) len, StandardCharsets.UTF_8);
-                i += (int) len;
-                strings.add(s);
-                return s;
-            }
-            long s = v >>> 1;
-            if (s >= strings.size()) throw new DecodeException("string " + s + " isn't in the table", i);
-            return strings.get((int) s);
-        }
-
-        long fixed(int n) {
-            if (i + n > b.length) throw new DecodeException("unexpected end", i);
-            long v = 0;
-            for (int k = 0; k < n; k++) v |= (long) (b[i + k] & 0xFF) << (8 * k);
-            i += n;
-            return v;
-        }
-
-        Object value(int depth) {
-            if (depth > MAX_DEPTH) throw new DecodeException("nested deeper than " + MAX_DEPTH + " levels", i);
-            int tag = u8();
-            switch (tag) {
-                case NULL: return null;
-                case FALSE: return Boolean.FALSE;
-                case TRUE: return Boolean.TRUE;
-                case INT: {
-                    long z = varint();
-                    return (z >>> 1) ^ -(z & 1);
-                }
-                case FLOAT: return Double.longBitsToDouble(fixed(8));
-                case FLOAT32: return (double) Float.intBitsToFloat((int) fixed(4));
-                case FLOATS:
-                case FLOATS32: {
-                    int width = tag == FLOATS ? 8 : 4;
-                    int n = count(width);
-                    List<Object> list = new ArrayList<>(n);
-                    for (int k = 0; k < n; k++) {
-                        long bits = fixed(width);
-                        list.add(tag == FLOATS ? Double.longBitsToDouble(bits) : (double) Float.intBitsToFloat((int) bits));
-                    }
-                    return list;
-                }
-                case STR: return string();
-                case LIST: {
-                    int n = count(1);
-                    List<Object> list = new ArrayList<>(n);
-                    for (int k = 0; k < n; k++) list.add(value(depth + 1));
-                    return list;
-                }
-                case MAP: {
-                    int n = count(2);
-                    Map<String, Object> map = new LinkedHashMap<>(n * 2);
-                    for (int k = 0; k < n; k++) {
-                        String key = string();
-                        map.put(key, value(depth + 1));
-                    }
-                    return map;
-                }
-                case INTS: {
-                    int n = count(1);
-                    List<Object> list = new ArrayList<>(n);
-                    for (int k = 0; k < n; k++) {
-                        long z = varint();
-                        list.add((z >>> 1) ^ -(z & 1));
-                    }
-                    return list;
-                }
-                case STREAM: {
-                    int len = (int) fixed(4);
-                    if (len < 0 || len > b.length - i) throw new DecodeException("stream of " + len + " bytes past the end", i);
-                    Reader body = new Reader(java.util.Arrays.copyOfRange(b, i, i + len));
-                    i += len;
-                    int n = body.count(1);
-                    List<Object> list = new ArrayList<>(n);
-                    for (int k = 0; k < n; k++) list.add(body.value(depth + 1));
-                    if (body.i != body.b.length) throw new DecodeException("bytes after a stream's values", i);
-                    return list;
-                }
-                case REF: return new Ref(string(), string());
-                case BYTES: {
-                    int n = count(1);
-                    byte[] bytes = java.util.Arrays.copyOfRange(b, i, i + n);
-                    i += n;
-                    return bytes;
-                }
-                default: throw new DecodeException("unknown tag " + tag, i - 1);
-            }
+        try {
+            return plain(Binary.decodeBody(bytes));
+        } catch (substrate.data.DecodeException e) {
+            throw new DecodeException(e);
         }
     }
-
-    // ── Encoding ─────────────────────────────────────────────────────────
 
     /** {@code value} in the binary form. */
     public static byte[] encode(Object value) {
-        Writer w = new Writer();
-        w.body.writeBytes(MAGIC);
-        w.body.write(VERSION);
-        w.value(value);
-        return w.body.toByteArray();
+        return Binary.encode(value(value));
     }
 
     /** {@code value}'s binary form without the header ({@link #decodeBody}). */
     public static byte[] encodeBody(Object value) {
-        Writer w = new Writer();
-        w.value(value);
-        return w.body.toByteArray();
+        return Binary.encodeBody(value(value));
     }
 
-    private static final class Writer {
-        final ByteArrayOutputStream body = new ByteArrayOutputStream();
-        /** The strings written so far, by their index: written once, referred to after. */
-        final Map<String, Integer> index = new HashMap<>();
-
-        void string(String s) {
-            Integer i = index.get(s);
-            if (i != null) {
-                varint(body, (long) i << 1);
-                return;
-            }
-            index.put(s, index.size());
-            byte[] utf8 = s.getBytes(StandardCharsets.UTF_8);
-            varint(body, ((long) utf8.length << 1) | NEW_STRING);
-            body.writeBytes(utf8);
+    /** {@code v} (Substrate's model) as a plain Java value. */
+    private static Object plain(Value v) {
+        if (v instanceof Bool b) return b.value();
+        if (v instanceof Int i) return i.value();
+        if (v instanceof substrate.data.Float f) return f.value();
+        if (v instanceof Str s) return s.value();
+        if (v instanceof Bytes b) return b.data();
+        if (v instanceof Ref r) return r;
+        if (v instanceof ListValue l) {
+            List<Object> out = new ArrayList<>(l.items().size());
+            for (Value item : l.items()) out.add(plain(item));
+            return out;
         }
-
-        void fixed(long v, int n) {
-            for (int k = 0; k < n; k++) body.write((int) (v >>> (8 * k)) & 0xFF);
+        if (v instanceof MapValue m) {
+            Map<String, Object> out = new LinkedHashMap<>(m.entries().size() * 2);
+            for (MapValue.Entry e : m.entries()) out.put(e.key(), plain(e.value()));
+            return out;
         }
-
-        void value(Object v) {
-            if (v == null) {
-                body.write(NULL);
-            } else if (v instanceof Boolean bool) {
-                body.write(bool ? TRUE : FALSE);
-            } else if (v instanceof Long || v instanceof Integer || v instanceof Short || v instanceof Byte) {
-                long n = ((Number) v).longValue();
-                body.write(INT);
-                varint(body, (n << 1) ^ (n >> 63));
-            } else if (v instanceof Double || v instanceof Float) {
-                body.write(FLOAT);
-                fixed(Double.doubleToRawLongBits(((Number) v).doubleValue()), 8);
-            } else if (v instanceof String s) {
-                body.write(STR);
-                string(s);
-            } else if (v instanceof List<?> list) {
-                body.write(LIST);
-                varint(body, list.size());
-                for (Object item : list) value(item);
-            } else if (v instanceof Map<?, ?> map) {
-                body.write(MAP);
-                varint(body, map.size());
-                for (Map.Entry<?, ?> e : map.entrySet()) {
-                    string((String) e.getKey());
-                    value(e.getValue());
-                }
-            } else if (v instanceof Ref r) {
-                body.write(REF);
-                string(r.kind());
-                string(r.id());
-            } else if (v instanceof byte[] bytes) {
-                body.write(BYTES);
-                varint(body, bytes.length);
-                body.write(bytes, 0, bytes.length);
-            } else {
-                throw new IllegalArgumentException("not a Yog Data value: " + v.getClass().getName());
-            }
-        }
+        return null;
     }
 
-    private static void varint(ByteArrayOutputStream out, long n) {
-        while ((n & ~0x7FL) != 0) {
-            out.write((int) (n & 0x7F) | 0x80);
-            n >>>= 7;
+    /** Plain Java value {@code v} in Substrate's model. */
+    private static Value value(Object v) {
+        if (v == null) return Null.INSTANCE;
+        if (v instanceof Boolean b) return new Bool(b);
+        if (v instanceof Long || v instanceof Integer || v instanceof Short || v instanceof Byte) {
+            return new Int(((Number) v).longValue());
         }
-        out.write((int) n);
+        if (v instanceof Double || v instanceof Float) return new substrate.data.Float(((Number) v).doubleValue());
+        if (v instanceof String s) return new Str(s);
+        if (v instanceof byte[] b) return new Bytes(b);
+        if (v instanceof Ref r) return r;
+        if (v instanceof List<?> list) {
+            List<Value> items = new ArrayList<>(list.size());
+            for (Object item : list) items.add(value(item));
+            return new ListValue(items);
+        }
+        if (v instanceof Map<?, ?> map) {
+            List<MapValue.Entry> entries = new ArrayList<>(map.size());
+            for (Map.Entry<?, ?> e : map.entrySet()) entries.add(new MapValue.Entry((String) e.getKey(), value(e.getValue())));
+            return new MapValue(entries);
+        }
+        throw new IllegalArgumentException("not a Yog Data value: " + v.getClass().getName());
     }
 
     // ── JSON ─────────────────────────────────────────────────────────────
 
-    /** {@code v} as JSON text (typed values as their string forms: {@code "@item:minecraft:stick"}). */
+    /** {@code v} as JSON text (Substrate's text form, compact): a reference as its spelling. */
     public static String toJson(Object v) {
-        StringBuilder out = new StringBuilder();
-        json(v, out);
-        return out.toString();
-    }
-
-    private static void json(Object v, StringBuilder out) {
-        if (v == null) {
-            out.append("null");
-        } else if (v instanceof Boolean || v instanceof Long || v instanceof Integer) {
-            out.append(v);
-        } else if (v instanceof Double d) {
-            out.append(d.isNaN() || d.isInfinite() ? "null" : (d == Math.rint(d) && Math.abs(d) < 1e15 ? String.valueOf(d.longValue()) + ".0" : String.valueOf(d)));
-        } else if (v instanceof String s) {
-            quote(s, out);
-        } else if (v instanceof List<?> l) {
-            out.append('[');
-            for (int i = 0; i < l.size(); i++) {
-                if (i > 0) out.append(',');
-                json(l.get(i), out);
-            }
-            out.append(']');
-        } else if (v instanceof Map<?, ?> m) {
-            out.append('{');
-            boolean first = true;
-            for (Map.Entry<?, ?> e : m.entrySet()) {
-                if (!first) out.append(',');
-                first = false;
-                quote(String.valueOf(e.getKey()), out);
-                out.append(':');
-                json(e.getValue(), out);
-            }
-            out.append('}');
-        } else if (v instanceof Ref r) {
-            quote(TYPED + r.kind() + KIND_END + r.id(), out);
-        } else {
-            quote(String.valueOf(v), out);
-        }
-    }
-
-    private static void quote(String s, StringBuilder out) {
-        out.append('"');
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '"' -> out.append("\\\"");
-                case '\\' -> out.append("\\\\");
-                case '\n' -> out.append("\\n");
-                case '\r' -> out.append("\\r");
-                case '\t' -> out.append("\\t");
-                default -> {
-                    if (c < 0x20) out.append(String.format("\\u%04x", (int) c));
-                    else out.append(c);
-                }
-            }
-        }
-        out.append('"');
+        return Text.write(value(v));
     }
 
     // ── Reading values ───────────────────────────────────────────────────

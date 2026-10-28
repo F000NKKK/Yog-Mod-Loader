@@ -11,6 +11,10 @@ plugins {
 
 group = 'dev.yog'
 
+apply from: 'substrate.gradle'
+
+sourceSets.main.java.srcDir substrateDataJava
+
 repositories {
     mavenCentral()
 }

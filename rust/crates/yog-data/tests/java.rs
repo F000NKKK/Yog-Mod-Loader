@@ -25,6 +25,17 @@ fn gson() -> PathBuf {
         .expect("gson in the Gradle cache (build a host once)")
 }
 
+/// Substrate Data's Java port, from its sibling checkout (as `java-api/substrate.gradle` has it).
+const SUBSTRATE_JAVA: &str = "../../../../../Substrate-Data/ports/java/src/main/java";
+
+/// Every `.java` under `dir`.
+fn java_files(dir: &Path) -> Vec<PathBuf> {
+    walk(dir)
+        .into_iter()
+        .filter(|p| p.extension().is_some_and(|e| e == "java"))
+        .collect()
+}
+
 fn walk(dir: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
@@ -103,6 +114,8 @@ fn java_reads_and_writes_the_same_bytes() {
         .arg(root.join("../../../java-api/src/main/java/dev/yog/data/YogData.java"))
         // The words it spells typed values with.
         .arg(root.join("../../../java-api/src/main/java/dev/yog/YogNames.java"))
+        // Substrate Data's Java port, which YogData reads and writes through.
+        .args(java_files(&root.join(SUBSTRATE_JAVA)))
         .arg(root.join("tests/java/RoundTrip.java"))
         .status()
         .expect("javac");

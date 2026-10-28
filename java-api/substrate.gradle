@@ -1,0 +1,5 @@
+// Substrate Data's Java port (Substrate-Data/ports/java): Yog Data's binary
+// form on the JVM, compiled into whatever builds the API (java-api's jar,
+// every loader's). From the sibling checkout, as Substrate-Platform is
+// for IDLE: ~/Projects/Substrate-Data beside ~/Projects/yog.
+ext.substrateDataJava = new File(buildscript.sourceFile.parentFile, '../../../Substrate-Data/ports/java/src/main/java').canonicalFile

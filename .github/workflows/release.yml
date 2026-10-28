@@ -76,6 +76,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Substrate Data's Java port, compiled into every jar
+      # (java-api/substrate.gradle): where a developer's checkout has it,
+      # ../../Substrate-Data.
+      - uses: actions/checkout@v4
+        with:
+          repository: F000NKKK/Substrate-Data
+          path: substrate-data
+      - name: Substrate Data beside the loader, as on a developer's machine
+        run: ln -s "$GITHUB_WORKSPACE/substrate-data" "$GITHUB_WORKSPACE/../../Substrate-Data"
+
       - id: jdk17
         uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }

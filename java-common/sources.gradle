@@ -8,6 +8,8 @@
 
 def commonDir = buildscript.sourceFile.parentFile
 
+apply from: new File(commonDir.parentFile, 'java-api/substrate.gradle')
+
 def parts = { String v -> v.tokenize('.').collect { it as int } }
 
 // Whether version `v` is at least `lo`, and within `hi` on as many parts as `hi` names.
@@ -24,7 +26,7 @@ def inRange = { List<Integer> v, List<Integer> lo, List<Integer> hi ->
 
 ext.yogSharedSources = { String mc ->
     def v = parts(mc)
-    def dirs = [new File(commonDir.parentFile, 'java-api/src/main/java'), new File(commonDir, 'src/main/java')]
+    def dirs = [substrateDataJava, new File(commonDir.parentFile, 'java-api/src/main/java'), new File(commonDir, 'src/main/java')]
     new File(commonDir, 'mc').listFiles().findAll { it.isDirectory() }.sort { it.name }.each { d ->
         def range = d.name.split('-', 2)
         if (inRange(v, parts(range[0]), parts(range.length > 1 ? range[1] : range[0]))) dirs << new File(d, 'src/main/java')

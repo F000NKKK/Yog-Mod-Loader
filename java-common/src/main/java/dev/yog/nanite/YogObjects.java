@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * The objects the host holds for Yog mods (what reflection hands back that
  * isn't a number, text, a list or an entity), each by a number in a
- * {@link YogData.Ref} of kind {@link YogNames.NaniteRef#OBJECT}, until the
+ * {@link substrate.data.Ref} of kind {@link YogNames.NaniteRef#OBJECT}, until the
  * mod lets it go.
  */
 public final class YogObjects {
@@ -23,12 +23,12 @@ public final class YogObjects {
     private static final ThreadLocal<List<Long>> BORROWED = new ThreadLocal<>();
 
     /** {@code o} held: its reference. */
-    public static YogData.Ref hold(Object o) {
+    public static substrate.data.Ref hold(Object o) {
         long n = NEXT.getAndIncrement();
         HELD.put(n, o);
         List<Long> borrowed = BORROWED.get();
         if (borrowed != null) borrowed.add(n);
-        return new YogData.Ref(YogNames.NaniteRef.OBJECT, Long.toString(n));
+        return new substrate.data.Ref(YogNames.NaniteRef.OBJECT, Long.toString(n));
     }
 
     /**
@@ -49,7 +49,7 @@ public final class YogObjects {
     }
 
     /** The object {@code ref} names, or null when it isn't one held. */
-    public static Object of(YogData.Ref ref) {
+    public static Object of(substrate.data.Ref ref) {
         if (!ref.kind().equals(YogNames.NaniteRef.OBJECT)) return null;
         try {
             return HELD.get(Long.parseLong(ref.id()));

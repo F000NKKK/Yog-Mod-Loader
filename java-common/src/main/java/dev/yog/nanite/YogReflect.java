@@ -158,7 +158,7 @@ public final class YogReflect {
 
     /** A value from the bus as type {@code want}. */
     static Object toJava(Object v, Class<?> want) {
-        if (v instanceof YogData.Ref r) {
+        if (v instanceof substrate.data.Ref r) {
             Object held = YogObjects.of(r);
             if (held != null) return held;
             if (r.kind().equals(YogNames.Kind.ENTITY)) return YogJava.entityByUuid.apply(r.id());
@@ -191,7 +191,7 @@ public final class YogReflect {
             return out;
         }
         String uuid = YogJava.uuidOf.apply(v);
-        if (uuid != null) return new YogData.Ref(YogNames.Kind.ENTITY, uuid);
+        if (uuid != null) return new substrate.data.Ref(YogNames.Kind.ENTITY, uuid);
         return YogObjects.hold(v);
     }
 }
