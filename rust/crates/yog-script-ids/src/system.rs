@@ -25,6 +25,8 @@ pub const FOLDER_SEP: char = '/';
 pub const RESULT: &str = "Result";
 /// What an `async` method gives and `await` waits for.
 pub const TASK: &str = "Task";
+/// `Yog.GameTime`: the game's ticks (its `Delay`, `NextTick`).
+pub const GAME_TIME: &str = "GameTime";
 /// `Yog.Text`: what a player reads, a translation key and its
 /// arguments (`t"key"`'s type).
 pub const TEXT_TYPE: &str = "Text";

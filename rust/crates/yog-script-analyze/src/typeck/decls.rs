@@ -53,7 +53,10 @@ impl Checker<'_, '_, '_> {
             }
             DeclKind::Indexer(ix) => self.indexer_decl(ix, side),
             DeclKind::Operator(op) => self.method(&op.method, side, false),
-            DeclKind::Method(m) => self.method_decl(d, m, side),
+            DeclKind::Method(m) => {
+                self.saved_task(d, m);
+                self.method_decl(d, m, side)
+            }
             DeclKind::Ctor(c) => {
                 let this = self.this.clone();
                 self.within(this, side, Some(Type::Void), |ch| {

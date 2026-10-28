@@ -59,3 +59,28 @@ fn was_names_what_an_old_save_called_a_member() {
     let not_read = "extend Player {\n    public saved i32 Visits = 0 was Count: string;\n}\n";
     assert_eq!(codes(not_read), [script_problem::STATE_WAS]);
 }
+
+/// A `saved async` method (storage.md S9): waits only for delays, on an owner.
+#[test]
+fn saved_methods_wait_only_for_delays() {
+    let fine = "using System.Threading.Tasks;\n\
+                extend Player {\n\
+                    public i32 Done = 0;\n\
+                    public saved async Task Cook(i32 n) {\n\
+                        await GameTime.Delay(20);\n\
+                        await Task.Delay(1.5);\n\
+                        await GameTime.NextTick();\n\
+                        Done += n;\n\
+                    }\n\
+                }\n";
+    assert!(codes(fine).is_empty(), "{:?}", check("A.ys", fine).problems);
+    let other = "using System.Threading.Tasks;\n\
+                 extend Player {\n\
+                     public saved async Task Wait(Task t) { await t; }\n\
+                 }\n";
+    assert_eq!(codes(other), [script_problem::SAVED_TASK]);
+    let not_async = "extend Player {\n    public saved void Now() {}\n}\n";
+    assert_eq!(codes(not_async), [script_problem::SAVED_TASK]);
+    let no_owner = "using System.Threading.Tasks;\npublic class Plain {\n    public saved async Task Go() { await GameTime.NextTick(); }\n}\n";
+    assert_eq!(codes(no_owner), [script_problem::STATE_OWNER]);
+}

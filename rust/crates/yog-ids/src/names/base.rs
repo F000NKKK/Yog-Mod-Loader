@@ -385,6 +385,10 @@ names! {
         /// A `was` on a member that isn't `saved`, or naming a type the
         /// member can't be read from (storage.md S5).
         STATE_WAS = "YS0050",
+        /// A `saved` method that isn't `async`, or that awaits something a
+        /// save can't wait for again (only a delay: `Task.Delay`,
+        /// `GameTime.Delay`, `GameTime.NextTick`) — storage.md S9.
+        SAVED_TASK = "YS0051",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

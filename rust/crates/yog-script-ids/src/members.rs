@@ -124,6 +124,8 @@ pub const MAKE_UNARY: &str = "MakeUnary";
 pub const FROM_RESULT: &str = "FromResult";
 pub const YIELD_MEMBER: &str = "Yield";
 pub const DELAY: &str = "Delay";
+/// `Yog.GameTime`'s next tick (a delay of one).
+pub const NEXT_TICK: &str = "NextTick";
 pub const WHEN_ALL: &str = "WhenAll";
 pub const WHEN_ANY: &str = "WhenAny";
 pub const COMPLETED_TASK: &str = "CompletedTask";
