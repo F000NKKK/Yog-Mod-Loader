@@ -19,7 +19,8 @@ const GIT: &str = "git";
 const CHECK: &str = "check";
 /// This command: `yog data`.
 pub(super) const WORDS: &[&str] = &["data"];
-const USAGE: &str = "usage: yog data text <file> | yog data bin <file>... | yog data check <file> | yog data git";
+const USAGE: &str =
+    "usage: yog data text <file> | yog data bin <file>... | yog data check <file> | yog data git";
 /// What `.gitattributes` calls a Yog format's diff.
 const DIFF_DRIVER: &str = "ydata";
 const GITATTRIBUTES: &str = ".gitattributes";

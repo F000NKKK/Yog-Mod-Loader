@@ -221,9 +221,9 @@ pub(crate) fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
     out
 }
 
-/// What `#[derive(Schema)]` expands to: Substrate Data, whichever version
-/// yog-api's requirement picks (any, so the two are one).
-const DATA_DEP: &str = "substrate-data = \"*\"";
+/// What `#[derive(Schema)]` expands to: Substrate Data, the version this CLI
+/// (and the yog-api it pins) is built on, so a mod's lock can't hold an older one.
+const DATA_DEP: &str = concat!("substrate-data = \"", env!("SUBSTRATE_DATA_VERSION"), "\"");
 
 #[cfg(test)]
 mod tests {
