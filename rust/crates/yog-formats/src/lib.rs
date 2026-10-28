@@ -11,6 +11,7 @@ pub use media::{material, montage, particle, sound, texture, video};
 pub use screens::{binding, yui};
 pub mod book;
 pub mod content;
+pub mod rules;
 
 use yog_data::Diagnostic;
 use yog_data::{Schema, Shape, Value};
@@ -116,7 +117,14 @@ pub fn shape(format: Format) -> Option<Shape> {
 /// path (none for a format without a shape).
 #[must_use]
 pub fn problems(format: Format, value: &Value) -> Vec<Diagnostic> {
-    with_type!(format, T => yog_data::from_value::<T>(value).err().unwrap_or_default(), else Vec::new())
+    with_type!(format, T => match yog_data::from_value::<T>(value) {
+        Ok(read) => {
+            let mut out = Vec::new();
+            rules::Rules::rules(&read.value, &mut out);
+            out
+        }
+        Err(problems) => problems,
+    }, else Vec::new())
 }
 
 /// `value` as a file of `format` is read: what it says, every field it

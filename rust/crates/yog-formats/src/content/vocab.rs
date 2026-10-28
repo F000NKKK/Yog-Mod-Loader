@@ -5,9 +5,9 @@ use yog_ids::texture_slot as slot;
 use yog_ids::word::GUI;
 
 /// A block's faces, in the game's order.
-pub(crate) const DIRECTIONS: &[&str] = yog_ids::direction::ALL_VALUES;
+pub const DIRECTIONS: &[&str] = yog_ids::direction::ALL_VALUES;
 /// Where an item's model is shown: its `display` transforms.
-pub(crate) const DISPLAY_SLOTS: [&str; 8] = [
+pub const DISPLAY_SLOTS: [&str; 8] = [
     "thirdperson_righthand",
     "thirdperson_lefthand",
     "firstperson_righthand",
@@ -21,16 +21,17 @@ pub(crate) const DISPLAY_SLOTS: [&str; 8] = [
 pub const RENDER_LAYERS: [&str; 4] = ["solid", "cutout", "cutout_mipped", "translucent"];
 
 /// A model template — `"parent": "cube_all"` — and the texture slots it takes.
-pub(crate) struct Template {
-    pub(crate) name: &'static str,
+#[derive(Debug)]
+pub struct Template {
+    pub name: &'static str,
     /// The vanilla model it compiles to.
-    pub(crate) parent: &'static str,
+    pub parent: &'static str,
     /// Its texture slots; for item sprites, `layer0` (more layers allowed).
-    pub(crate) slots: &'static [&'static str],
+    pub slots: &'static [&'static str],
     /// An item sprite template (`generated`, `handheld`) — item models only.
-    pub(crate) sprite: bool,
+    pub sprite: bool,
     /// The parent model defines `particle` itself.
-    pub(crate) has_particle: bool,
+    pub has_particle: bool,
 }
 
 /// A template named as the game's model it compiles to, `<dir><name>`.
@@ -52,7 +53,7 @@ macro_rules! template {
 /// A sprite item's slots: its first layer.
 const SPRITE_SLOTS: &[&str] = &[yog_ids::model::LAYER0];
 
-pub(crate) const TEMPLATES: &[Template] = &[
+pub const TEMPLATES: &[Template] = &[
     template!(BLOCK_DIR, "cube_all", &[slot::ALL], sprite: false, particle: true),
     template!(BLOCK_DIR, "cube_column", &[slot::END, slot::SIDE], sprite: false, particle: true),
     template!(BLOCK_DIR, "cube_bottom_top", &[slot::TOP, slot::BOTTOM, slot::SIDE], sprite: false, particle: true),
@@ -64,6 +65,6 @@ pub(crate) const TEMPLATES: &[Template] = &[
 ];
 
 /// The template named `name`.
-pub(crate) fn template(name: &str) -> Option<&'static Template> {
+pub fn template(name: &str) -> Option<&'static Template> {
     TEMPLATES.iter().find(|t| t.name == name)
 }

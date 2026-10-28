@@ -16,7 +16,7 @@ use super::fields as f;
 use super::model::{clamp_coord, numbers, rounded, snap_angle, template_of};
 use super::target::Target;
 use crate::content::valid_path;
-use crate::content::vocab::{DIRECTIONS, DISPLAY_SLOTS};
+use yog_formats::content::vocab::{DIRECTIONS, DISPLAY_SLOTS};
 
 /// The Blockbench formats that map to Minecraft models.
 const JAVA_BLOCK: &str = "java_block";

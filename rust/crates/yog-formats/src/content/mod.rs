@@ -10,6 +10,7 @@ mod item;
 mod kind;
 mod model;
 mod refs;
+pub mod vocab;
 
 pub use block::{BlockProps, BlockShape, DropCount, DropItem, Drops, RenderLayer, TriggeredBy};
 pub use item::{ArmorProps, BlockItemProps, Food, HangsProps, ItemProps, PotionProps, ToolProps};

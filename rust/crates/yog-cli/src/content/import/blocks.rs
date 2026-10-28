@@ -8,7 +8,7 @@ use super::fields as f;
 use super::model::{convert_model, default_ns, state_rotations};
 use super::pack::{Models, Pack};
 use super::target::Target;
-use crate::content::vocab::RENDER_LAYERS;
+use yog_formats::content::vocab::RENDER_LAYERS;
 use yog_ids::kind::{BLOCK, ITEM};
 use yog_ids::sep::PATH;
 

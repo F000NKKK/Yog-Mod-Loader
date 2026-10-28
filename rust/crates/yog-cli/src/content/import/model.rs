@@ -11,7 +11,7 @@ use super::fields as f;
 use super::pack::{Models, Pack};
 use super::target::Target;
 use crate::content::valid_path;
-use crate::content::vocab::{DIRECTIONS, TEMPLATES, Template, template};
+use yog_formats::content::vocab::{DIRECTIONS, TEMPLATES, Template, template};
 
 /// How many parents a model may go through before it's a mistake.
 const MAX_PARENTS: usize = 16;

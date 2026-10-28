@@ -26,13 +26,12 @@ pub(crate) mod pipeline;
 mod import;
 pub(crate) use import::font_copy_path;
 pub(crate) mod refs;
-mod vocab;
 
 pub use import::{Imported, import_command};
 pub use pipeline::compile::compile;
 pub use pipeline::outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
 pub use pipeline::source::{GENERATED_PARTS_DIR, Source, write_source};
-pub(crate) use vocab::TEMPLATES;
+pub(crate) use yog_formats::content::vocab::TEMPLATES;
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};

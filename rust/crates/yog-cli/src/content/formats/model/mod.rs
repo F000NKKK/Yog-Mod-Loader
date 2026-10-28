@@ -13,8 +13,8 @@ use yog_ids::model as m;
 use yog_ids::units::BLOCK_PIXELS;
 
 use crate::content::pipeline::ctx::{Ctx, Loc};
-use crate::content::vocab::{TEMPLATES, Template, template};
 use crate::content::{num_value, valid_id};
+use yog_formats::content::vocab::{TEMPLATES, Template, template};
 
 pub(in crate::content) use kind::{KindBlock, kind_models, with_render_type};
 pub(in crate::content) use state::{state_properties, turn, variant};
@@ -239,17 +239,8 @@ fn elements(
         }
         return None;
     };
+    // Elements beside a template are yog_formats::rules' to report.
     let here = at.key(field!(YogModel, elements));
-    if let Parent::Template(t) = b.parent {
-        cx.err_at(
-            loc,
-            &here,
-            format!(
-                "elements replace the shape of parent {:?} — remove one of them",
-                t.name
-            ),
-        );
-    }
     let full = f64::from(BLOCK_PIXELS);
     let mut bounds: Option<[f64; 6]> = None;
     let mut written = Vec::new();

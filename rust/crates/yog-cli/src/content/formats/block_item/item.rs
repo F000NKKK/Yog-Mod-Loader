@@ -2,8 +2,8 @@
 
 use yog_data::Path as At;
 use yog_data::field;
+use yog_formats::content::ItemFile;
 use yog_formats::content::ItemProps as Props;
-use yog_formats::content::{HangsProps, ItemFile};
 
 use crate::content::formats::block_item::{Emit, Parts};
 use crate::content::formats::model::model;
@@ -21,7 +21,7 @@ pub(super) fn compile(
 ) -> Option<()> {
     let root = At::root();
     if let Some(it) = &parts.item {
-        props(cx, loc, it, entry);
+        props(it, entry);
     }
     let at = root.key(field!(ItemFile, model));
     if entry.potion.is_some() {
@@ -45,9 +45,8 @@ pub(super) fn compile(
 }
 
 /// What the item is — stack, durability, fuel, food, a tool or armor, worn,
-/// hung — and what doesn't go together.
-fn props(cx: &mut Ctx, loc: Loc, it: &Props, entry: &mut Entry) {
-    let at = At::root().key(field!(ItemFile, item));
+/// hung (what doesn't go together is yog_formats::rules' to say).
+fn props(it: &Props, entry: &mut Entry) {
     let p = &mut entry.item;
     p.stack_size = it.stack_size;
     p.durability = it.durability.unwrap_or(0);
@@ -68,38 +67,4 @@ fn props(cx: &mut Ctx, loc: Loc, it: &Props, entry: &mut Entry) {
     p.armor = it.armor.as_ref().map(|a| (a.slot, a.material.clone()));
     p.wearable = it.wearable;
     p.hangs = it.hangs.as_ref().map(|h| (h.entity.clone(), h.size));
-    if it
-        .hangs
-        .as_ref()
-        .and_then(|h| h.size)
-        .is_some_and(|[w, h]| w == 0 || h == 0)
-    {
-        let size = at.key(field!(Props, hangs)).key(field!(HangsProps, size));
-        cx.err_at(
-            loc,
-            &size,
-            "a hanging thing is at least a block wide and high",
-        );
-    }
-    if p.wearable.is_some() && p.armor.is_some() {
-        cx.err_at(
-            loc,
-            &at.key(field!(Props, wearable)),
-            "armor is worn already — leave wearable out",
-        );
-    }
-    if p.tool.is_some() && p.armor.is_some() {
-        cx.err_at(
-            loc,
-            &at.key(field!(Props, armor)),
-            "an item is a tool or armor, not both",
-        );
-    }
-    if p.durability > 0 && p.stack_size.is_some_and(|s| s > 1) {
-        cx.warn_at(
-            loc,
-            &at.key(field!(Props, stack_size)),
-            "ignored: an item with durability stacks to 1",
-        );
-    }
 }

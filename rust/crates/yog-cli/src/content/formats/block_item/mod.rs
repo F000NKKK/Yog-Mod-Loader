@@ -209,12 +209,19 @@ fn read_parts(
     mod_ns: Option<&str>,
 ) -> Option<Parts> {
     let loc = |p: &At| doc.locate(text, p).line as usize;
+    // The file's own rules (yog_formats::rules), as an editor shows them.
+    let mut broken = Vec::new();
     let read = match kind {
-        Format::Item => yog_data::schema::from_doc::<ItemFile>(text, doc)
-            .map(|r| (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)),
-        _ => yog_data::schema::from_doc::<BlockFile>(text, doc)
-            .map(|r| (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)),
+        Format::Item => yog_data::schema::from_doc::<ItemFile>(text, doc).map(|r| {
+            yog_formats::rules::Rules::rules(&r.value, &mut broken);
+            (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)
+        }),
+        _ => yog_data::schema::from_doc::<BlockFile>(text, doc).map(|r| {
+            yog_formats::rules::Rules::rules(&r.value, &mut broken);
+            (Parts::from(r.value), yog_data::found::tags(&r.refs), r.refs)
+        }),
     };
+    cx.broken_rules(&loc, broken);
     let (parts, tag_refs, refs) = match read {
         Ok(r) => r,
         Err(e) => {

@@ -122,6 +122,20 @@ impl Ctx<'_> {
         self.warnings.push(found.at_path(path.clone()));
     }
 
+    /// Reports the rules a file breaks ([`yog_formats::rules`]): each an
+    /// error or a warning, at its line.
+    pub(in crate::content) fn broken_rules(&mut self, loc: Loc, broken: Vec<Diagnostic>) {
+        for d in broken {
+            let line = loc(&d.path);
+            let d = d.in_file(&self.file).at_line(line);
+            if d.is_error() {
+                self.errors.push(d);
+            } else {
+                self.warnings.push(d);
+            }
+        }
+    }
+
     /// Reports what reading a file through its schema found.
     pub(in crate::content) fn schema_errors(&mut self, errors: yog_data::Errors) {
         for e in errors.0 {
