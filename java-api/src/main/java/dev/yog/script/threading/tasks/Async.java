@@ -26,7 +26,8 @@ public abstract class Async<T> implements Runnable {
      * new class by {@code remake} (its state, locals and task kept): when
      * what it waits for is done, the new one goes on from where it was.
      */
-    public static void carry(java.util.function.Predicate<Async<?>> of, java.util.function.Function<Object, Object> remake) {
+    public static java.util.Map<Async<?>, Async<?>> carry(java.util.function.Predicate<Async<?>> of, java.util.function.Function<Object, Object> remake) {
+        java.util.Map<Async<?>, Async<?>> moved = new java.util.IdentityHashMap<>();
         java.util.List<Async<?>> old;
         synchronized (WAITING) {
             old = WAITING.stream().filter(of).toList();
@@ -36,6 +37,7 @@ public abstract class Async<T> implements Runnable {
             if (remake.apply(m) instanceof Async<?> next && next.$shape().equals(m.$shape())) {
                 m.movedTo = next;
                 WAITING.add(next);
+                moved.put(m, next);
             } else {
                 // Its code changed (or its class is gone): its states don't mean the same now.
                 m.abandoned = true;
@@ -43,6 +45,7 @@ public abstract class Async<T> implements Runnable {
                 m.task.fail(new IllegalStateException(CHANGED));
             }
         }
+        return moved;
     }
 
     /** The method's code, from {@link #$state} on. */
@@ -51,6 +54,27 @@ public abstract class Async<T> implements Runnable {
     /** Its code's fingerprint (the compiler's): a reload carries it only into the same code. */
     protected String $shape() {
         return "";
+    }
+
+    /** A {@code saved} method's machine: where it waits, as bytes to pick up
+     * again after a restart; {@code null} when it waits for no delay. */
+    public byte[] $kept() {
+        return null;
+    }
+
+    /** Whether it's done (its task settled). */
+    public final boolean $done() {
+        return task.IsCompleted();
+    }
+
+    /** What it waits for now (what a saved method's save asks of it). */
+    private volatile Task awaiting;
+
+    /** What a {@code saved} method saves of where it waits: its delay, or
+     * {@code null} when it waits for something else or nothing. */
+    protected final Delayed $delay() {
+        Task t = awaiting;
+        return t instanceof Delayed d && !t.IsCompleted() ? d : null;
     }
 
     /** Abandoned by a reload (its method's code changed): it goes on no more. */
@@ -90,6 +114,7 @@ public abstract class Async<T> implements Runnable {
             return false;
         }
         WAITING.add(this);
+        awaiting = awaited;
         awaited.onDone(this);
         return true;
     }

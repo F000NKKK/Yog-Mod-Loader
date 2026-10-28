@@ -698,6 +698,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "0da73b6e1509c3e1"; }
         }
         final var $m$t58 = new $Async$t58();
         $m$t58.source$p = source;
@@ -725,6 +727,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "c13abdcc67de8955"; }
         }
         final var $m$t60 = new $Async$t60();
         $m$t60.source$p = source;
@@ -768,6 +772,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "0cccd18fda1ded12"; }
         }
         final var $m$t64 = new $Async$t64();
         $m$t64.source$p = source;
@@ -811,6 +817,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "7c9f243bb798c86e"; }
         }
         final var $m$t68 = new $Async$t68();
         $m$t68.source$p = source;
@@ -856,6 +864,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "49314c3a2eedf711"; }
         }
         final var $m$t72 = new $Async$t72();
         $m$t72.source$p = source;
@@ -897,6 +907,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "7d6a3f4cec1633b5"; }
         }
         final var $m$t76 = new $Async$t76();
         $m$t76.source$p = source;
@@ -940,6 +952,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "a00488c24f55494f"; }
         }
         final var $m$t80 = new $Async$t80();
         $m$t80.source$p = source;
@@ -984,6 +998,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "95a37db3c626281d"; }
         }
         final var $m$t84 = new $Async$t84();
         $m$t84.source$p = source;
@@ -1028,6 +1044,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "bca0f31db75e55c5"; }
         }
         final var $m$t88 = new $Async$t88();
         $m$t88.source$p = source;
@@ -1069,6 +1087,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "c1db3c7f169ac267"; }
         }
         final var $m$t92 = new $Async$t92();
         $m$t92.source$p = source;
@@ -1109,6 +1129,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "684b1b91c0e0f29d"; }
         }
         final var $m$t96 = new $Async$t96();
         $m$t96.source$p = source;
@@ -1157,6 +1179,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "aecef3da186345dc"; }
         }
         final var $m$t100 = new $Async$t100();
         $m$t100.source$p = source;
@@ -1201,6 +1225,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "76f751ab94d078f2"; }
         }
         final var $m$t104 = new $Async$t104();
         $m$t104.source$p = source;
@@ -1245,6 +1271,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "eaf99f1ac03b8d04"; }
         }
         final var $m$t108 = new $Async$t108();
         $m$t108.source$p = source;
@@ -1287,6 +1315,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "2a443c4910272880"; }
         }
         final var $m$t112 = new $Async$t112();
         $m$t112.source$p = source;
@@ -1327,6 +1357,8 @@ public class AsyncEnumerable {
         }
     }
 }
+            @Override
+            protected String $shape() { return "370bda89ed8f35ec"; }
         }
         final var $m$t116 = new $Async$t116();
         $m$t116.source$p = source;

@@ -10,7 +10,7 @@
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Decl, DeclKind, Modifier, Type as Written, TypeKind};
-use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, RETURN, VOID};
+use yog_script_ids::java::{IF, LONG, NEW, NULL, OVERRIDE, PUBLIC, RECORD, RETURN, THIS, VOID};
 use yog_script_ids::jvm::STRING;
 use yog_script_ids::jvm::state::{
     ACCEPT, ADD_ALL, BYTES, DROP_RECORD, ENTRIES, ENTRY_KEY, ENTRY_SUFFIX, ENTRY_VALUE, ENTRY_VAR,
@@ -19,6 +19,7 @@ use yog_script_ids::jvm::state::{
     TEXT_BYTES_TYPE, TEXT_FROM_BYTES, TEXT_TO_BYTES, TO_LIST, VALUE, WAS_SUFFIX, WRITE, WRITE_TYPE,
 };
 use yog_script_ids::jvm::synced::{KEY, OUT, SYNC, SYNCED, SYNCED_BYTES};
+use yog_script_ids::jvm::tasks::{RESUME_PREFIX, SAVE_WAIT, SAVED_TASKS, WAIT_SUFFIX, WAITING};
 use yog_script_ids::system::{DICTIONARY, LIST, TEXT_TYPE};
 
 use super::Gen;
@@ -35,6 +36,22 @@ pub(crate) struct Stored<'a> {
 /// The `saved` members of `body`.
 pub(crate) fn saved_members(body: &[Decl]) -> Vec<Stored<'_>> {
     members_with(body, Modifier::Saved)
+}
+
+/// The `saved async` methods of `body` (storage.md S9): their names.
+pub(crate) fn saved_methods(body: &[Decl]) -> Vec<&str> {
+    body.iter()
+        .filter(|d| d.has(Modifier::Saved))
+        .filter_map(|d| match &d.kind {
+            DeclKind::Method(m) => Some(m.name.text.as_str()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Whether `body` keeps anything with its owner's save: a `saved` member or method.
+pub(crate) fn keeps_saved(body: &[Decl]) -> bool {
+    !saved_members(body).is_empty() || !saved_methods(body).is_empty()
 }
 
 /// The `synced` members of `body`.
@@ -126,7 +143,20 @@ impl Gen<'_> {
                 ));
             }
         }
-        if !saved.is_empty() {
+        // Its `saved async` methods' waits: each its own record, picked up again as it loads.
+        let methods = saved_methods(body);
+        for name in &methods {
+            let key = self.code.str(&format!("{owner}.{name}{WAIT_SUFFIX}"));
+            let method = self.code.str(name);
+            save.push(format!(
+                "{SAVED_TASKS}.{SAVE_WAIT}({THIS}, {method}, {key}, {WRITE});"
+            ));
+            let bytes = self.temp();
+            load.push(format!(
+                "byte[] {bytes} = {SAVED_TASKS}.{WAITING}({READ}, {key}); {IF} ({bytes} != {NULL}) {{ {RESUME_PREFIX}{name}({bytes}); }}"
+            ));
+        }
+        if !saved.is_empty() || !methods.is_empty() {
             self.state_method(LOAD, &format!("{READ_TYPE} {READ}"), &load);
             self.state_method(SAVE, &format!("{WRITE_TYPE} {WRITE}"), &save);
         }

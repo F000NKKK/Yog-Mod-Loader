@@ -424,6 +424,31 @@ pub mod tasks {
     pub const TASK: &str = "$task";
     pub const LOCAL_FIELD: &str = "$v";
     pub const PARAM_FIELD: &str = "$p";
+    /// A `saved async` method (storage.md S9): its code's method, taking
+    /// a wait to pick up again (`$run$Cook($resume, …)`); what picks it up
+    /// (`$resume$Cook(bytes)`); its owner's record's key's end
+    /// (`Owner.Cook$wait`); the machine's record of where it waits, what
+    /// writes it (`$kept`), what reads it back (`$restore`).
+    pub const RUN_PREFIX: &str = "$run$";
+    pub const RESUME_PREFIX: &str = "$resume$";
+    pub const RESUME_PARAM: &str = "$resume";
+    pub const WAIT_SUFFIX: &str = "$wait";
+    pub const WAIT_RECORD: &str = "$Wait";
+    pub const KEPT: &str = "$kept";
+    pub const RESTORE: &str = "$restore";
+    /// What a machine waits for, when it's a delay (`$delay()`), and a delay made again.
+    pub const DELAY_OF: &str = "$delay";
+    pub const DELAYED: &str = concat!(tasks!(), sep!(), "Delayed");
+    pub const DELAY_AGAIN: &str = "again";
+    pub const COUNTS_TICKS: &str = "countsTicks";
+    pub const LEFT: &str = "left";
+    /// The running `saved` methods (`SavedTasks`): one started, one's wait
+    /// written, one's record read, one not picked up.
+    pub const SAVED_TASKS: &str = concat!(runtime!(), sep!(), "yog", sep!(), "SavedTasks");
+    pub const STARTED: &str = "started";
+    pub const SAVE_WAIT: &str = "save";
+    pub const WAITING: &str = "waiting";
+    pub const LOST: &str = "lost";
     /// An iterator's machine (`IEnumerator<T>`), the sequence making one
     /// for each walk (`IEnumerable<T>`), and what gives its next item.
     pub const ITERATION: &str = concat!(

@@ -292,3 +292,55 @@ fn a_hot_reload_carries_state_and_waiting_methods() {
     };
     assert_eq!(out, "done 5 jump 7 1 9 | 5 4");
 }
+
+const SAVED_WAIT: &str = r#"using System.Threading.Tasks;
+public static class W {
+    public static string Run() => "ok";
+}
+extend Player {
+    public i32 Done = 0;
+    public saved async Task Cook(i32 n) {
+        await GameTime.Delay(20);
+        Done += n;
+    }
+}
+"#;
+
+/// A `saved async` method's wait goes with its owner's save (storage.md
+/// S9): written mid-delay, read into a new owner (the world loaded
+/// again), it waits what was left — not the whole delay — and goes on with
+/// its arguments.
+#[test]
+fn a_saved_method_waits_the_rest_after_a_restart() {
+    let java = r#"((java.util.function.Supplier<String>) () -> {
+        try {
+            Class<?> ext = java.util.Arrays.stream(t.WScript.class.getDeclaredClasses())
+                .filter(c -> c.getSimpleName().startsWith("$ExtendPlayer")).findFirst().get();
+            var make = ext.getDeclaredConstructor(String.class);
+            make.setAccessible(true);
+            var sched = dev.yog.script.threading.tasks.Scheduler.here();
+            var tick = dev.yog.script.threading.tasks.Scheduler.class.getDeclaredMethod("tick");
+            tick.setAccessible(true);
+            Object before = make.newInstance("Steve");
+            ext.getMethod("Cook", int.class).invoke(before, 3);
+            for (int i = 0; i < 5; i++) tick.invoke(sched);
+            var store = new java.util.TreeMap<String, byte[]>();
+            ((dev.yog.script.yog.State.Saved) before).$save(store::put);
+            // The world loaded again: a new owner reads it, the wait picked up.
+            Object after = make.newInstance("Steve");
+            ((dev.yog.script.yog.State.Saved) after).$load(store::get);
+            StringBuilder seen = new StringBuilder(store.keySet().toString());
+            for (int i = 1; i <= 15; i++) {
+                tick.invoke(sched);
+                if (i == 14 || i == 15) seen.append(" ").append(i).append(":").append(ext.getField("Done").getInt(after));
+            }
+            return seen.toString();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }).get()"#;
+    let Some(out) = support::run(&[("W.ys", SAVED_WAIT)], java) else {
+        return;
+    };
+    assert_eq!(out, "[Player.Cook$wait] 14:0 15:3");
+}

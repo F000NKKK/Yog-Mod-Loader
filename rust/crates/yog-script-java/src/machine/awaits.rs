@@ -25,6 +25,9 @@ impl Gen<'_> {
         let field = self.temp();
         self.declare_field(&self.java(&t, false), &field);
         let state = self.new_state();
+        if let Some(m) = &mut self.machine {
+            m.awaited.push((state, field.clone()));
+        }
         self.code.line(format!("{field} = {task};"));
         self.code.line(format!("{STATE} = {state};"));
         self.code

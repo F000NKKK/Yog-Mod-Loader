@@ -114,7 +114,7 @@ impl Gen<'_> {
         } else {
             OWNER.to_string()
         };
-        let saved = !crate::saved::saved_members(body).is_empty();
+        let saved = crate::saved::keeps_saved(body);
         let synced = !crate::saved::synced_members(body).is_empty();
         // What a hot reload carries of an owner's instance: its fields.
         let session = crate::session::keeps(body);

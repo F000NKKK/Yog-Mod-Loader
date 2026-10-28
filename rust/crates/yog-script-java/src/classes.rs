@@ -29,7 +29,7 @@ impl Gen<'_> {
         // Its `saved` members: the game's store's, read in as it's made; its
         // `synced` ones every player's, a client's rows its own.
         let (saved, synced) = (
-            !crate::saved::saved_members(body).is_empty(),
+            crate::saved::keeps_saved(body),
             !crate::saved::synced_members(body).is_empty(),
         );
         let mut tail = Vec::new();
@@ -554,7 +554,7 @@ fn state_interfaces(
 ) -> Option<String> {
     let mut interfaces: Vec<String> = also.map(str::to_string).into_iter().collect();
     let (saved, synced) = (
-        !crate::saved::saved_members(body).is_empty(),
+        crate::saved::keeps_saved(body),
         !crate::saved::synced_members(body).is_empty(),
     );
     if owns && (saved || on_stack && synced) {

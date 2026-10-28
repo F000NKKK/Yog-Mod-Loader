@@ -185,7 +185,15 @@ For each type with `synced` members, the build generates a mirror spec
    method is carried only into the same code: each async machine has its
    code's fingerprint (`$shape()`, its temporaries renumbered); a changed
    method's wait is abandoned, its task failing with why.
-   Saving a task with the world (S9 across restarts) is still to come.
+   ✅ Saved tasks across restarts (S9): a `saved async` method (on an
+   owner of state, waiting only for delays — YS0051) keeps its wait with
+   its owner's save, a record `Owner.Name$wait`: its code's fingerprint,
+   its state, what's left of the delay (ticks or real time, `Delayed`)
+   and its machine's fields but what it waits for, by the bus's codec.
+   The owner's `$load` picks it up (`$resume$Name`): the same code's
+   machine set to its state, waiting the rest of the delay; a changed
+   method's isn't picked up (`SavedTasks.lost`). A field the codec can't
+   keep makes the wait unsaved (`$kept` fails, logged).
 7. The Rust API's parity. ✅ `WorldData`/`PlayerData`/`BlockData` (their
    stores, the same keys; `::synced` on the same rows), `EntityData` (the
    runtime's entity data; `::session` not saved), `ItemData` (the stack;

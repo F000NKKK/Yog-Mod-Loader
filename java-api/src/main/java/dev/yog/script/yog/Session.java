@@ -123,7 +123,8 @@ public final class Session {
                 rebind.statics(was, now);
             }
         }
-        Async.carry(m -> old.contains(m.getClass().getClassLoader()), rebind::value);
+        var moved = Async.carry(m -> old.contains(m.getClass().getClassLoader()), rebind::value);
+        SavedTasks.carried(moved, rebind::value);
     }
 
     /** The live object of {@code key}, if any. */

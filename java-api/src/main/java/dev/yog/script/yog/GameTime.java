@@ -10,9 +10,7 @@ public final class GameTime {
     private GameTime() {}
 
     public static Task Delay(double delay) {
-        Task t = new Task();
-        Scheduler.here().afterTicks(Math.round(delay), t::finish);
-        return t;
+        return dev.yog.script.threading.tasks.Delayed.ticks(Scheduler.here(), Math.round(delay));
     }
 
     public static Task NextTick() {

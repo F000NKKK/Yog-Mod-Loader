@@ -209,6 +209,11 @@ impl Gen<'_> {
         if yields {
             let is_async = d.has(Modifier::Async);
             self.with_type_params(generics, |g| g.iterator_method(&head, m, is_async));
+        } else if d.has(Modifier::Async) && d.has(Modifier::Saved) {
+            // A saved one (storage.md S9): its wait kept with its owner's save.
+            self.with_type_params(generics, |g| {
+                g.saved_async_method(&head, m, (&ret, &params))
+            });
         } else if d.has(Modifier::Async) {
             self.with_type_params(generics, |g| g.async_method(&head, m));
         } else {

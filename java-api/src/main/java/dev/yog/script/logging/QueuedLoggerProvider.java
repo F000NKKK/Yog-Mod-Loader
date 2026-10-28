@@ -104,6 +104,8 @@ public abstract class QueuedLoggerProvider implements dev.yog.script.logging.ILo
         }
     }
 }
+            @Override
+            protected String $shape() { return "3eaaebcddaeb0032"; }
         }
         final var $m$t7 = new $Async$t7();
         $m$t7.run();
@@ -128,6 +130,8 @@ public abstract class QueuedLoggerProvider implements dev.yog.script.logging.ILo
         }
     }
 }
+            @Override
+            protected String $shape() { return "887c9df5998396e8"; }
         }
         final var $m$t9 = new $Async$t9();
         $m$t9.run();

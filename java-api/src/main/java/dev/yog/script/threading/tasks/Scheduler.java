@@ -129,6 +129,11 @@ public final class Scheduler {
         }
     }
 
+    /** Its tick count: what a delay of ticks is due at. */
+    long ticksSoFar() {
+        return now;
+    }
+
     /** The scheduler of the thread asking. */
     public static Scheduler here() {
         return OF_THREAD.computeIfAbsent(Thread.currentThread(), t -> new Scheduler());

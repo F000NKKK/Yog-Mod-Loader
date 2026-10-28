@@ -91,7 +91,7 @@ impl Gen<'_> {
         // Its `saved` members: a block's are its chunk's, an entity's its
         // own store's, an item's its stack's (their objects' makers read
         // them in).
-        if !crate::saved::saved_members(body).is_empty() {
+        if crate::saved::keeps_saved(body) {
             self.saved_owner = Some(name.to_string());
         }
         // Its `synced` members: a block's and an entity's objects send them

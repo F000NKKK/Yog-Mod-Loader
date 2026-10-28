@@ -46,15 +46,7 @@ public class Task {
 
     /** Done once {@code seconds} of real time have passed: at a tick of a side's thread, else by the pool's timer. */
     public static Task Delay(double seconds) {
-        Task t = new Task();
-        long nanos = Math.round(seconds * NANOS_PER_SECOND);
-        Scheduler here = Scheduler.current();
-        if (here != null) {
-            here.afterNanos(nanos, t::finish);
-        } else {
-            dev.yog.script.threading.ThreadPool.later(nanos, t::finish);
-        }
-        return t;
+        return Delayed.nanos(Scheduler.current(), Math.round(seconds * NANOS_PER_SECOND));
     }
 
     public static Task Delay(dev.yog.script.TimeSpan delay) {

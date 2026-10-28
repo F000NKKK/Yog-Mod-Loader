@@ -11,6 +11,7 @@ mod async_foreach;
 mod awaits;
 mod branches;
 mod flow;
+mod saved_wait;
 mod switches;
 
 use yog_script_analyze::Type;
@@ -38,6 +39,10 @@ pub(crate) use awaits::{awaits, stmt_awaits};
 pub(crate) struct Machine {
     /// Its fields, each declared (`int x$v1;`).
     pub fields: Vec<String>,
+    /// The same, each its Java type and name (what a saved method's wait keeps).
+    pub typed: Vec<(String, String)>,
+    /// Each `await`'s state (where it goes on from) and the field holding what it waits for.
+    pub awaited: Vec<(usize, String)>,
     /// The states it has so far; the first, `0`, where it starts.
     pub states: usize,
     /// Its task's `T`, boxed: what a `try`'s failure finishes it as.
@@ -206,6 +211,8 @@ impl Gen<'_> {
     /// The machine of `shape` made, its parameters given, started; its task
     /// returned (none for an `async void`).
     pub(crate) fn machine_of(&mut self, shape: &Shape<'_>) {
+        // A saved method's own machine (not an async lambda's inside it).
+        let saved_wait = self.saved_wait.take();
         let outer_machine = self.machine.replace(Machine {
             gives: shape.gives.clone(),
             ..Machine::default()
@@ -248,6 +255,9 @@ impl Gen<'_> {
         });
         let fingerprint = shape_of(&machine.fields, &step);
         self.code.line(step);
+        if saved_wait.is_some() {
+            self.wait_members(&machine);
+        }
         // An async method's machine: what a reload checks before carrying it mid-way.
         if base == ASYNC {
             self.code.line(OVERRIDE);
@@ -281,6 +291,8 @@ impl Gen<'_> {
         if shape.iterator {
             // An enumerator: the machine itself, walked once.
             self.code.line(format!("{RETURN} {made};"));
+        } else if let Some(name) = &saved_wait {
+            self.wait_start(&made, name, shape.task);
         } else if shape.task {
             self.code.line(format!("{made}.{RUN}();"));
             self.code.line(format!("{RETURN} {made}.{TASK}();"));
@@ -354,6 +366,7 @@ impl Gen<'_> {
     pub(crate) fn declare_field(&mut self, ty: &str, name: &str) {
         if let Some(m) = &mut self.machine {
             m.fields.push(format!("{ty} {name};"));
+            m.typed.push((ty.to_string(), name.to_string()));
         }
     }
 
