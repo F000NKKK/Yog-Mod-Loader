@@ -6,6 +6,7 @@
 
 mod item;
 mod model;
+mod states;
 
 use yog_data::{Atom, Diagnostic, Path};
 

@@ -15,6 +15,7 @@ impl Rules for BlockFile {
         }
         let Some(states) = &self.states else { return };
         let at = Path::root().key(field!(BlockFile, states));
+        states.rules_at(at.clone(), out);
         if let Some(c) = &states.connect {
             c.arm.rules_at(
                 at.key(field!(States, connect)).key(field!(Connect, arm)),

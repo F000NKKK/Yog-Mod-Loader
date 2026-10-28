@@ -68,3 +68,8 @@ pub const TEMPLATES: &[Template] = &[
 pub fn template(name: &str) -> Option<&'static Template> {
     TEMPLATES.iter().find(|t| t.name == name)
 }
+
+/// The angles a model, a state's rotation or a face's texture turns by.
+pub const RIGHT_ANGLES: [u32; 4] = [0, 90, 180, 270];
+/// The fewest values a block's own property has.
+pub const MIN_PROPERTY_VALUES: usize = 2;

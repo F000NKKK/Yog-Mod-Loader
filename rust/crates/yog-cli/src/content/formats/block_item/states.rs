@@ -2,13 +2,14 @@
 //! towards each neighbour that connects, facing, its own properties) and
 //! which state shows which model — the game's blockstate.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use serde_json::{Map, Value, json};
 use yog_data::Path as At;
 use yog_data::field;
 use yog_formats::content::BlockProps as Props;
-use yog_formats::content::{BlockFile, BlockShape, Connect, Facing, Model, Rotation, States};
+use yog_formats::content::vocab::RIGHT_ANGLES;
+use yog_formats::content::{BlockFile, BlockShape, Connect, Facing, Model, States};
 use yog_ids::block_state::{CEILING, FACE, FACING, FALSE, FLOOR, TRUE, WALL, WATERLOGGED};
 use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::model as m;
@@ -27,10 +28,6 @@ const ALL_SIX: [&str; 6] = [NORTH, EAST, SOUTH, WEST, UP, DOWN];
 const FACES: [&str; 3] = [FLOOR, WALL, CEILING];
 /// A yes/no property's values.
 const YES_NO: [&str; 2] = [FALSE, TRUE];
-/// The fewest values a property of the block's own has.
-const MIN_VALUES: usize = 2;
-/// The angles a model turns by.
-const RIGHT_ANGLES: [u32; 4] = [0, 90, 180, 270];
 /// The variant every state shows when there's one.
 const EVERY_STATE: &str = "";
 
@@ -57,11 +54,11 @@ pub(super) fn compile(
     let mut rotations = Vec::new();
     let mut arm = None;
     if let Some(s) = &own.parts.states {
-        rotations = rotations_of(cx, loc, s, &main);
+        rotations = rotations_of(s, &main);
         if s.connect.is_some() {
             arm = connect(cx, loc, own, entry, emit);
         }
-        facing_and_properties(cx, loc, s, &mut entry.block);
+        facing_and_properties(s, &mut entry.block);
     }
     let states = all_properties(&entry.block);
     yes_no(cx, loc, own.block, &states, &mut entry.block);
@@ -123,38 +120,18 @@ fn main_model(
 }
 
 /// The ways it stands: each a turn of its model, picked by weight.
-fn rotations_of(cx: &mut Ctx, loc: Loc, s: &States, main: &str) -> Vec<Value> {
+fn rotations_of(s: &States, main: &str) -> Vec<Value> {
     let Some(rs) = &s.rotations else {
         return Vec::new();
     };
-    let at = At::root()
-        .key(field!(BlockFile, states))
-        .key(field!(States, rotations));
-    if rs.is_empty() {
-        cx.err_at(
-            loc,
-            &at,
-            "a non-empty list of { x: 0, y: 90, weight: 1, uvlock: false }",
-        );
-    }
-    let mut out = Vec::new();
-    for (i, r) in rs.iter().enumerate() {
-        let here = at.index(i);
-        let mut angle = |k: &str, v: Option<u32>| match v {
-            None => 0.0,
-            Some(n) if RIGHT_ANGLES.contains(&n) => f64::from(n),
-            Some(_) => {
-                cx.err_at(loc, &here.key(k), "must be 0, 90, 180 or 270");
-                0.0
-            }
-        };
-        let (x, y) = (
-            angle(field!(Rotation, x), r.x),
-            angle(field!(Rotation, y), r.y),
-        );
-        out.push(variant(main, x, y, r.uvlock, r.weight));
-    }
-    out
+    // An angle off a right angle is yog_formats::rules' to report: 0 here.
+    let angle = |v: Option<u32>| {
+        v.filter(|n| RIGHT_ANGLES.contains(n))
+            .map_or(0.0, f64::from)
+    };
+    rs.iter()
+        .map(|r| variant(main, angle(r.x), angle(r.y), r.uvlock, r.weight))
+        .collect()
 }
 
 /// Arms towards the neighbours that connect: the arm's model; the block
@@ -190,33 +167,13 @@ const ARM: &str = "_arm";
 
 /// Facing, attach, waterlogged and the block's own properties — which can't
 /// go with rotations or an arm.
-fn facing_and_properties(cx: &mut Ctx, loc: Loc, s: &States, b: &mut BlockProps) {
-    let sat = At::root().key(field!(BlockFile, states));
+/// What facing, attach, waterlogged and the block's own properties make of
+/// it (what doesn't go together is yog_formats::rules' to report).
+fn facing_and_properties(s: &States, b: &mut BlockProps) {
     if s.facing.is_none() && !s.attach && !s.waterlogged && s.properties.0.is_empty() {
-        if s.placement.is_some() || !s.models.0.is_empty() || !s.variants.0.is_empty() {
-            cx.err_at(
-                loc,
-                &sat,
-                "placement, models and variants need facing, attach, waterlogged or properties",
-            );
-        }
         return;
     }
-    if s.rotations.is_some() || s.connect.is_some() {
-        cx.err_at(
-            loc,
-            &sat,
-            "facing, attach, waterlogged and properties can't go with rotations or connect",
-        );
-    }
     if s.attach {
-        if s.facing == Some(Facing::All) {
-            cx.err_at(
-                loc,
-                &sat.key(field!(States, facing)),
-                "an attached block turns four ways — leave facing out",
-            );
-        }
         b.attach = true;
         b.facing = Some(Facing::Horizontal);
     } else {
@@ -224,52 +181,9 @@ fn facing_and_properties(cx: &mut Ctx, loc: Loc, s: &States, b: &mut BlockProps)
     }
     if b.facing.is_some() {
         b.placement = s.placement.unwrap_or_default();
-    } else if s.placement.is_some() {
-        cx.err_at(
-            loc,
-            &sat.key(field!(States, placement)),
-            "placement needs facing (or attach)",
-        );
     }
     b.waterlogged = s.waterlogged;
-    for (name, values) in &s.properties.0 {
-        own_property(cx, loc, name, values);
-        b.properties.push((name.clone(), values.clone()));
-    }
-}
-
-/// A property of the block's own: named in lowercase, not one the game's
-/// makes, two or more different values.
-fn own_property(cx: &mut Ctx, loc: Loc, name: &str, values: &[String]) {
-    let here = At::root()
-        .key(field!(BlockFile, states))
-        .key(field!(States, properties))
-        .key(name);
-    if !yog_ids::valid_name(name) {
-        cx.err_at(
-            loc,
-            &here,
-            format!("`{name}`: a property's name is lowercase letters, digits and _"),
-        );
-    } else if [FACING, FACE, WATERLOGGED].contains(&name) {
-        cx.err_at(
-            loc,
-            &here,
-            format!("`{name}` comes from facing, attach or waterlogged — name yours otherwise"),
-        );
-    }
-    let mut seen = HashSet::new();
-    if values.len() < MIN_VALUES
-        || !values
-            .iter()
-            .all(|v| yog_ids::valid_name(v) && seen.insert(v.as_str()))
-    {
-        cx.err_at(
-            loc,
-            &here,
-            "two or more different values, lowercase letters, digits and _",
-        );
-    }
+    b.properties.extend(s.properties.0.iter().cloned());
 }
 
 /// A block's properties with every value — facing, face and waterlogged as
