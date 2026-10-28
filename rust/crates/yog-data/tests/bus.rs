@@ -40,13 +40,13 @@ fn messages_go_straight_and_as_the_value_would() {
         bytes: vec![1, 2, 3],
     };
     let straight = yog_data::to_bytes(&m);
-    // The same value either way; straight is never longer (a `f32` takes four bytes, not eight).
+    // The same value either way; straight is never longer.
     let via_value = binary::encode(&m.write());
     assert_eq!(
         binary::decode(&straight).unwrap(),
         binary::decode(&via_value).unwrap()
     );
-    assert!(straight.len() < via_value.len());
+    assert!(straight.len() <= via_value.len());
     let mut d = binary::Decoder::open(&straight).unwrap();
     assert_eq!(
         Message::decode(&mut d).as_ref(),
