@@ -8,8 +8,14 @@ use crate::content::{HangsProps, ItemFile, ItemProps};
 
 impl Rules for ItemFile {
     fn rules(&self, out: &mut Vec<Diagnostic>) {
-        if let Some(model) = &self.model {
-            model.rules_at(Path::root().key(field!(ItemFile, model)), out);
+        let at = Path::root().key(field!(ItemFile, model));
+        match &self.model {
+            Some(model) => model.rules_at(at, super::model::ModelOf::Item, out),
+            // A potion is drawn as the game's bottle.
+            None if self.item.as_ref().and_then(|i| i.potion.as_ref()).is_none() => {
+                out.push(error(at, "an item without potion effects needs a model"));
+            }
+            None => {}
         }
         if let Some(item) = &self.item {
             item.rules_at(Path::root().key(field!(ItemFile, item)), out);

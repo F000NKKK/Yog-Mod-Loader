@@ -208,14 +208,9 @@ fn item_form(cx: &mut Ctx, loc: Loc, parts: &Parts, parent: Option<String>, emit
             );
             None
         }
-        (Some(im), _) => model(
-            cx,
-            loc,
-            &At::root().key(field!(BlockFile, item_model)),
-            im,
-            true,
-        )
-        .map(|m| m.json),
+        (Some(im), _) => {
+            model(cx, loc, &At::root().key(field!(BlockFile, item_model)), im).map(|m| m.json)
+        }
     };
     match item_model {
         Some(im) => emit.item_model(cx, &im),

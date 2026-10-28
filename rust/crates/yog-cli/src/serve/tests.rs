@@ -245,10 +245,12 @@ fn a_source_being_edited_is_checked_where_it_goes_wrong() {
     };
     let problems = |v: &Value| at(v, &["problems"]).as_list().unwrap().to_vec();
     let clean = problems(&check(
-        "{\n  // Hard.\n  model: {},\n  block: { hardness: 3 }\n}",
+        "{\n  // Hard.\n  model: { parent: \"cube_all\", textures: { all: \"@texture:m:block/ruby\" } },\n  block: { hardness: 3 }\n}",
     ));
     assert!(clean.is_empty(), "{clean:?}");
-    let unknown = problems(&check("{\n  model: {},\n  shiny: true\n}"));
+    let unknown = problems(&check(
+        "{\n  model: { parent: \"cube_all\", textures: { all: \"@texture:m:block/ruby\" } },\n  shiny: true\n}",
+    ));
     assert_eq!(unknown.len(), 1, "{unknown:?}");
     assert_eq!(
         unknown[0].get("code").and_then(Value::as_str),

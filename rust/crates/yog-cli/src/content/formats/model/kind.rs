@@ -36,24 +36,9 @@ pub(in crate::content) fn kind_models(
     emit: &mut Emit,
 ) -> Option<String> {
     let k = kb.kind;
-    if m.parent.is_some()
-        || m.elements.is_some()
-        || m.display.is_some()
-        || m.ambient_occlusion.is_some()
-        || m.gui_light.is_some()
-    {
-        let at = At::root().key(yog_ids::content_field::MODEL);
-        cx.err_at(
-            loc,
-            &at,
-            format!(
-                "kind {} has the game's models — give only textures ({})",
-                k.name,
-                k.slots.join(", ")
-            ),
-        );
-    }
-    let textures = kind_textures(cx, loc, k, m);
+    // A model that gives more than textures, slots missing or not the
+    // kind's: yog_formats::rules' to report.
+    let textures = kind_textures(cx, loc, m);
     let names = Names {
         p: emit.p.clone(),
         ns: emit.ns.clone(),
@@ -146,35 +131,16 @@ fn blockstate(k: &yog_formats::content::BlockKind, names: &Names) -> Value {
 /// A kind's model name for the model of the block it's made of.
 const BASE: &str = "base";
 
-/// The kind's texture slots from the `.yblock`'s textures; a slot it hasn't
-/// a warning, one it misses an error.
-fn kind_textures(
-    cx: &mut Ctx,
-    loc: Loc,
-    k: &yog_formats::content::BlockKind,
-    m: &yog_formats::content::Model,
-) -> Map<String, Value> {
+/// The kind's texture slots from the `.yblock`'s textures (a slot it hasn't,
+/// or one it misses, is yog_formats::rules' to report).
+fn kind_textures(cx: &mut Ctx, loc: Loc, m: &yog_formats::content::Model) -> Map<String, Value> {
     let at = At::root().key(yog_ids::content_field::MODEL);
     let mut textures = Map::new();
     for (slot, tex) in &m.textures.0 {
         let here = at.key(yog_ids::model::TEXTURES).key(slot);
-        if slot != yog_ids::model::PARTICLE && !k.slots.contains(slot) {
-            cx.warn_at(
-                loc,
-                &here,
-                format!(
-                    "kind {} has no slot `{slot}` ({})",
-                    k.name,
-                    k.slots.join(", ")
-                ),
-            );
-        }
         if let Some(t) = cx.texture(loc, &here, tex) {
             textures.insert(slot.clone(), Value::String(t));
         }
-    }
-    for slot in k.slots.iter().filter(|s| !textures.contains_key(*s)) {
-        cx.err_at(loc, &at, format!("kind {} needs textures.{slot}", k.name));
     }
     textures
 }

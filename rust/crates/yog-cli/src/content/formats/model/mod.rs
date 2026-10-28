@@ -14,7 +14,7 @@ use yog_ids::units::BLOCK_PIXELS;
 
 use crate::content::pipeline::ctx::{Ctx, Loc};
 use crate::content::{num_value, valid_id};
-use yog_formats::content::vocab::{TEMPLATES, Template, template};
+use yog_formats::content::vocab::{Template, template};
 
 pub(in crate::content) use kind::{KindBlock, kind_models, with_render_type};
 pub(in crate::content) use state::{state_properties, turn, variant};
@@ -52,9 +52,8 @@ pub(in crate::content) fn model(
     loc: Loc,
     at: &At,
     model: &YogModel,
-    item: bool,
 ) -> Option<Model> {
-    let (parent, out) = parent(cx, loc, at, model, item)?;
+    let (parent, out) = parent(model)?;
     let (textures, slots) = textures(cx, loc, at, model);
     let mut b = Building {
         out,
@@ -67,10 +66,7 @@ pub(in crate::content) fn model(
         _ => None,
     };
     let raw_parent = matches!(b.parent, Parent::Raw);
-    if let Some(t) = tpl {
-        check_template_slots(cx, loc, at, t, &b);
-    }
-    let bounds = elements(cx, loc, at, model, &mut b);
+    let bounds = elements(model, &mut b);
     let Building {
         mut out,
         mut textures,
@@ -111,26 +107,13 @@ pub(in crate::content) fn model(
 
 /// The model's parent written: a template's model, or a model id as it is.
 /// None when it's neither.
-fn parent<'t>(
-    cx: &mut Ctx,
-    loc: Loc,
-    at: &At,
-    model: &YogModel,
-    item: bool,
-) -> Option<(Parent<'t>, Map<String, Value>)> {
+fn parent<'t>(model: &YogModel) -> Option<(Parent<'t>, Map<String, Value>)> {
     let mut out = Map::new();
     let Some(name) = &model.parent else {
         return Some((Parent::None, out));
     };
-    let here = at.key(field!(YogModel, parent));
+    // A parent that's neither (or a sprite for a block) is yog_formats::rules' to report.
     if let Some(t) = template(name) {
-        if t.sprite && !item {
-            cx.err_at(
-                loc,
-                &here,
-                format!("{name:?} is an item sprite — block models use cube_all, cube_column, ..."),
-            );
-        }
         out.insert(m::PARENT.into(), Value::String(t.parent.into()));
         return Some((Parent::Template(t), out));
     }
@@ -138,19 +121,6 @@ fn parent<'t>(
         out.insert(m::PARENT.into(), Value::String(name.clone()));
         return Some((Parent::Raw, out));
     }
-    let names: Vec<&str> = TEMPLATES
-        .iter()
-        .filter(|t| item || !t.sprite)
-        .map(|t| t.name)
-        .collect();
-    cx.err_at(
-        loc,
-        &here,
-        format!(
-            "{name:?} isn't a template ({}) or a model id like `minecraft:block/stairs`",
-            names.join(", ")
-        ),
-    );
     None
 }
 
@@ -166,11 +136,6 @@ fn textures(
     for (slot, tex) in &model.textures.0 {
         let here = at.key(field!(YogModel, textures)).key(slot);
         if slot.is_empty() || slot.starts_with(yog_formats::content::SLOT_MARK) {
-            cx.err_at(
-                loc,
-                &here,
-                "slot names are plain words (`all`, `side`, `0`)",
-            );
             continue;
         }
         if let Some(t) = cx.texture(loc, &here, tex) {
@@ -181,73 +146,14 @@ fn textures(
     (textures, slots)
 }
 
-/// A template's slots given: a sprite's layers in a row from `layer0`, a
-/// block template's every slot.
-fn check_template_slots(cx: &mut Ctx, loc: Loc, at: &At, t: &Template, b: &Building) {
-    let (textures, slots) = (&b.textures, &b.slots);
-    let layer = |n: usize| format!("{}{n}", m::LAYER);
-    if !t.sprite {
-        for slot in t.slots.iter().filter(|s| !textures.contains_key(**s)) {
-            cx.err_at(
-                loc,
-                at,
-                format!("parent {:?} needs textures.{slot}", t.name),
-            );
-        }
-        return;
-    }
-    if !textures.contains_key(m::LAYER0) {
-        cx.err_at(
-            loc,
-            at,
-            format!("parent {:?} needs textures.{}", t.name, m::LAYER0),
-        );
-    }
-    for slot in slots {
-        let here = at.key(field!(YogModel, textures)).key(slot);
-        match slot
-            .strip_prefix(m::LAYER)
-            .and_then(|n| n.parse::<usize>().ok())
-        {
-            Some(n) if n == 0 || textures.contains_key(&layer(n - 1)) => {}
-            Some(_) => cx.err_at(loc, &here, "without the layer before it"),
-            None if slot == m::PARTICLE => {}
-            None => cx.warn_at(
-                loc,
-                &here,
-                "isn't used by an item sprite (layer0, layer1, ...)",
-            ),
-        }
-    }
-}
-
 /// The model's own elements written; their bounding box in pixels.
-fn elements(
-    cx: &mut Ctx,
-    loc: Loc,
-    at: &At,
-    model: &YogModel,
-    b: &mut Building,
-) -> Option<[f64; 6]> {
-    let Some(els) = &model.elements else {
-        if matches!(b.parent, Parent::None) {
-            cx.err_at(
-                loc,
-                at,
-                "no parent and no elements — give a template (parent: \"cube_all\") or elements",
-            );
-        }
-        return None;
-    };
-    // Elements beside a template are yog_formats::rules' to report.
-    let here = at.key(field!(YogModel, elements));
+fn elements(model: &YogModel, b: &mut Building) -> Option<[f64; 6]> {
+    let els = model.elements.as_ref()?;
     let full = f64::from(BLOCK_PIXELS);
     let mut bounds: Option<[f64; 6]> = None;
     let mut written = Vec::new();
-    for (i, el) in els.iter().enumerate() {
-        let Some(json) = element::element(cx, loc, &here.index(i), el, b) else {
-            continue;
-        };
+    for el in els {
+        let json = element::element(el);
         let bx = bounds.get_or_insert([full, full, full, 0.0, 0.0, 0.0]);
         for a in 0..3 {
             bx[a] = bx[a].min(el.from[a].min(el.to[a]));

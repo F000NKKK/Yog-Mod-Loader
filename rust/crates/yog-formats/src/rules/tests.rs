@@ -15,7 +15,7 @@ fn found(format: Format, text: &str) -> Vec<String> {
 fn an_item_is_a_tool_or_armor_and_armor_is_worn_already() {
     let both = found(
         Format::Item,
-        r#"{ item: { tool: { kind: "pickaxe", material: "iron" }, armor: { slot: "head", material: "iron" }, wearable: "head" } }"#,
+        r#"{ model: { parent: "generated", textures: { layer0: "@texture:mymod:item/x" } }, item: { tool: { kind: "pickaxe", material: "iron" }, armor: { slot: "head", material: "iron" }, wearable: "head" } }"#,
     );
     assert!(
         both.iter().any(|m| m.contains("a tool or armor, not both")),
@@ -27,7 +27,7 @@ fn an_item_is_a_tool_or_armor_and_armor_is_worn_already() {
     );
     let fine = found(
         Format::Item,
-        r#"{ item: { tool: { kind: "pickaxe", material: "iron" }, wearable: "head" } }"#,
+        r#"{ model: { parent: "generated", textures: { layer0: "@texture:mymod:item/x" } }, item: { tool: { kind: "pickaxe", material: "iron" }, wearable: "head" } }"#,
     );
     assert!(fine.is_empty(), "{fine:?}");
 }
@@ -35,7 +35,7 @@ fn an_item_is_a_tool_or_armor_and_armor_is_worn_already() {
 #[test]
 fn a_durable_item_stacking_is_a_warning() {
     let doc =
-        yog_data::text::parse_value(r#"{ item: { durability: 50, stack_size: 16 } }"#).unwrap();
+        yog_data::text::parse_value(r#"{ model: { parent: "generated", textures: { layer0: "@texture:mymod:item/x" } }, item: { durability: 50, stack_size: 16 } }"#).unwrap();
     let found = crate::problems(Format::Item, &doc);
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(!found[0].is_error());
@@ -80,7 +80,7 @@ fn a_template_gives_the_shape_so_not_elements_too() {
 fn a_hanging_thing_is_at_least_a_block() {
     let flat = found(
         Format::Item,
-        r#"{ item: { hangs: { entity: "@entity:mymod:scroll", size: [0, 1] } } }"#,
+        r#"{ model: { parent: "generated", textures: { layer0: "@texture:mymod:item/x" } }, item: { hangs: { entity: "@entity:mymod:scroll", size: [0, 1] } } }"#,
     );
     assert!(
         flat.iter()
@@ -151,4 +151,101 @@ fn a_blocks_own_properties_are_named_and_have_two_values() {
         "{bad:?}"
     );
     assert!(block_states(r#"{ properties: { lit: ["off", "on"] } }"#).is_empty());
+}
+
+/// A block of `model`.
+fn block_model(model: &str) -> Vec<String> {
+    found(Format::Block, &format!("{{ model: {model} }}"))
+}
+
+#[test]
+fn a_models_parent_is_a_template_of_its_kind_or_a_model_id() {
+    assert!(
+        block_model(r#"{ parent: "generated", textures: { layer0: "@texture:m:item/x" } }"#)
+            .iter()
+            .any(|m| m.contains("is an item sprite"))
+    );
+    assert!(
+        block_model(r#"{ parent: "cubeall" }"#)
+            .iter()
+            .any(|m| m.contains("isn't a template"))
+    );
+    assert!(block_model(r#"{ parent: "minecraft:block/stairs" }"#).is_empty());
+    assert!(
+        block_model("{}")
+            .iter()
+            .any(|m| m.contains("no parent and no elements"))
+    );
+}
+
+#[test]
+fn a_template_needs_its_slots_unless_a_material_gives_them() {
+    let missing =
+        block_model(r#"{ parent: "cube_column", textures: { end: "@texture:m:block/end" } }"#);
+    assert_eq!(missing, ["parent \"cube_column\" needs textures.side"]);
+    assert!(
+        block_model(r#"{ parent: "cube_column", material: "@material:m:block/log" }"#).is_empty()
+    );
+    let sprite = found(
+        Format::Item,
+        r#"{ model: { parent: "generated", textures: { layer0: "@texture:m:item/a", layer2: "@texture:m:item/c", glow: "@texture:m:item/g" } } }"#,
+    );
+    assert!(
+        sprite.iter().any(|m| m == "without the layer before it"),
+        "{sprite:?}"
+    );
+    assert!(
+        sprite
+            .iter()
+            .any(|m| m.contains("isn't used by an item sprite")),
+        "{sprite:?}"
+    );
+}
+
+#[test]
+fn an_elements_faces_name_the_models_slots_and_turn_at_right_angles() {
+    let own = |faces: &str, rotation: &str| {
+        block_model(&format!(
+            r#"{{ textures: {{ all: "@texture:m:block/x" }}, elements: [{{ from: [0, 0, 0], to: [16, 16, 16], {rotation} faces: {faces} }}] }}"#
+        ))
+    };
+    assert!(own(r##"{ up: { texture: "#all" } }"##, "").is_empty());
+    assert!(
+        own(r##"{ up: { texture: "#side" } }"##, "")
+            .iter()
+            .any(|m| m.contains("no such slot in textures"))
+    );
+    assert!(
+        own(r##"{ up: { texture: "#all", rotation: 45 } }"##, "")
+            .iter()
+            .any(|m| m == "must be 0, 90, 180 or 270")
+    );
+    assert!(
+        own(
+            r##"{ up: { texture: "#all" } }"##,
+            r#"rotation: { axis: "y", angle: 30 },"#
+        )
+        .iter()
+        .any(|m| m.contains("Minecraft rotates elements by"))
+    );
+}
+
+#[test]
+fn a_kinds_block_gives_only_the_kinds_textures() {
+    let kind = |model: &str| {
+        found(
+            Format::Block,
+            &format!(r#"{{ kind: "stairs", model: {model} }}"#),
+        )
+    };
+    assert!(
+        kind(r#"{ parent: "cube_all" }"#)
+            .iter()
+            .any(|m| m.contains("give only textures"))
+    );
+    assert!(
+        kind(r#"{ textures: { side: "@texture:m:block/s" } }"#)
+            .iter()
+            .any(|m| m.contains("needs textures.top"))
+    );
 }

@@ -95,7 +95,6 @@ fn main_model(
         loc,
         &At::root().key(field!(BlockFile, model)),
         own.model,
-        false,
     )?;
     with_render_type(&mut built.json, own.render_layer);
     if matches!(own.block.shape, None | Some(BlockShape::Auto)) {
@@ -148,7 +147,7 @@ fn connect(
         .key(field!(BlockFile, states))
         .key(field!(States, connect))
         .key(field!(Connect, arm));
-    let arm = model(cx, loc, &at, &c.arm, false).map(|am| {
+    let arm = model(cx, loc, &at, &c.arm).map(|am| {
         let mut json = am.json;
         with_render_type(&mut json, own.render_layer);
         let path = format!("{}{}{ARM}", yog_ids::res::BLOCK_DIR, emit.p);
@@ -258,7 +257,6 @@ fn variant_rules(
             loc,
             &sat.key(field!(States, models)).key(name),
             model_of,
-            false,
         ) {
             with_render_type(&mut built.json, own.render_layer);
             let path = format!(

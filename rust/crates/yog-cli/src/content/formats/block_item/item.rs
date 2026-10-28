@@ -26,7 +26,7 @@ pub(super) fn compile(
     let at = root.key(field!(ItemFile, model));
     if entry.potion.is_some() {
         if let Some(item_model) = parts.model.as_ref() {
-            let m = model(cx, loc, &at, item_model, true)?;
+            let m = model(cx, loc, &at, item_model)?;
             emit.asset(
                 cx,
                 yog_ids::model_file(&format!("{}{}", yog_ids::res::ITEM_DIR, emit.p)),
@@ -35,11 +35,9 @@ pub(super) fn compile(
         }
         return Some(());
     }
-    let Some(item_model) = parts.model.as_ref() else {
-        cx.err_at(loc, &at, "an item without potion effects needs a model");
-        return None;
-    };
-    let m = model(cx, loc, &at, item_model, true)?;
+    // An item with neither a model nor potion effects is yog_formats::rules' to report.
+    let item_model = parts.model.as_ref()?;
+    let m = model(cx, loc, &at, item_model)?;
     emit.item_model(cx, &m.json);
     Some(())
 }

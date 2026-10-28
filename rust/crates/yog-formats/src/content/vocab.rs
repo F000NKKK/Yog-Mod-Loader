@@ -73,3 +73,7 @@ pub fn template(name: &str) -> Option<&'static Template> {
 pub const RIGHT_ANGLES: [u32; 4] = [0, 90, 180, 270];
 /// The fewest values a block's own property has.
 pub const MIN_PROPERTY_VALUES: usize = 2;
+
+/// What an element turns by, at most two steps either way (Minecraft's).
+pub const ELEMENT_ROTATION_STEP: f64 = 22.5;
+pub const ELEMENT_ROTATION_MAX: f64 = 2.0 * ELEMENT_ROTATION_STEP;
