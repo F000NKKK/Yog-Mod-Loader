@@ -179,7 +179,10 @@ fn dropped_java_handlers_neither_provide_nor_listen() {
     r.on(e, 0, Handler::Java(1));
     r.on(e, 0, Handler::Java(2));
     r.drop_java(&[1]);
-    assert!(!r.provided(a), "a retired generation's address is free again");
+    assert!(
+        !r.provided(a),
+        "a retired generation's address is free again"
+    );
     assert!(r.provide(a, Handler::Java(3)));
     assert!(r.heard(e), "the other generation's listener stays");
     r.drop_java(&[2]);

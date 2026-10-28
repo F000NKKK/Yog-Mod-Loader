@@ -178,7 +178,7 @@ impl Gen<'_> {
     }
 
     /// `@Override public void name(params) { lines }`.
-    fn state_method(&mut self, name: &str, params: &str, lines: &[String]) {
+    pub(crate) fn state_method(&mut self, name: &str, params: &str, lines: &[String]) {
         self.code.line(OVERRIDE);
         self.code.open(format!("{PUBLIC} {VOID} {name}({params})"));
         for l in lines.iter().filter(|l| !l.is_empty()) {
@@ -188,7 +188,7 @@ impl Gen<'_> {
     }
 
     /// How a member of `ty` goes through the bus's codec, if it does yet.
-    fn codec_form(&self, ty: &Written, name: &str) -> Option<Kept> {
+    pub(crate) fn codec_form(&self, ty: &Written, name: &str) -> Option<Kept> {
         match &ty.kind {
             TypeKind::Nullable(inner) => {
                 let java = self.written(inner, true);

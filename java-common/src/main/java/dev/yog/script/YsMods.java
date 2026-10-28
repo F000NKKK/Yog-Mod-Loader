@@ -66,6 +66,7 @@ public final class YsMods {
             for (URLClassLoader loader : old) {
                 dev.yog.script.yog.State.retire(loader);
                 dev.yog.script.yog.SyncedState.retire(loader);
+                dev.yog.script.yog.Session.retire(loader);
                 dev.yog.Generations.retire(loader);
             }
         }

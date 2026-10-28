@@ -116,9 +116,12 @@ impl Gen<'_> {
         };
         let saved = !crate::saved::saved_members(body).is_empty();
         let synced = !crate::saved::synced_members(body).is_empty();
+        // What a hot reload keeps of an owner's instance: its members that aren't saved.
+        let session = !crate::session::session_members(body).is_empty();
         let interfaces: Vec<String> = [
             (saved, format!("{STATE}.{SAVED}")),
             (synced, format!("{SYNCED_STATE}.{SYNCED_INTERFACE}")),
+            (session, crate::session::kept_interface()),
         ]
         .into_iter()
         .filter_map(|(has, i)| has.then_some(i))
@@ -151,7 +154,7 @@ impl Gen<'_> {
         self.code.close("");
         self.code
             .open(format!("{PUBLIC} {STATIC} {class} {OF}({STRING} {OWNER})"));
-        let made = self.live_made(&owner, &class, ty, (saved, synced));
+        let made = self.live_made(&owner, &class, ty, (saved, synced, session));
         self.code
             .line(format!("{RETURN} {ALL}.{FIND_OR_MAKE}({key}, {made});"));
         self.code.close("");
@@ -167,6 +170,9 @@ impl Gen<'_> {
             }
             self.saved_state(&owner, body, (&forget, false));
         }
+        if session {
+            self.session_state(body);
+        }
         self.members(body, Place::Class);
         (self.owner, self.extending) = outer;
         self.code.close("");
@@ -175,19 +181,27 @@ impl Gen<'_> {
     /// What makes an owner's instance of `class` (an `extend` of `owner`):
     /// made; read in from its scope's store when it keeps `saved` members;
     /// live to its clients when it keeps `synced` ones (a player's to that
-    /// player, the world's to every one).
+    /// player, the world's to every one); live in the session (`session`)
+    /// when a hot reload keeps some of its members.
     fn live_made(
         &mut self,
         owner: &str,
         class: &str,
         ty: &Written,
-        (saved, synced): (bool, bool),
+        (saved, synced, session): (bool, bool, bool),
     ) -> String {
-        if !(saved || synced) {
+        if !(saved || synced || session) {
             return format!("{class}{METHOD_REF}{NEW}");
         }
         let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
         let key = self.temp();
+        if !(saved || synced) {
+            let made = format!("{NEW} {class}({key})");
+            return format!(
+                "{key} -> {}",
+                crate::session::live(&made, (&module, class, &key))
+            );
+        }
         let world = owner == yog_script_analyze::yog::world();
         if !world && owner != yog_script_analyze::yog::player() {
             self.not_yet("`saved` or `synced` members of this object", ty.span);
@@ -208,6 +222,9 @@ impl Gen<'_> {
             } else {
                 format!("{SYNCED_STATE}.{TO_PLAYER}({made}, {kind}, {key})")
             };
+        }
+        if session {
+            made = crate::session::live(&made, (&module, class, &key));
         }
         format!("{key} -> {made}")
     }

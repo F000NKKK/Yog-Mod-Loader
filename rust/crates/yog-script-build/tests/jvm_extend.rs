@@ -156,12 +156,12 @@ fn saved_mod_members() {
         Class<?> mod = java.util.Arrays.stream(t.MScript.class.getDeclaredClasses())
             .filter(c -> c.getSimpleName().equals("Charge")).findFirst().get();
         var records = java.util.Arrays.stream(mod.getDeclaredClasses()).map(Class::getSimpleName).sorted().toList();
-        return dev.yog.script.yog.State.Saved.class.isAssignableFrom(mod) + " " + records;
+        return dev.yog.script.yog.State.Saved.class.isAssignableFrom(mod) + " " + dev.yog.script.yog.Session.Kept.class.isAssignableFrom(mod) + " " + records;
     }).get()"#;
     let Some(out) = support::run(&[("M.ys", MOD)], java) else {
         return;
     };
-    assert_eq!(out, "true [$Starts]");
+    assert_eq!(out, "true true [$Starts, $Unsaved]");
 }
 
 const SYNCED: &str = r#"using System.Collections.Generic;
@@ -210,4 +210,45 @@ fn synced_members_reach_another_object() {
         out,
         "[Player.Charge, Player.Rank, Player.Tags] 40 gold [fast] true"
     );
+}
+
+const KEPT: &str = r#"public static class K {
+    public static string Run() => "ok";
+}
+extend Player {
+    public saved i32 Visits = 0;
+    public i32 Combo = 0;
+    public string Last = "";
+    public readonly i32 Fixed = 1;
+}
+"#;
+
+/// A hot reload keeps what isn't saved (storage.md S8): an owner's
+/// instance writes its plain members as its old classes go, the new
+/// instance of that owner reads them back; saved ones stay in the store.
+#[test]
+fn a_hot_reload_keeps_unsaved_members() {
+    let java = r#"((java.util.function.Supplier<String>) () -> {
+        try {
+            Class<?> ext = java.util.Arrays.stream(t.KScript.class.getDeclaredClasses())
+                .filter(c -> c.getSimpleName().startsWith("$ExtendPlayer")).findFirst().get();
+            var make = ext.getDeclaredConstructor(String.class);
+            make.setAccessible(true);
+            Object old = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Steve"), "m|P|Steve");
+            ext.getField("Combo").setInt(old, 4);
+            ext.getField("Last").set(old, "jump");
+            var kept = new java.util.TreeMap<String, byte[]>();
+            ((dev.yog.script.yog.Session.Kept) old).$keep(kept::put);
+            dev.yog.script.yog.Session.retire(ext.getClassLoader());
+            Object fresh = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Steve"), "m|P|Steve");
+            Object other = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Alex"), "m|P|Alex");
+            return kept.keySet() + " " + ext.getField("Combo").getInt(fresh) + " " + ext.getField("Last").get(fresh) + " " + ext.getField("Combo").getInt(other);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }).get()"#;
+    let Some(out) = support::run(&[("K.ys", KEPT)], java) else {
+        return;
+    };
+    assert_eq!(out, "[Combo, Last] 4 jump 0");
 }

@@ -44,8 +44,20 @@ impl Gen<'_> {
                 "{SYNCED_STATE}.{OWNERS}({kind}, {OWNER_VAR} -> {THIS});"
             ));
         }
-        if saved || synced {
+        // What a hot reload keeps of it: its members that aren't saved.
+        let session = !crate::session::session_members(body).is_empty();
+        if session {
+            let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
+            tail.push(format!(
+                "{};",
+                crate::session::live(THIS, (&module, name, "\"\""))
+            ));
+            self.session_owner = true;
+        }
+        if saved || synced || session {
             self.ctor_tail = Some(tail.join(" "));
+        }
+        if saved || synced {
             self.saved_owner = Some(name.to_string());
         }
         self.class_with(
@@ -78,7 +90,12 @@ impl Gen<'_> {
         let generic = header.generics.iter().any(|g| !g.lifetime);
         let saved_owner = self.saved_owner.take();
         let on_stack = std::mem::take(&mut self.on_stack);
-        let also = state_interfaces(also, (saved_owner.is_some(), on_stack), body);
+        let session_owner = std::mem::take(&mut self.session_owner);
+        let mut also = state_interfaces(also, (saved_owner.is_some(), on_stack), body);
+        if session_owner {
+            let kept = crate::session::kept_interface();
+            also = Some(also.map_or(kept.clone(), |a| format!("{a}, {kept}")));
+        }
         let head = self.class_head(d, (name, header), (struct_, generic), also.as_deref());
         self.code.open(head);
         self.describe(d);
@@ -108,6 +125,9 @@ impl Gen<'_> {
         self.constructors(name, header, body, tail.as_deref());
         if let Some(owner) = saved_owner {
             self.saved_state(&owner, body, ("", on_stack));
+        }
+        if session_owner {
+            self.session_state(body);
         }
         self.members(body, Place::Class);
         self.inherited_getters(&(ys.to_string(), arity), body);
