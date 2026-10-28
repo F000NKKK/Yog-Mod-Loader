@@ -24,7 +24,7 @@ jobs:
         shell: bash
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The natives Yog builds for Windows are windows-gnu (DWARF, not PDB).
       - name: Windows host toolchain (gnu)
