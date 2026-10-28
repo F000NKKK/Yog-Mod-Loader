@@ -2279,6 +2279,8 @@ dependencies = [
  "serde_json",
  "substrate-data",
  "yog-body",
+ "yog-codegen",
+ "yog-codegen-typescript",
  "yog-core",
  "yog-data",
  "yog-font",

@@ -21,3 +21,6 @@ yog-sync = { workspace = true }
 yog-worldgen = { workspace = true }
 yog-body = { workspace = true }
 yog-font = { workspace = true }
+# The vocabulary as the IDE's TypeScript (`yog-formats-export`).
+yog-codegen = { workspace = true }
+yog-codegen-typescript = { workspace = true }
