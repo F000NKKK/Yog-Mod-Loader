@@ -409,6 +409,9 @@ names! {
         /// What a name's separators become in a store's file name, and
         /// what parts a chunk store's name (`<dim>_<cx>_<cz>`).
         SEP = crate::sep::WORD,
+        /// What separates a session key's parts (a hot reload's live
+        /// objects): the mod, the class, the owner — `mymod|Charge|Steve`.
+        SESSION_KEY_SEP = "|",
     }
 
     /// The words of Yog Data's `#[data(...)]` attribute: the attribute

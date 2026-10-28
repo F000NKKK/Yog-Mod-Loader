@@ -116,12 +116,11 @@ impl Gen<'_> {
         };
         let saved = !crate::saved::saved_members(body).is_empty();
         let synced = !crate::saved::synced_members(body).is_empty();
-        // What a hot reload keeps of an owner's instance: its members that aren't saved.
-        let session = !crate::session::session_members(body).is_empty();
+        // What a hot reload carries of an owner's instance: its fields.
+        let session = crate::session::keeps(body);
         let interfaces: Vec<String> = [
             (saved, format!("{STATE}.{SAVED}")),
             (synced, format!("{SYNCED_STATE}.{SYNCED_INTERFACE}")),
-            (session, crate::session::kept_interface()),
         ]
         .into_iter()
         .filter_map(|(has, i)| has.then_some(i))
@@ -171,7 +170,13 @@ impl Gen<'_> {
             self.saved_state(&owner, body, (&forget, false));
         }
         if session {
-            self.session_state(body);
+            // A reload makes each owner's instance at once, through its maker.
+            let module = self.code.str(self.mod_id.as_deref().unwrap_or_default());
+            self.on_load.push(crate::session::maker(
+                &module,
+                &class,
+                &format!("{class}{METHOD_REF}{OF}"),
+            ));
         }
         self.members(body, Place::Class);
         (self.owner, self.extending) = outer;

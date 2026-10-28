@@ -4,7 +4,6 @@ import dev.yog.YogLog;
 import dev.yog.YogNames;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -36,7 +35,7 @@ public final class YsMods {
     private static final String ZIP_SEP = "/";
 
     /** Each mod's class loaders now (its file's name without {@code .yog}). */
-    private static final Map<String, List<URLClassLoader>> LOADERS = new ConcurrentHashMap<>();
+    private static final Map<String, List<ModLoader>> LOADERS = new ConcurrentHashMap<>();
     /** The scripts' folder in a {@code .yog} for this game version. */
     private static volatile String folder;
 
@@ -44,6 +43,11 @@ public final class YsMods {
     public static void load(Path modsDir, String mcVersion) {
         // Each side's ticks drive its tasks (what an `await` goes on on).
         dev.yog.script.threading.tasks.Scheduler.listen();
+        // What a reload carries waits for its owners only while the world runs.
+        dev.yog.bus.YogEvents.Server.Life.Stopping.on(0, e -> {
+            dev.yog.script.yog.Session.forgetCarried();
+            return null;
+        });
         folder = YogNames.Archive.SCRIPTS + ZIP_SEP + mcVersion + ZIP_SEP;
         try (DirectoryStream<Path> mods = Files.newDirectoryStream(modsDir, "*" + MOD_EXT)) {
             for (Path mod : mods) {
@@ -56,25 +60,47 @@ public final class YsMods {
 
     /**
      * Mod {@code modId}'s scripts again from {@code path} (its rebuilt
-     * {@code .yog}; the runtime's hot reload, {@code yog:script/reload}):
-     * its live objects' saved state written and dropped, its old classes'
-     * handlers and tasks retired, the new classes loaded. Whether they loaded.
+     * {@code .yog}; the runtime's hot reload, {@code yog:script/reload}),
+     * on the server's thread between its ticks: the old generation's saved
+     * members written and its handlers unsubscribed, the new classes
+     * loaded, everything live carried into them (Session: objects,
+     * statics, async methods mid-way), its queued work theirs. Whether
+     * they loaded.
      */
     public static boolean reload(String modId, String path) {
-        List<URLClassLoader> old = LOADERS.remove(modId);
-        if (old != null) {
-            for (URLClassLoader loader : old) {
-                dev.yog.script.yog.State.retire(loader);
-                dev.yog.script.yog.SyncedState.retire(loader);
-                dev.yog.script.yog.Session.retire(loader);
-                dev.yog.Generations.retire(loader);
-            }
+        boolean[] loaded = {false};
+        dev.yog.script.threading.tasks.Scheduler.onServerThread(() -> loaded[0] = reloadNow(modId, Path.of(path)));
+        YogLog.info("Yog Script: " + modId + (loaded[0] ? " reloaded" : " didn't reload"));
+        return loaded[0];
+    }
+
+    private static boolean reloadNow(String modId, Path path) {
+        List<ModLoader> old = LOADERS.remove(modId);
+        if (old == null) {
+            return folder != null && loadMod(modId, path);
         }
-        boolean loaded = folder != null && loadMod(modId, Path.of(path));
-        if (old != null) {
-            old.forEach(YsMods::close);
+        java.util.Set<ClassLoader> was = new java.util.HashSet<>(old);
+        List<Class<?>> classes = new java.util.ArrayList<>();
+        for (ModLoader loader : old) {
+            dev.yog.script.yog.State.retire(loader);
+            dev.yog.script.yog.SyncedState.retire(loader);
+            dev.yog.Generations.retire(loader);
+            classes.addAll(loader.loaded());
         }
-        YogLog.info("Yog Script: " + modId + (loaded ? " reloaded" : " didn't reload"));
+        dev.yog.script.yog.BlockObject.retire(was);
+        dev.yog.script.yog.EntityObject.retire(was);
+        dev.yog.script.yog.ItemObject.retire(was);
+        Map<String, Object> live = dev.yog.script.yog.Session.retire(was);
+        boolean loaded = folder != null && loadMod(modId, path);
+        List<ModLoader> next = LOADERS.getOrDefault(modId, List.of());
+        if (loaded && !next.isEmpty()) {
+            dev.yog.script.yog.Session.carry(was, live, classes, new java.util.ArrayList<>(next));
+            old.forEach(l -> dev.yog.Generations.succeed(l, next.get(0)));
+        } else {
+            old.forEach(dev.yog.Generations::gone);
+            dev.yog.script.yog.Session.forgetCarried();
+        }
+        old.forEach(YsMods::close);
         return loaded;
     }
 
@@ -122,8 +148,8 @@ public final class YsMods {
 
     /** The jar's mods made, as its loader's code ({@link dev.yog.Generations}):
      * each one's constructor is its loading. */
-    private static URLClassLoader start(Path jar, Path mod) throws IOException {
-        URLClassLoader loader = new URLClassLoader(new URL[] {jar.toUri().toURL()}, YsMods.class.getClassLoader());
+    private static ModLoader start(Path jar, Path mod) throws IOException {
+        ModLoader loader = new ModLoader(jar, YsMods.class.getClassLoader());
         for (ServiceLoader.Provider<YsMod> m : ServiceLoader.load(YsMod.class, loader).stream().toList()) {
             try {
                 dev.yog.Generations.within(loader, m::get);

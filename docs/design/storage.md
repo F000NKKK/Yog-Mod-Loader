@@ -165,16 +165,24 @@ For each type with `synced` members, the build generates a mirror spec
    to the type now — and dropped (`State.Records.drop`; a stack's or an
    entity's old key stays with its owner). Rust: `WorldData::new(key)
    .was(Was::renamed(old))` / `Was::from::<Old>(old)` on every kept value.
-   ✅ Hot reload (S8): after the native's, the runtime calls the host's
-   `yog:script/reload` (`YsMods.reload`). The old generation's live
-   objects write their `saved` members to their stores (`State.retire`)
-   and every other member to the session (`Session.retire`: a mod's
-   object and `extend` instances implement `Session.Kept`, `$keep`/
-   `$restore`, keyed mod|class|owner); its bus handlers are unsubscribed
-   (`Generations`, `YogBus.retire` → `Router::drop_java`), its queued
-   tasks dropped; the new classes' objects read both back as they're
-   made. A member the codec can't keep yet starts at its first value.
-   Saved tasks (S9) are next.
+   ✅ Hot reload (S8, S9 within a run): `yog:script/reload` after the
+   native's (`YsMods.reload`), on the server's thread between its ticks.
+   The old generation writes its `saved` members (`State.retire`), its bus
+   handlers are unsubscribed (`Generations`, `YogBus.retire` →
+   `Router::drop_java`) and its caches of objects dropped; the new classes
+   load, and `Session.carry` brings everything over in the same process
+   (`Rebind`): each live object (the mod's, an owner's `extend` instance,
+   a block's, an entity's, keyed mod|class|owner) into the new object of
+   its key — every field, `readonly` ones too, whatever its type: the
+   runtime's and the JDK's values as they are, the mod's classes' objects
+   remade field by field, cases and singletons by name, records by their
+   constructors; the old classes' statics; each `async` method waiting
+   mid-way into its machine's new class (`Async.carry`: the old one goes
+   on as the new). Queued work runs as the successor's (`Generations.
+   succeed`); the old classes' own lambdas aren't carried — the new
+   classes queue theirs. What can't be carried (an old lambda) leaves the
+   new object's own value. A failed reload drops what waited.
+   Saving a task with the world (S9 across restarts) is still to come.
 7. The Rust API's parity. ✅ `WorldData`/`PlayerData`/`BlockData` (their
    stores, the same keys; `::synced` on the same rows), `EntityData` (the
    runtime's entity data; `::session` not saved), `ItemData` (the stack;

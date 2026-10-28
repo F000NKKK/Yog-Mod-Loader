@@ -90,6 +90,45 @@ public final class Scheduler {
         }
     }
 
+    /** The server's thread's scheduler, once its ticks run ({@code null} with no world). */
+    private static volatile Scheduler server;
+    /** How long a reload waits for the server's next tick to run on it, at most. */
+    private static final long SERVER_WAIT_SECONDS = 10;
+
+    /**
+     * {@code body} run on the server's thread at its next tick, waited for
+     * (a hot reload: nothing of the game's runs meanwhile); here when no
+     * server ticks (no world), or when its tick doesn't come in time.
+     */
+    public static void onServerThread(Runnable body) {
+        Scheduler s = server;
+        if (s == null || s == OF_THREAD.get(Thread.currentThread())) {
+            body.run();
+            return;
+        }
+        java.util.concurrent.atomic.AtomicBoolean claimed = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        s.posted.add(() -> {
+            if (claimed.compareAndSet(false, true)) {
+                try {
+                    body.run();
+                } finally {
+                    done.countDown();
+                }
+            }
+        });
+        try {
+            if (done.await(SERVER_WAIT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)) {
+                return;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (claimed.compareAndSet(false, true)) {
+            body.run();
+        }
+    }
+
     /** The scheduler of the thread asking. */
     public static Scheduler here() {
         return OF_THREAD.computeIfAbsent(Thread.currentThread(), t -> new Scheduler());
@@ -111,11 +150,16 @@ public final class Scheduler {
         loading.driven = true;
         boolean[] client = {false};
         dev.yog.bus.YogEvents.Server.Game.Tick.on(0, e -> {
-            Scheduler server = here();
-            server.tick();
-            if (!client[0] && loading != server) {
+            Scheduler onServer = here();
+            server = onServer;
+            onServer.tick();
+            if (!client[0] && loading != onServer) {
                 loading.tick();
             }
+            return null;
+        });
+        dev.yog.bus.YogEvents.Server.Life.Stopping.on(0, e -> {
+            server = null; // no world: what waits for its tick runs where it's asked
             return null;
         });
         dev.yog.bus.YogEvents.Client.Game.Tick.on(0, e -> {
@@ -143,6 +187,9 @@ public final class Scheduler {
     /** {@code action} run every {@code period} ticks; its panic stops it, given to {@code failed}. */
     public void every(long period, Runnable action, Consumer<Throwable> failed) {
         afterTicks(period, () -> {
+            if (dev.yog.Generations.stale(action)) {
+                return; // a reloaded mod's: its new classes run their own
+            }
             try {
                 action.run();
             } catch (RuntimeException e) {
@@ -210,7 +257,7 @@ public final class Scheduler {
         retirementsSeen = now;
         ticks.removeIf(t -> dev.yog.Generations.Queued.dropped(t.then()));
         clock.removeIf(t -> dev.yog.Generations.Queued.dropped(t.then()));
-        waiting.removeIf(w -> dev.yog.Generations.Queued.dropped(w.then()));
+        waiting.removeIf(w -> dev.yog.Generations.Queued.dropped(w.then()) || dev.yog.Generations.stale(w.condition()));
     }
 
     /** {@code r} run; its panic logged, the others going on (a task's own fails it). */

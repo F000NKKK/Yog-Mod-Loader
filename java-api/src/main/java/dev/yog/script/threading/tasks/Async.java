@@ -14,12 +14,43 @@ public abstract class Async<T> implements Runnable {
     private final Task1<T> task = new Task1<>();
     /** An {@code async void}'s: nobody awaits it, so its panic is logged. */
     private boolean logged;
+    /** What a hot reload made of it (its machine as the new classes have it): what goes on instead. */
+    private volatile Async<?> movedTo;
+
+    /** The machines waiting mid-way; weak: a machine whose task is gone goes. */
+    private static final java.util.Set<Async<?>> WAITING =
+            java.util.Collections.synchronizedSet(java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>()));
+
+    /**
+     * Each waiting machine {@code of} a reloaded generation carried into its
+     * new class by {@code remake} (its state, locals and task kept): when
+     * what it waits for is done, the new one goes on from where it was.
+     */
+    public static void carry(java.util.function.Predicate<Async<?>> of, java.util.function.Function<Object, Object> remake) {
+        java.util.List<Async<?>> old;
+        synchronized (WAITING) {
+            old = WAITING.stream().filter(of).toList();
+        }
+        for (Async<?> m : old) {
+            if (remake.apply(m) instanceof Async<?> next) {
+                m.movedTo = next;
+                WAITING.remove(m);
+                WAITING.add(next);
+            }
+        }
+    }
 
     /** The method's code, from {@link #$state} on. */
     protected abstract void $step();
 
     @Override
     public final void run() {
+        Async<?> next = movedTo;
+        if (next != null) {
+            next.run();
+            return;
+        }
+        WAITING.remove(this);
         // What it changes flows on in it, not back to whoever ran it.
         java.util.Map<Object, Object> outer = dev.yog.script.threading.ExecutionContext.capture();
         try {
@@ -39,6 +70,7 @@ public abstract class Async<T> implements Runnable {
         if (awaited.IsCompleted()) {
             return false;
         }
+        WAITING.add(this);
         awaited.onDone(this);
         return true;
     }

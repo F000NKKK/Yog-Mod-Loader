@@ -35,6 +35,12 @@ final class EntityState {
         LIVE.put(o, new Live(mod, uuid, new ConcurrentHashMap<>()));
     }
 
+    /** The objects of classes {@code loaders} loaded (a reloaded generation):
+     * no longer live (what they hold is written each tick already). */
+    static void retire(java.util.Set<ClassLoader> loaders) {
+        LIVE.keySet().removeIf(o -> loaders.contains(o.getClass().getClassLoader()));
+    }
+
     /** {@code o}'s entity gone: no longer live (the runtime drops its data). */
     static void gone(EntityObject o) {
         LIVE.remove(o);

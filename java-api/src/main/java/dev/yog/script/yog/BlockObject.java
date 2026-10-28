@@ -41,6 +41,8 @@ public abstract class BlockObject {
 
     /** Each declared block's maker, by its id. */
     private static final Map<String, Supplier<? extends BlockObject>> MAKERS = new ConcurrentHashMap<>();
+    /** Whether its dispatcher listens already. */
+    private static volatile boolean dispatching;
     /** The objects made so far, by where they are. */
     private static final Map<At, BlockObject> MADE = new ConcurrentHashMap<>();
     /** Where the object being made is: its constructor reads it. */
@@ -69,7 +71,9 @@ public abstract class BlockObject {
 
     /** Block {@code id}'s objects made by {@code make}; the first one declared listens to the blocks' events. */
     public static void register(String id, Supplier<? extends BlockObject> make) {
-        boolean first = MAKERS.isEmpty();
+        // Its dispatcher once, whichever generation declares first (a reload empties MAKERS of the old's).
+        boolean first = !dispatching;
+        dispatching = true;
         MAKERS.put(id, make);
         // A client's object at a place: what its synced rows go to.
         SyncedState.owners(SYNCED_KIND + id, owner -> found(id, At.parse(owner)) instanceof SyncedState.Synced s ? s : null);
@@ -106,6 +110,14 @@ public abstract class BlockObject {
         });
     }
 
+    /** The objects of classes {@code loaders} loaded (a generation a hot reload
+     * replaces): no longer made; the new classes' objects are, as they're asked
+     * for (taking what the old ones held, {@link Session}). */
+    public static void retire(java.util.Set<ClassLoader> loaders) {
+        MADE.values().removeIf(o -> loaders.contains(o.getClass().getClassLoader()));
+        MAKERS.values().removeIf(m -> loaders.contains(m.getClass().getClassLoader()));
+    }
+
     /** The object of block {@code id} at {@code at}: made now if it wasn't; none for a block no mod declared. */
     private static BlockObject found(String id, At at) {
         Supplier<? extends BlockObject> make = MAKERS.get(id);
@@ -115,7 +127,8 @@ public abstract class BlockObject {
         return MADE.computeIfAbsent(at, p -> {
             MAKING.set(p);
             try {
-                BlockObject o = make.get();
+                // Carried over by a hot reload: the same block's object of the old classes, its now.
+                BlockObject o = Session.live(make.get(), Session.key(SYNCED_KIND + id, p.key()));
                 // Its `saved` members: read in from its chunk's store.
                 if (o instanceof State.Saved s) {
                     State.block(s, namespace(id), p.dimension(), p.x(), p.y(), p.z());

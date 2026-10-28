@@ -156,12 +156,12 @@ fn saved_mod_members() {
         Class<?> mod = java.util.Arrays.stream(t.MScript.class.getDeclaredClasses())
             .filter(c -> c.getSimpleName().equals("Charge")).findFirst().get();
         var records = java.util.Arrays.stream(mod.getDeclaredClasses()).map(Class::getSimpleName).sorted().toList();
-        return dev.yog.script.yog.State.Saved.class.isAssignableFrom(mod) + " " + dev.yog.script.yog.Session.Kept.class.isAssignableFrom(mod) + " " + records;
+        return dev.yog.script.yog.State.Saved.class.isAssignableFrom(mod) + " " + records;
     }).get()"#;
     let Some(out) = support::run(&[("M.ys", MOD)], java) else {
         return;
     };
-    assert_eq!(out, "true true [$Starts, $Unsaved]");
+    assert_eq!(out, "true [$Starts]");
 }
 
 const SYNCED: &str = r#"using System.Collections.Generic;
@@ -212,43 +212,83 @@ fn synced_members_reach_another_object() {
     );
 }
 
-const KEPT: &str = r#"public static class K {
-    public static string Run() => "ok";
+const RELOADED: &str = r#"using System.Collections.Generic;
+using System.Threading.Tasks;
+public class Thing(i32 n) {
+    public i32 N = n;
+}
+public static class K {
+    public static async Task<string> Wait(Task gate) {
+        let p = new Player("Steve");
+        await gate;
+        p.Combo += 1;
+        return "done " + p.Combo + " " + p.Last + " " + p.Fixed + " " + p.Bag.Count + " " + p.Bag[0].N;
+    }
 }
 extend Player {
-    public saved i32 Visits = 0;
     public i32 Combo = 0;
     public string Last = "";
     public readonly i32 Fixed = 1;
+    public List<Thing> Bag = new List<Thing>();
 }
 "#;
 
-/// A hot reload keeps what isn't saved (storage.md S8): an owner's
-/// instance writes its plain members as its old classes go, the new
-/// instance of that owner reads them back; saved ones stay in the store.
+/// A hot reload carries everything over (storage.md S8, S9): the same
+/// classes loaded again as a new generation, an owner's instance's every
+/// member — plain, readonly, a list of the mod's own class — is the new
+/// instance's, and an async method waiting mid-way goes on in its
+/// machine's new class, reaching the new instance.
 #[test]
-fn a_hot_reload_keeps_unsaved_members() {
+fn a_hot_reload_carries_state_and_waiting_methods() {
     let java = r#"((java.util.function.Supplier<String>) () -> {
         try {
-            Class<?> ext = java.util.Arrays.stream(t.KScript.class.getDeclaredClasses())
+            ClassLoader app = t.KScript.class.getClassLoader();
+            java.net.URL dir = t.KScript.class.getProtectionDomain().getCodeSource().getLocation();
+            // A generation of the mod's classes: t.* loaded apart, the runtime shared (as in the game).
+            java.util.function.Supplier<ClassLoader> generation = () -> new java.net.URLClassLoader(new java.net.URL[] {dir}, app) {
+                @Override
+                protected Class<?> loadClass(String n, boolean resolve) throws ClassNotFoundException {
+                    if (!n.startsWith("t.")) return super.loadClass(n, resolve);
+                    synchronized (getClassLoadingLock(n)) {
+                        Class<?> c = findLoadedClass(n);
+                        return c != null ? c : findClass(n);
+                    }
+                }
+            };
+            ClassLoader first = generation.get();
+            ClassLoader next = generation.get();
+            Class<?> script = Class.forName("t.KScript", true, first);
+            Class<?> ext = java.util.Arrays.stream(script.getDeclaredClasses())
                 .filter(c -> c.getSimpleName().startsWith("$ExtendPlayer")).findFirst().get();
-            var make = ext.getDeclaredConstructor(String.class);
-            make.setAccessible(true);
-            Object old = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Steve"), "m|P|Steve");
+            var of = ext.getDeclaredMethod("$of", String.class);
+            of.setAccessible(true);
+            Object old = of.invoke(null, "Steve");
             ext.getField("Combo").setInt(old, 4);
             ext.getField("Last").set(old, "jump");
-            var kept = new java.util.TreeMap<String, byte[]>();
-            ((dev.yog.script.yog.Session.Kept) old).$keep(kept::put);
-            dev.yog.script.yog.Session.retire(ext.getClassLoader());
-            Object fresh = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Steve"), "m|P|Steve");
-            Object other = dev.yog.script.yog.Session.live((dev.yog.script.yog.Session.Kept) make.newInstance("Alex"), "m|P|Alex");
-            return kept.keySet() + " " + ext.getField("Combo").getInt(fresh) + " " + ext.getField("Last").get(fresh) + " " + ext.getField("Combo").getInt(other);
+            var fixed = ext.getField("Fixed");
+            fixed.setAccessible(true);
+            fixed.setInt(old, 7);
+            var thing = Class.forName("t.KScript$Thing", true, first).getDeclaredConstructor(int.class);
+            ((java.util.List<Object>) ext.getField("Bag").get(old)).add(thing.newInstance(9));
+            var gate = new dev.yog.script.threading.tasks.TaskCompletionSource();
+            var waiting = (dev.yog.script.threading.tasks.Task1<?>) Class.forName("t.KScript$K", true, first)
+                .getMethod("Wait", dev.yog.script.threading.tasks.Task.class).invoke(null, gate.Task());
+            // The reload: the old generation's live objects out, carried into the next.
+            java.util.Set<ClassLoader> was = java.util.Set.of(first);
+            var live = dev.yog.script.yog.Session.retire(was);
+            dev.yog.script.yog.Session.carry(was, live, java.util.List.of(ext), java.util.List.of(next));
+            gate.SetResult();
+            Class<?> newExt = Class.forName(ext.getName(), true, next);
+            var newOf = newExt.getDeclaredMethod("$of", String.class);
+            newOf.setAccessible(true);
+            Object fresh = newOf.invoke(null, "Steve");
+            return waiting.Result() + " | " + newExt.getField("Combo").getInt(fresh) + " " + ext.getField("Combo").getInt(old);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }).get()"#;
-    let Some(out) = support::run(&[("K.ys", KEPT)], java) else {
+    let Some(out) = support::run(&[("K.ys", RELOADED)], java) else {
         return;
     };
-    assert_eq!(out, "[Combo, Last] 4 jump 0");
+    assert_eq!(out, "done 5 jump 7 1 9 | 5 4");
 }

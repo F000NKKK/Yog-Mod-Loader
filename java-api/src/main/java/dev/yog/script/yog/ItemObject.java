@@ -20,12 +20,21 @@ import java.util.function.Supplier;
 public abstract class ItemObject {
     /** Each declared item's maker, by its id. */
     private static final Map<String, Supplier<? extends ItemObject>> MAKERS = new ConcurrentHashMap<>();
+    /** Whether its dispatcher listens already. */
+    private static volatile boolean dispatching;
 
     public final Event<Action1<String>> Use = new Event<>();
 
+    /** The makers of classes {@code loaders} loaded (a reloaded generation): gone, the new ones declare theirs. */
+    public static void retire(java.util.Set<ClassLoader> loaders) {
+        MAKERS.values().removeIf(m -> loaders.contains(m.getClass().getClassLoader()));
+    }
+
     /** Item {@code id}'s objects made by {@code make}; the first one declared listens to items' uses. */
     public static void register(String id, Supplier<? extends ItemObject> make) {
-        boolean first = MAKERS.isEmpty();
+        // Its dispatcher once, whichever generation declares first (a reload empties MAKERS of the old's).
+        boolean first = !dispatching;
+        dispatching = true;
         MAKERS.put(id, make);
         if (first) {
             // The loader's own dispatcher, not the first mod's (dev.yog.Generations#unowned).

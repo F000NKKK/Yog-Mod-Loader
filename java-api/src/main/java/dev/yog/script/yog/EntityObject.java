@@ -21,6 +21,8 @@ import java.util.function.Supplier;
 public abstract class EntityObject {
     /** Each declared entity's maker, by its id. */
     private static final Map<String, Supplier<? extends EntityObject>> MAKERS = new ConcurrentHashMap<>();
+    /** Whether its dispatcher listens already. */
+    private static volatile boolean dispatching;
     /** The objects made so far, by their entities' uuids. */
     private static final Map<String, EntityObject> MADE = new ConcurrentHashMap<>();
     /** The entity the object being made is: its constructor reads it. */
@@ -49,7 +51,9 @@ public abstract class EntityObject {
 
     /** Entity {@code id}'s objects made by {@code make}; the first one declared listens to entities' events. */
     public static void register(String id, Supplier<? extends EntityObject> make) {
-        boolean first = MAKERS.isEmpty();
+        // Its dispatcher once, whichever generation declares first (a reload empties MAKERS of the old's).
+        boolean first = !dispatching;
+        dispatching = true;
         MAKERS.put(id, make);
         if (first) {
             listen();
@@ -80,6 +84,15 @@ public abstract class EntityObject {
         });
     }
 
+    /** The objects of classes {@code loaders} loaded (a generation a hot reload
+     * replaces): no longer made; the new classes' objects are, as they're asked
+     * for (taking what the old ones held, {@link Session}). */
+    public static void retire(java.util.Set<ClassLoader> loaders) {
+        MADE.values().removeIf(o -> loaders.contains(o.getClass().getClassLoader()));
+        MAKERS.values().removeIf(m -> loaders.contains(m.getClass().getClassLoader()));
+        EntityState.retire(loaders);
+    }
+
     /** The object of entity {@code uuid} (of {@code id}): made now if it wasn't; none for one no mod declared. */
     private static EntityObject found(String id, String uuid, String dimension) {
         Supplier<? extends EntityObject> make = MAKERS.get(id);
@@ -89,7 +102,8 @@ public abstract class EntityObject {
         return MADE.computeIfAbsent(uuid, u -> {
             MAKING.set(new String[] {u, dimension});
             try {
-                EntityObject o = make.get();
+                // Carried over by a hot reload: the same entity's object of the old classes, its now.
+                EntityObject o = Session.live(make.get(), Session.key(id, u));
                 // Its `saved` and `synced` members: the entity's data.
                 EntityState.live(o, namespace(id), u);
                 return o;

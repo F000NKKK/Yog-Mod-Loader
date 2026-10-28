@@ -1,6 +1,7 @@
 package dev.yog;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,35 +51,77 @@ public final class Generations {
         });
     }
 
-    /** {@code owner} replaced by a newer generation: its bus handlers
-     * unsubscribed ({@link YogBus#retire}), anything of it still queued (a
-     * task's continuation) no longer run. */
+    /** Each retired generation's successor, once it's loaded (weak, as {@link #RETIRED}). */
+    private static final Map<Object, Object> SUCCESSORS = Collections.synchronizedMap(new WeakHashMap<>());
+    /** Retired generations nothing succeeds (their mod's reload failed). */
+    private static final Set<Object> GONE = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
+
+    /** {@code owner} being replaced by a newer generation: its bus handlers
+     * unsubscribed ({@link YogBus#retire}); what it queued waits for
+     * {@link #succeed} or {@link #gone}. */
     public static void retire(Object owner) {
         RETIRED.add(owner);
         YogBus.retire(owner);
         RETIREMENTS.incrementAndGet();
     }
 
-    /** How many generations were retired so far: a queue that saw fewer has some to drop. */
+    /** Retired {@code owner}'s successor: what it queued runs as {@code next}'s now. */
+    public static void succeed(Object owner, Object next) {
+        SUCCESSORS.put(owner, next);
+    }
+
+    /** Retired {@code owner} with no successor: what it queued is dropped. */
+    public static void gone(Object owner) {
+        GONE.add(owner);
+        RETIREMENTS.incrementAndGet();
+    }
+
+    /** Whether {@code code} (a lambda, a method's object) is a retired
+     * generation's own: its code is the old classes', not carried. */
+    public static boolean stale(Object code) {
+        return code != null && retired(code.getClass().getClassLoader());
+    }
+
+    /** Who {@code owner}'s queued code runs as now: its latest successor;
+     * {@code null} when it's gone. */
+    public static Object now(Object owner) {
+        Object o = owner;
+        while (o != null && RETIRED.contains(o)) {
+            if (GONE.contains(o)) {
+                return null;
+            }
+            Object next = SUCCESSORS.get(o);
+            if (next == null) {
+                return o; // its reload still going: it runs as it was
+            }
+            o = next;
+        }
+        return o;
+    }
+
+    /** How many generations were retired or went so far: a queue that saw fewer has some to drop. */
     public static int retirements() {
         return RETIREMENTS.get();
     }
 
-    /** Code queued as {@code owner}'s ({@code then}): run as its, unless it's retired by then. */
+    /** Code queued as {@code owner}'s ({@code then}): run as its successor's
+     * when a reload replaced it, dropped when it's {@link #gone}. */
     public record Queued(Object owner, Runnable then) implements Runnable {
         @Override
         public void run() {
-            if (!retired(owner)) {
-                within(owner, () -> {
+            Object as = now(owner);
+            // The old classes' own code isn't carried: their successor queued its own.
+            if (as != null && !stale(then)) {
+                within(as, () -> {
                     then.run();
                     return null;
                 });
             }
         }
 
-        /** Whether {@code r} is a retired generation's queued code. */
+        /** Whether {@code r} is a gone generation's queued code. */
         public static boolean dropped(Object r) {
-            return r instanceof Queued q && retired(q.owner());
+            return r instanceof Queued q && (now(q.owner()) == null || stale(q.then()));
         }
     }
 

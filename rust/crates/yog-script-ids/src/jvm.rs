@@ -604,16 +604,13 @@ pub mod synced {
     pub const OWNER_VAR: &str = "$o";
 }
 
-/// What a hot reload keeps (`dev.yog.script.yog.Session`, storage.md S8):
-/// a live object's members that aren't `saved` — written as its old
-/// classes go, read by the new classes' object of the same owner.
+/// What a hot reload carries (`dev.yog.script.yog.Session`, storage.md
+/// S8): live objects by their owners' keys, every field into the new
+/// classes' object of the same owner.
 pub mod session {
     pub const CLASS: &str = concat!(runtime!(), sep!(), "yog", sep!(), "Session");
-    pub const KEPT: &str = "Kept";
-    pub const KEEP: &str = "$keep";
-    pub const RESTORE: &str = "$restore";
     /// An object made live under its key (`Session.live(made, key)`).
     pub const LIVE: &str = "live";
-    /// What separates a key's parts: the mod, the class, the owner.
-    pub const KEY_SEP: &str = "|";
+    /// What makes a class's instance of an owner (`Session.maker(prefix, make)`).
+    pub const MAKER: &str = "maker";
 }

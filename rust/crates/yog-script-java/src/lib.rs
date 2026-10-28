@@ -239,8 +239,6 @@ pub(crate) struct Gen<'c> {
     /// What ends the constructors of the class being written: a mod's
     /// state made live (`saved.rs`).
     ctor_tail: Option<String>,
-    /// The class being written is a live object a hot reload keeps (a mod's).
-    session_owner: bool,
     /// The class being written keeps `saved` members, keyed by this (`saved.rs`).
     saved_owner: Option<String>,
     /// The class being written is an item's: its declared state is its stack's (`saved.rs`).
@@ -309,7 +307,6 @@ impl<'c> Gen<'c> {
             checked: false,
             extending: false,
             ctor_tail: None,
-            session_owner: false,
             saved_owner: None,
             on_stack: false,
             this_name: None,

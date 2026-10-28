@@ -343,9 +343,10 @@ public final class YogNames {
         public static final String CHUNK = "chunk";
         public static final String SESSION = "session";
         public static final String SEP = "_";
+        public static final String SESSION_KEY_SEP = "|";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, GAME, WORLD, DIMENSION, PLAYER, ENTITY, CHUNK, SESSION, SEP);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, GAME, WORLD, DIMENSION, PLAYER, ENTITY, CHUNK, SESSION, SEP, SESSION_KEY_SEP);
     }
 
     public static final class DataAttr {
