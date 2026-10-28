@@ -2158,21 +2158,21 @@ version = "0.5.0"
 
 [[package]]
 name = "yog-codegen-java"
-version = "0.5.0"
+version = "0.4.0"
 dependencies = [
  "yog-codegen",
 ]
 
 [[package]]
 name = "yog-codegen-rust"
-version = "0.5.0"
+version = "0.4.0"
 dependencies = [
  "yog-codegen",
 ]
 
 [[package]]
 name = "yog-codegen-typescript"
-version = "0.5.0"
+version = "0.4.0"
 dependencies = [
  "yog-codegen",
 ]
@@ -2188,14 +2188,14 @@ dependencies = [
 
 [[package]]
 name = "yog-command"
-version = "0.8.0"
+version = "0.7.0"
 dependencies = [
  "yog-ids",
 ]
 
 [[package]]
 name = "yog-config"
-version = "0.7.0"
+version = "0.6.0"
 
 [[package]]
 name = "yog-core"
@@ -2335,7 +2335,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.10.0"
+version = "0.9.0"
 dependencies = [
  "const_format",
  "yog-codegen",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.29.0"
+version = "0.28.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "yog-logging"
-version = "0.7.0"
+version = "0.6.0"
 dependencies = [
  "yog-sync",
 ]
@@ -2520,7 +2520,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-ids"
-version = "0.5.0"
+version = "0.4.0"
 
 [[package]]
 name = "yog-script-java"
@@ -2560,7 +2560,7 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.13.0"
+version = "0.12.0"
 dependencies = [
  "addr2line",
  "criterion",
