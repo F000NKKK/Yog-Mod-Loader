@@ -181,7 +181,10 @@ For each type with `synced` members, the build generates a mirror spec
    on as the new). Queued work runs as the successor's (`Generations.
    succeed`); the old classes' own lambdas aren't carried — the new
    classes queue theirs. What can't be carried (an old lambda) leaves the
-   new object's own value. A failed reload drops what waited.
+   new object's own value. A failed reload drops what waited. A waiting
+   method is carried only into the same code: each async machine has its
+   code's fingerprint (`$shape()`, its temporaries renumbered); a changed
+   method's wait is abandoned, its task failing with why.
    Saving a task with the world (S9 across restarts) is still to come.
 7. The Rust API's parity. ✅ `WorldData`/`PlayerData`/`BlockData` (their
    stores, the same keys; `::synced` on the same rows), `EntityData` (the

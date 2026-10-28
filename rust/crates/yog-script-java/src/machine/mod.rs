@@ -24,8 +24,9 @@ use yog_script_ids::java::{
 use yog_script_ids::jvm::OBJECT;
 use yog_script_ids::jvm::tasks::{
     ASYNC, ASYNC_ITERATION, ASYNC_ITERATION_SOURCE, FINISH, ITERATION, ITERATION_SOURCE, LOOP,
-    MACHINE, MADE, PARAM_FIELD, RUN, START, STATE, STEP, TASK, YIELD,
+    MACHINE, MADE, PARAM_FIELD, RUN, SHAPE, START, STATE, STEP, TASK, YIELD,
 };
+use yog_script_ids::jvm::{STRING, TEMP};
 use yog_script_ids::system::{ASYNC_ENUMERATOR, ENUMERATOR};
 
 use super::Gen;
@@ -245,7 +246,15 @@ impl Gen<'_> {
         machine.fields.iter().for_each(|f| {
             self.code.line(f);
         });
+        let fingerprint = shape_of(&machine.fields, &step);
         self.code.line(step);
+        // An async method's machine: what a reload checks before carrying it mid-way.
+        if base == ASYNC {
+            self.code.line(OVERRIDE);
+            self.code.line(format!(
+                "{PROTECTED} {STRING} {SHAPE}() {{ {RETURN} \"{fingerprint}\"; }}"
+            ));
+        }
         self.code.close("");
         if shape.iterator && !shape.enumerator {
             // A machine for each walk, each its own copy of the arguments.
@@ -378,5 +387,53 @@ impl Gen<'_> {
             Some(owner) => format!("{owner}.{SUPER}"),
             None => SUPER.to_string(),
         }
+    }
+}
+
+/// The fingerprint of a machine's code (its `fields` and `step`): the same
+/// for the same method however the rest of its file numbers its temporaries
+/// (each `$t<n>` renumbered as it's first met), different once the
+/// method's code changes. FNV-1a, 64 bits, in hex.
+fn shape_of(fields: &[String], step: &str) -> String {
+    let mut text = fields.join("\n");
+    text.push_str(step);
+    let mut seen: Vec<String> = Vec::new();
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text.as_str();
+    while let Some(at) = rest.find(TEMP) {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + TEMP.len()..];
+        let digits = after.chars().take_while(char::is_ascii_digit).count();
+        let n = &after[..digits];
+        let index = seen.iter().position(|s| s == n).unwrap_or_else(|| {
+            seen.push(n.to_string());
+            seen.len() - 1
+        });
+        out.push_str(&format!("{TEMP}#{index}"));
+        rest = &after[digits..];
+    }
+    out.push_str(rest);
+    format!("{:016x}", fnv1a(out.as_bytes()))
+}
+
+/// FNV-1a's 64-bit offset basis and prime.
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+fn fnv1a(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(FNV_OFFSET, |h, b| {
+        (h ^ u64::from(*b)).wrapping_mul(FNV_PRIME)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_machines_shape_ignores_how_its_file_numbers_temporaries() {
+        let a = super::shape_of(&["int $t3;".into()], "$t3 = $t7 + $t3;");
+        let b = super::shape_of(&["int $t40;".into()], "$t40 = $t2 + $t40;");
+        let c = super::shape_of(&["int $t3;".into()], "$t3 = $t7 - $t3;");
+        assert_eq!(a, b);
+        assert_ne!(a, c);
     }
 }

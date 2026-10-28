@@ -412,6 +412,9 @@ pub mod tasks {
     pub const MACHINE: &str = "$Async";
     pub const STATE: &str = "$state";
     pub const STEP: &str = "$step";
+    /// A machine's code's fingerprint (`$shape()`): a hot reload carries a
+    /// method waiting mid-way only into a machine of the same code.
+    pub const SHAPE: &str = "$shape";
     pub const LOOP: &str = "$loop";
     pub const SUSPEND: &str = "$suspend";
     pub const FINISH: &str = "$finish";

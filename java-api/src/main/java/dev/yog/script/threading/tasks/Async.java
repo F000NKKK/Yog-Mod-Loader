@@ -32,10 +32,15 @@ public abstract class Async<T> implements Runnable {
             old = WAITING.stream().filter(of).toList();
         }
         for (Async<?> m : old) {
-            if (remake.apply(m) instanceof Async<?> next) {
+            WAITING.remove(m);
+            if (remake.apply(m) instanceof Async<?> next && next.$shape().equals(m.$shape())) {
                 m.movedTo = next;
-                WAITING.remove(m);
                 WAITING.add(next);
+            } else {
+                // Its code changed (or its class is gone): its states don't mean the same now.
+                m.abandoned = true;
+                YogLog.warn("Yog Script: an async method of " + m.getClass().getName() + " " + CHANGED);
+                m.task.fail(new IllegalStateException(CHANGED));
             }
         }
     }
@@ -43,8 +48,22 @@ public abstract class Async<T> implements Runnable {
     /** The method's code, from {@link #$state} on. */
     protected abstract void $step();
 
+    /** Its code's fingerprint (the compiler's): a reload carries it only into the same code. */
+    protected String $shape() {
+        return "";
+    }
+
+    /** Abandoned by a reload (its method's code changed): it goes on no more. */
+    private volatile boolean abandoned;
+
+    /** What its task fails with when a reload abandons it. */
+    private static final String CHANGED = "its method changed in a hot reload: the wait it was in is abandoned";
+
     @Override
     public final void run() {
+        if (abandoned) {
+            return;
+        }
         Async<?> next = movedTo;
         if (next != null) {
             next.run();
