@@ -63,6 +63,14 @@ public final class SyncedState {
         return live(o, new Owner(kind, owner, ""));
     }
 
+    /** The objects and owners' makers of classes {@code loader} loaded (a
+     * mod's generation a hot reload replaces): no longer live. */
+    public static void retire(ClassLoader loader) {
+        LIVE.keySet().removeIf(o -> o.getClass().getClassLoader() == loader);
+        SENT.keySet().removeIf(o -> o.getClass().getClassLoader() == loader);
+        OWNERS.values().removeIf(made -> made.getClass().getClassLoader() == loader);
+    }
+
     /** {@code o} no longer live (its owner gone). */
     public static void forget(Synced o) {
         LIVE.remove(o);

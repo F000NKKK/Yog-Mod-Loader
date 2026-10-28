@@ -127,7 +127,11 @@ public final class YogBus {
         }
     }
 
-    private static final Map<Integer, Handler> HANDLERS = new ConcurrentHashMap<>();
+    /** A handler and the generation that registered it ({@link Generations}). */
+    private record Owned(Handler handler, Object owner) {}
+
+    private static final Map<Integer, Owned> HANDLERS = new ConcurrentHashMap<>();
+
     private static final AtomicInteger NEXT_HANDLER = new AtomicInteger();
 
     /** {@code address}'s handle — the same for the runtime's lifetime; resolve once, keep it. */
@@ -214,7 +218,28 @@ public final class YogBus {
 
     /** Makes {@code handler} answer calls to {@code address}; false if someone does already. */
     public static boolean provide(int address, Handler handler) {
-        return nativeProvide(address, register(handler));
+        int id = register(handler);
+        if (!nativeProvide(address, id)) {
+            HANDLERS.remove(id);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Every handler {@code owner} (a generation of a mod's classes,
+     * {@link Generations}) registered unsubscribed: the runtime drops them
+     * as providers and listeners, and this side forgets them, so nothing
+     * keeps the old classes.
+     */
+    public static void retire(Object owner) {
+        int[] ids = HANDLERS.entrySet().stream()
+                .filter(e -> e.getValue().owner() == owner)
+                .mapToInt(Map.Entry::getKey)
+                .toArray();
+        if (ids.length == 0) return;
+        nativeOff(ids);
+        for (int id : ids) HANDLERS.remove(id);
     }
 
     /** Listens to {@code event} (higher {@code priority} first). */
@@ -224,7 +249,7 @@ public final class YogBus {
 
     private static int register(Handler handler) {
         int id = NEXT_HANDLER.getAndIncrement();
-        HANDLERS.put(id, handler);
+        HANDLERS.put(id, new Owned(handler, Generations.current()));
         return id;
     }
 
@@ -269,11 +294,12 @@ public final class YogBus {
     }
 
     private static int run(int handler, YogMessage in, Out out) {
-        Handler h = HANDLERS.get(handler);
-        if (h == null) return NO_HANDLER;
+        Owned h = HANDLERS.get(handler);
+        // One already running as its generation is retired: it's heard no more.
+        if (h == null || Generations.retired(h.owner())) return NO_HANDLER;
         int status;
         try {
-            status = h.handle(in, out);
+            status = Generations.within(h.owner(), () -> h.handler().handle(in, out));
         } catch (RuntimeException e) {
             YogLog.error("bus handler failed", e);
             status = FAILED;
@@ -292,6 +318,8 @@ public final class YogBus {
     private static native boolean nativeProvide(int address, int handler);
 
     private static native void nativeOn(int event, int priority, int handler);
+
+    private static native void nativeOff(int[] handlers);
 
     private static native boolean nativeHeard(int event);
 

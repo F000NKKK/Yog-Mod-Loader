@@ -20314,6 +20314,139 @@ public final class YogServices {
         }
     }
 
+    /** `script`. */
+    public static final class Script {
+        private Script() {}
+
+        /** Mod `mod_id`'s scripts reloaded from its rebuilt `.yog` at `path` (hot reload): its live objects' state kept, its old classes' handlers gone, its new classes loaded; whether they loaded. */
+        public record Reload(String modId, String path) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("mod_id", modId);
+                m.put("path", path);
+                return m;
+            }
+
+            public static Reload fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Reload(YogData.str(m.get("mod_id"), ""), YogData.str(m.get("path"), ""));
+            }
+
+            public static Reload fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.modId);
+                p.putStr(this.path);
+                p.end(at);
+            }
+
+            public static Reload unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_modId = u.more(end) ? u.getStr() : "";
+                String f_path = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Reload(f_modId, f_path);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Reload fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Reload fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Reload readFrame(YogFrame.Unpacker u) {
+                Reload v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Reload} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String modId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String path() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceScript.RELOAD);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "script.YsMods.reload";
+            public static final String ADDRESS = YogNames.ServiceScript.RELOAD;
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Reload, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                boolean v = (Boolean) out;
+                p.putBool(v);
+            }
+        }
+    }
+
     /** `sound`. */
     public static final class Sound {
         private Sound() {}

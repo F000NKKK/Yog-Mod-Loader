@@ -8,4 +8,5 @@ pub mod log;
 pub mod mirror;
 pub mod nanite;
 pub mod net;
+pub mod script;
 pub mod storage;

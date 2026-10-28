@@ -49,6 +49,11 @@ pub fn register_natives(env: &mut JNIEnv) -> jni::errors::Result<()> {
             java::Java_dev_yog_YogBus_nativeOn as *mut c_void,
         ),
         native(
+            "nativeOff",
+            "([I)V",
+            java::Java_dev_yog_YogBus_nativeOff as *mut c_void,
+        ),
+        native(
             "nativeHeard",
             "(I)Z",
             java::Java_dev_yog_YogBus_nativeHeard as *mut c_void,

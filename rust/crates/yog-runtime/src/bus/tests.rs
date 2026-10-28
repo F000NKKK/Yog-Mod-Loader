@@ -170,3 +170,18 @@ fn action_functions_reach_the_bus() {
     );
     assert!(yog_event::chat::broadcast("hello"));
 }
+
+#[test]
+fn dropped_java_handlers_neither_provide_nor_listen() {
+    let r = Router::default();
+    let (a, e) = (r.resolve("test:java"), r.resolve("test:java_event"));
+    assert!(r.provide(a, Handler::Java(1)));
+    r.on(e, 0, Handler::Java(1));
+    r.on(e, 0, Handler::Java(2));
+    r.drop_java(&[1]);
+    assert!(!r.provided(a), "a retired generation's address is free again");
+    assert!(r.provide(a, Handler::Java(3)));
+    assert!(r.heard(e), "the other generation's listener stays");
+    r.drop_java(&[2]);
+    assert!(!r.heard(e));
+}

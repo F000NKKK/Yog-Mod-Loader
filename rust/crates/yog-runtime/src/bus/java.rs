@@ -3,7 +3,7 @@
 //! status byte, then the reply's bytes.
 
 use jni::JNIEnv;
-use jni::objects::{JByteArray, JClass, JString};
+use jni::objects::{JByteArray, JClass, JIntArray, JString};
 use jni::sys::{jboolean, jbyteArray, jint, jobject};
 use yog_abi::{YogReply, YogStatus, status};
 
@@ -119,6 +119,23 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeOn<'l>(
 ) {
     crate::jni::util::guard("nativeOn", || {
         ROUTER.on(event as u32, priority, Handler::Java(handler));
+    });
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_YogBus_nativeOff<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    handlers: JIntArray<'l>,
+) {
+    crate::jni::util::guard("nativeOff", || {
+        let Ok(len) = env.get_array_length(&handlers) else {
+            return;
+        };
+        let mut ids = vec![0; usize::try_from(len).unwrap_or_default()];
+        if env.get_int_array_region(&handlers, 0, &mut ids).is_ok() {
+            ROUTER.drop_java(&ids);
+        }
     });
 }
 

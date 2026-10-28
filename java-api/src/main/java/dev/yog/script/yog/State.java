@@ -135,6 +135,18 @@ public final class State {
         return made;
     }
 
+    /** The objects of classes {@code loader} loaded (a mod's generation a hot
+     * reload replaces): their saved members written, no longer live — the
+     * new generation's objects read them back as they're made. */
+    public static void retire(ClassLoader loader) {
+        LIVE.forEach((o, at) -> {
+            if (o.getClass().getClassLoader() == loader) {
+                save(o, at);
+                LIVE.remove(o);
+            }
+        });
+    }
+
     /** Every live object's saved members written to their records. */
     public static void saveAll() {
         LIVE.forEach(State::save);

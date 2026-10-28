@@ -17,7 +17,27 @@ import java.util.function.LongFunction;
 public abstract class Enum implements Comparable<Enum> {
     /** What separates a flags enum's names in its text ({@code "A, B"}). */
     private static final String FLAGS_SEP = ", ";
-    private static final Map<Class<?>, Table<?>> TABLES = new ConcurrentHashMap<>();
+    /** A table its class's initializer just made, until {@link #TABLES} takes it. */
+    private static final Map<Class<?>, Table<?>> MADE = new ConcurrentHashMap<>();
+    /** Each enum type's table, kept with its class (gone with a reloaded mod's). */
+    private static final ClassValue<Table<?>> TABLES = new ClassValue<>() {
+        @Override
+        protected Table<?> computeValue(Class<?> type) {
+            try {
+                Class.forName(type.getName(), true, type.getClassLoader());
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+            return MADE.remove(type);
+        }
+    };
+
+    /** Asked for while its class is still being made (a case's own
+     * initializer): the table as made so far, not kept as the class's. */
+    private static Table<?> stillMaking(Class<?> type) {
+        TABLES.remove(type);
+        return MADE.get(type);
+    }
 
     private final long value;
 
@@ -98,12 +118,8 @@ public abstract class Enum implements Comparable<Enum> {
 
     /** {@code type}'s table, its class made ready first (its table is made with it). */
     private static Table<?> tableOf(Class<?> type) {
-        try {
-            Class.forName(type.getName(), true, type.getClassLoader());
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-        return TABLES.get(type);
+        Table<?> t = TABLES.get(type);
+        return t != null ? t : stillMaking(type);
     }
 
     /** An enum type's cases: their names and numbers, which carry data, its width, whether it's of flags; each value without data made once. */
@@ -124,7 +140,7 @@ public abstract class Enum implements Comparable<Enum> {
             this.make = make;
             this.names = names;
             this.values = values;
-            TABLES.put(type, this);
+            MADE.put(type, this);
         }
 
         /** Its underlying type: {@code bits} wide, {@code signed} or not ({@code : u8} is 8, unsigned). */

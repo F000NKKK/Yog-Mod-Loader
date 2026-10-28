@@ -68,5 +68,8 @@ pub(crate) fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
     }
 
     yog_logging::info!("hot-reloaded mod {}", mod_id);
+    // Its scripts too: the host keeps their state and loads the new classes
+    // (no host answering, as in tests: nothing to reload).
+    yog_event::script::reload(mod_id, new_yog_path.to_string_lossy().into_owned());
     true
 }

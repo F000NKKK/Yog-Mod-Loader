@@ -319,6 +319,12 @@ names! {
         CALL = crate::concatcp!(DOMAIN, crate::bus_word::CALL),
     }
 
+    /// `yog:script/…`: Yog Script mods' classes on the JVM (provided by the host).
+    service_script {
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "script", crate::sep::PATH),
+        RELOAD = crate::concatcp!(DOMAIN, "reload"),
+    }
+
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
     service_menu {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "menu", crate::sep::PATH),

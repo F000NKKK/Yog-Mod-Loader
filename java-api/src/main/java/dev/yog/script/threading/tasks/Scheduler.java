@@ -47,7 +47,7 @@ public final class Scheduler {
 
     /** {@code then} run on this scheduler's thread at its next tick: from any thread. */
     public void post(Runnable then) {
-        posted.add(then);
+        posted.add(owned(then));
     }
 
     /** What's posted to it so far, run now: what a thread blocked on a task does meanwhile. */
@@ -123,17 +123,17 @@ public final class Scheduler {
 
     /** {@code then} run once {@code count} ticks have passed. */
     public void afterTicks(long count, Runnable then) {
-        ticks.add(new Timer(now + Math.max(1, count), made++, then));
+        ticks.add(new Timer(now + Math.max(1, count), made++, owned(then)));
     }
 
     /** {@code then} run at the first tick once {@code nanos} of real time have passed. */
     public void afterNanos(long nanos, Runnable then) {
-        clock.add(new Timer(System.nanoTime() + nanos, made++, then));
+        clock.add(new Timer(System.nanoTime() + nanos, made++, owned(then)));
     }
 
     /** {@code then} run at the first tick {@code condition} holds. */
     public void until(BooleanSupplier condition, Runnable then) {
-        waiting.add(new Waiting(condition, then));
+        waiting.add(new Waiting(condition, owned(then)));
     }
 
     /** {@code action} run every {@code period} ticks; its panic stops it, given to {@code failed}. */
@@ -152,6 +152,7 @@ public final class Scheduler {
     /** One tick: the timers due and the conditions that hold run. */
     void tick() {
         driven = true;
+        dropRetired();
         runPosted();
         now++;
         runDue(ticks, now);
@@ -185,6 +186,27 @@ public final class Scheduler {
         while (!queue.isEmpty() && queue.peek().due() <= at) {
             run(queue.poll().then());
         }
+    }
+
+    /** {@code then} run as the code that asked for it ({@link dev.yog.Generations}):
+     * dropped once that generation is retired by a hot reload. */
+    private static Runnable owned(Runnable then) {
+        Object owner = dev.yog.Generations.current();
+        return owner == null ? then : new dev.yog.Generations.Queued(owner, then);
+    }
+
+    /** Retirements seen: when more happened, a retired generation's timers and waits go. */
+    private int retirementsSeen;
+
+    private void dropRetired() {
+        int now = dev.yog.Generations.retirements();
+        if (now == retirementsSeen) {
+            return;
+        }
+        retirementsSeen = now;
+        ticks.removeIf(t -> dev.yog.Generations.Queued.dropped(t.then()));
+        clock.removeIf(t -> dev.yog.Generations.Queued.dropped(t.then()));
+        waiting.removeIf(w -> dev.yog.Generations.Queued.dropped(w.then()));
     }
 
     /** {@code r} run; its panic logged, the others going on (a task's own fails it). */

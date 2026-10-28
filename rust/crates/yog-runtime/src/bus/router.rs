@@ -208,6 +208,16 @@ impl Router {
         (st, out)
     }
 
+    /// Drops the Java host's handlers `ids` (a retired generation of a mod's
+    /// classes, `YogBus.retire`): as providers and as listeners.
+    pub(crate) fn drop_java(&self, ids: &[i32]) {
+        let gone = |h: &Handler| matches!(h, Handler::Java(id) if ids.contains(id));
+        Arc::make_mut(&mut self.providers.write()).retain(|_, h| !gone(h));
+        for list in self.subscribers.write().values_mut() {
+            Arc::make_mut(list).retain(|s| !gone(&s.handler));
+        }
+    }
+
     /// Drops what the module of `generation` registered.
     pub(crate) fn purge(&self, generation: ModuleGeneration) {
         let owned_by = |h: &Handler| matches!(h, Handler::Native { owner: Some(m), .. } if m.generation() == generation);

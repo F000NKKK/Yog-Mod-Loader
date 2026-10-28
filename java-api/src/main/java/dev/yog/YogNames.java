@@ -1141,6 +1141,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, CALL);
     }
 
+    public static final class ServiceScript {
+        private ServiceScript() {}
+
+        public static final String DOMAIN = "yog:script/";
+        public static final String RELOAD = "yog:script/reload";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, RELOAD);
+    }
+
     public static final class ServiceMenu {
         private ServiceMenu() {}
 

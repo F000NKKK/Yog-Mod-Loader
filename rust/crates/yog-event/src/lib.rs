@@ -13,7 +13,7 @@ mod planes;
 
 pub use planes::living::{entity, player};
 pub use planes::play::{advancement, bossbar, chat, command, game, scoreboard, server};
-pub use planes::system::{bus, java, jvm, log, mirror, nanite, net, storage};
+pub use planes::system::{bus, java, jvm, log, mirror, nanite, net, script, storage};
 pub use planes::things::{block, container, content, item, particle, sound, tag, world};
 pub use planes::view::{client, key_binding, media, menu, ui, video};
 
