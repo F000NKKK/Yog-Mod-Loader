@@ -15,6 +15,12 @@ mod media;
 
 pub(crate) use error::ServiceError;
 
+/// What an editor's live check (`source.check`) finds in `text`, the file
+/// at `path` as edited.
+pub fn source_problems(path: &str, text: &str) -> Vec<yog_data::Diagnostic> {
+    check::check(path, text).problems
+}
+
 use yog_data::Schema;
 
 /// What a tool asks: a method, and its parameters.

@@ -5,6 +5,8 @@
 //!   shows through `diff.ydata.textconv`).
 //! - `yog data bin <file>...`: files still in text written binary, their
 //!   comments kept as notes.
+//! - `yog data check <file>`: what an editor's live check finds in the
+//!   file, one problem a line; fails when one is an error.
 //! - `yog data git`: the mod's repository shows them as text in diffs —
 //!   `.gitattributes` names the formats' files `diff=ydata`, and the
 //!   repository's config makes `yog data text` that diff's textconv.
@@ -14,9 +16,10 @@ use std::path::Path;
 const TEXT: &str = "text";
 const BIN: &str = "bin";
 const GIT: &str = "git";
+const CHECK: &str = "check";
 /// This command: `yog data`.
 pub(super) const WORDS: &[&str] = &["data"];
-const USAGE: &str = "usage: yog data text <file> | yog data bin <file>... | yog data git";
+const USAGE: &str = "usage: yog data text <file> | yog data bin <file>... | yog data check <file> | yog data git";
 /// What `.gitattributes` calls a Yog format's diff.
 const DIFF_DRIVER: &str = "ydata";
 const GITATTRIBUTES: &str = ".gitattributes";
@@ -30,6 +33,7 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
         Some((what, files)) if what == BIN && !files.is_empty() => {
             files.iter().try_for_each(|f| to_binary(Path::new(f)))
         }
+        Some((what, [file])) if what == CHECK => check(file),
         Some((what, [])) if what == GIT => git(&yog_cli::project::manifest::project_root()?),
         _ => Err(USAGE.into()),
     }
@@ -37,6 +41,18 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
 
 fn source_text(file: &Path) -> Result<String, String> {
     yog_cli::files::read_source(file).map_err(|e| format!("{}: {e}", file.display()))
+}
+
+/// What `source.check` finds in `file`, printed; an error fails.
+fn check(file: &str) -> Result<(), String> {
+    let problems = yog_cli::serve::source_problems(file, &source_text(Path::new(file))?);
+    for d in &problems {
+        println!("{d}");
+    }
+    match problems.iter().filter(|d| d.is_error()).count() {
+        0 => Ok(()),
+        n => Err(format!("{file}: {n} error(s)")),
+    }
 }
 
 /// `file` written binary, if it's still text.
