@@ -3,8 +3,8 @@
 //! is whenever it plays, is sought or loops round (the hosts start a
 //! streamed sound partway).
 
+use std::sync::Arc;
 use std::time::Instant;
-use yog_sync::Arc;
 
 use jni::JNIEnv;
 use yog_event::{client, video};

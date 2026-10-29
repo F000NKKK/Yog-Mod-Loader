@@ -8,7 +8,9 @@
 //! [`named`]).
 
 use std::collections::HashMap;
-use yog_sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
+use substrate_lock::Locked;
+use substrate_lock::ReadWrite;
 
 use jni::JNIEnv;
 use yog_event::content::Font as Atlas;
@@ -58,7 +60,7 @@ const NO_CHAR: char = '\0';
 /// Every font's atlas.
 pub(crate) fn atlases() -> Vec<Atlas> {
     let fonts: Vec<(String, Arc<Font>)> = FONTS
-        .read()
+        .read_locked()
         .as_ref()
         .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
         .unwrap_or_default();
@@ -145,14 +147,14 @@ pub(crate) fn register(id: String, mut font: Font) {
     // Lookups search its tables sorted, whoever made it.
     font.normalize();
     FONTS
-        .write()
+        .write_locked()
         .get_or_insert_with(HashMap::new)
         .insert(id, Arc::new(font));
 }
 
 /// Yog's font `id`, if it is one.
 pub(crate) fn get(id: &str) -> Option<Arc<Font>> {
-    FONTS.read().as_ref()?.get(id).cloned()
+    FONTS.read_locked().as_ref()?.get(id).cloned()
 }
 
 /// What a font a mod names is drawn with.
@@ -176,7 +178,7 @@ pub(crate) fn named(id: &str) -> Named {
     if let Some(game) = yog_ids::game_font_of(id) {
         return Named::Game(game);
     }
-    if UNKNOWN.lock().insert(id.to_owned()) {
+    if UNKNOWN.locked().insert(id.to_owned()) {
         yog_logging::warn!(
             "font {id} is neither a Yog font nor a {}<name> alias; drawn in the default font",
             yog_ids::yog::FONT_ALIAS
@@ -198,7 +200,7 @@ pub(crate) fn width(font: &Font, text: &str, scale: f32) -> f32 {
 /// `text`'s run in font `id` at `px_per_em` pixels to an em: made (and kept) once.
 fn run(env: &mut JNIEnv, id: &str, font: &Font, text: &str, px_per_em: u32) -> Option<Run> {
     let key = (id.to_owned(), text.to_owned(), px_per_em);
-    let mut runs = RUNS.lock();
+    let mut runs = RUNS.locked();
     let runs = runs.get_or_insert_with(Runs::default);
     if let Some(r) = runs.by_key.get(&key) {
         return Some(r.clone());

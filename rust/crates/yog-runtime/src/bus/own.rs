@@ -1,6 +1,7 @@
 //! The runtime's own services: what only it knows — the content mods
 //! register, the mods it loaded, what this client was told about entities.
 
+use substrate_lock::Locked;
 use yog_event::{client, content, entity, game, media};
 
 use super::duties::provide;
@@ -13,7 +14,7 @@ fn localized(text: &str, key: Option<&str>) -> String {
 
 /// Every installed mod: the Yog mods loaded, then the loader's.
 fn mods() -> Vec<game::ModInfo> {
-    let infos = crate::globals::MOD_INFOS.lock().clone();
+    let infos = crate::globals::MOD_INFOS.locked().clone();
     let mut out: Vec<game::ModInfo> = infos
         .iter()
         .map(|m| game::ModInfo {

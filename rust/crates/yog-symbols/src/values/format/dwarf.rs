@@ -6,6 +6,7 @@ use super::{
 };
 use crate::values::locals::{Place, unit_ref};
 use gimli::{Reader as _, UnitOffset};
+use substrate_lock::Locked;
 
 impl<'a> Formatter<'a> {
     pub(super) fn entry(&self, off: Off) -> Option<Die> {
@@ -178,7 +179,7 @@ impl<'a> Formatter<'a> {
     /// `entry`'s name with the namespaces and types enclosing it
     /// (`alloc::vec::Vec<u8, alloc::alloc::Global>`), memoized per unit.
     pub(crate) fn qualified_name(&self, off: Off, entry: &Die) -> String {
-        let cache = || self.info.qualified_names.lock();
+        let cache = || self.info.qualified_names.locked();
         if let Some(name) = cache().get(&off.0) {
             return name.clone();
         }

@@ -10,7 +10,8 @@
 //! regions, nine-sliced here when stretched.
 
 use std::collections::{HashMap, HashSet};
-use yog_sync::Mutex;
+use std::sync::Mutex;
+use substrate_lock::Locked;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
@@ -29,7 +30,7 @@ static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
 static WARNED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 fn warn_once(source: &str, why: &str) {
-    let mut warned = WARNED.lock();
+    let mut warned = WARNED.locked();
     if warned
         .get_or_insert_with(HashSet::new)
         .insert(source.to_string())
@@ -55,7 +56,7 @@ fn has_gui_sprite(env: &mut JNIEnv, id: &str) -> bool {
 fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
     let sources = sp.sources();
     let cached = RESOLVED
-        .lock()
+        .locked()
         .as_ref()
         .and_then(|m| m.get(&sp.name).copied());
     let index = match cached {
@@ -65,7 +66,7 @@ fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
                 SpriteSource::Atlas(id) => has_gui_sprite(env, id),
                 SpriteSource::Region(r) => texture_size(env, &r.texture).is_some(),
             });
-            let mut r = RESOLVED.lock();
+            let mut r = RESOLVED.locked();
             r.get_or_insert_with(HashMap::new)
                 .insert(sp.name.clone(), found);
             found
@@ -83,7 +84,7 @@ fn natural_size(sp: &Sprite, source: Option<&SpriteSource<'_>>) -> Vec2 {
 }
 
 fn texture_size(env: &mut JNIEnv, id: &str) -> Option<Vec2> {
-    let mut cache = TEXTURE_SIZES.lock();
+    let mut cache = TEXTURE_SIZES.locked();
     let cache = cache.get_or_insert_with(HashMap::new);
     if let Some(hit) = cache.get(id) {
         return *hit;

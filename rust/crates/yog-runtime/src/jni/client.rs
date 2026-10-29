@@ -12,6 +12,7 @@ use jni::objects::JClass;
 use jni::objects::JFloatArray;
 use jni::sys::jfloat;
 use jni::sys::jint;
+use substrate_lock::Locked;
 use yog_abi::YogStr;
 
 // ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
@@ -81,11 +82,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
         });
 
         // Render active book UIs.
-        let active_layers: Vec<UiLayer> = h.active_uis.lock().clone();
+        let active_layers: Vec<UiLayer> = h.active_uis.locked().clone();
         let sw = screen_w as f32;
         let sh = screen_h as f32;
         let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
-        let mut renderers = h.book_renderers.lock();
+        let mut renderers = h.book_renderers.locked();
         for layer in &active_layers {
             if !layer.visible {
                 continue;

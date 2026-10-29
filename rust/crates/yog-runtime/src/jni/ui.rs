@@ -2,6 +2,7 @@
 
 use crate::mods::handlers::{UiLayer, handlers};
 use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
+use substrate_lock::Locked;
 
 use std::cell::Cell;
 
@@ -34,7 +35,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIShow<'l>(
         let parent = jstr!(env, parent_id);
         let parent = (!parent.is_empty()).then_some(parent);
         let h = handlers();
-        let mut active = h.active_uis.lock();
+        let mut active = h.active_uis.locked();
         active.retain(|l| l.id != id);
         let layer = UiLayer {
             id: id.clone(),
@@ -68,7 +69,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIHide<'l>(
     crate::jni::util::guard("nativeUIHide", || {
         let id = jstr!(env, ui_id);
         let h = handlers();
-        let mut active = h.active_uis.lock();
+        let mut active = h.active_uis.locked();
         let closed: Vec<String> = active
             .iter()
             .filter(|l| l.id == id || l.parent.as_deref() == Some(&id))
@@ -108,7 +109,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeIsUIActive<'l>(
     crate::jni::util::guarded("nativeIsUIActive", 0, || {
         let id = jstr!(env, ui_id);
         let h = handlers();
-        let active = h.active_uis.lock();
+        let active = h.active_uis.locked();
         active.iter().any(|l| l.id == id && l.visible) as jboolean
     })
 }
@@ -125,7 +126,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     crate::jni::util::guarded("nativeUIClick", 0, || {
         let id = jstr!(env, ui_id);
         let h = handlers();
-        let active = h.active_uis.lock();
+        let active = h.active_uis.locked();
         // Find topmost modal layer that contains this click
         let top_modal = active
             .iter()
@@ -143,7 +144,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
         // Try book click first: hit-test against the book renderer's last layout.
         // Only block generic handler if the book actually has a rendered UI (ui.is_some()).
         {
-            let mut renderers = h.book_renderers.lock();
+            let mut renderers = h.book_renderers.locked();
             if let Some(renderer) = renderers.get_mut(&id)
                 && renderer.ui.is_some()
             {
@@ -153,7 +154,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
                 {
                     let ev = event.clone();
                     drop(renderers);
-                    if let Some(r) = h.book_renderers.lock().get_mut(&id) {
+                    if let Some(r) = h.book_renderers.locked().get_mut(&id) {
                         r.handle_event(&ev);
                     }
                     yog_logging::info!("book click '{}' → '{}'", &id, &ev);
@@ -299,7 +300,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         // Book renderer path (books registered via register_book).
         // Only use if the book has a successfully parsed layout (ui.is_some()).
         {
-            let mut book_renderers = h.book_renderers.lock();
+            let mut book_renderers = h.book_renderers.locked();
             if let Some(book_renderer) = book_renderers.get_mut(&id)
                 && book_renderer.ui.is_some()
             {

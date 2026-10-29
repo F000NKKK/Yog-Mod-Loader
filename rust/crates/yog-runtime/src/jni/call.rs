@@ -11,7 +11,7 @@
 //! Self-contained (only `jni` and `yog-abi`) so the JVM benchmark can include
 //! it as-is.
 
-use yog_sync::OnceLock;
+use std::sync::OnceLock;
 
 use jni::JNIEnv;
 use jni::objects::{GlobalRef, JClass, JObject, JStaticMethodID, JString, JValueOwned};
@@ -112,7 +112,7 @@ pub(crate) struct StaticMethod {
     name: &'static str,
     resolved: OnceLock<(GlobalRef, JStaticMethodID)>,
     /// A failure of this call site was logged (once is enough to see it).
-    reported: yog_sync::atomic::AtomicBool,
+    reported: std::sync::atomic::AtomicBool,
 }
 
 impl StaticMethod {
@@ -121,7 +121,7 @@ impl StaticMethod {
             class,
             name,
             resolved: OnceLock::new(),
-            reported: yog_sync::atomic::AtomicBool::new(false),
+            reported: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -165,7 +165,7 @@ impl StaticMethod {
                 // `false`/`None` to the mod.
                 if !self
                     .reported
-                    .swap(true, yog_sync::atomic::Ordering::Relaxed)
+                    .swap(true, std::sync::atomic::Ordering::Relaxed)
                 {
                     yog_logging::error!(
                         "host method {}.{} threw (later throws aren't logged):",

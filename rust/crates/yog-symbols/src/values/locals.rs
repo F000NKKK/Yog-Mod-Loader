@@ -8,7 +8,7 @@
 //! it the same way.
 
 use std::collections::{HashMap, HashSet};
-use yog_sync::{Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock};
 
 use gimli::{AttributeValue, DebuggingInformationEntry, Reader as _, UnitOffset};
 
@@ -219,7 +219,7 @@ pub(crate) enum Place {
     /// In target memory at this absolute address.
     Mem(u64),
     /// Materialized (registers, implicit values, composed pieces).
-    Bytes(yog_sync::Arc<[u8]>, usize),
+    Bytes(std::sync::Arc<[u8]>, usize),
 }
 
 impl Place {

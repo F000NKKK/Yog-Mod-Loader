@@ -17,7 +17,8 @@ mod running;
 mod tests;
 
 use std::os::raw::c_void;
-use yog_sync::{LazyLock, OnceLock};
+use std::sync::{LazyLock, OnceLock};
+use substrate_lock::Locked;
 
 use yog_abi::{
     ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status,
@@ -127,7 +128,7 @@ pub(crate) fn heard<E: Event>() -> bool {
 
 /// The mod registering right now, if any — what its handlers are dropped with.
 fn owner() -> Option<yog_hot_reload::LoadedModule> {
-    crate::globals::CURRENT_REGISTRATION.lock().clone()
+    crate::globals::CURRENT_REGISTRATION.locked().clone()
 }
 
 unsafe extern "C" fn abi_atom(_ctx: *mut c_void, name: YogStr) -> u32 {

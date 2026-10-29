@@ -2,6 +2,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use substrate_lock::Locked;
 
 use jni::JavaVM;
 
@@ -19,7 +20,7 @@ pub struct Shared {
     pub vm: JavaVM,
 }
 
-static SHARED: yog_sync::OnceLock<Option<Shared>> = yog_sync::OnceLock::new();
+static SHARED: std::sync::OnceLock<Option<Shared>> = std::sync::OnceLock::new();
 
 /// The shared JVM, started the first time; `None` without a JDK.
 pub fn shared() -> Option<&'static Shared> {
@@ -49,17 +50,26 @@ impl Shared {
     /// Compiles `sources` into the shared classes (against what's there and the jars).
     pub fn compile(&self, sources: &[PathBuf]) -> bool {
         // One javac at a time into the one directory (the tests run in parallel).
-        static COMPILING: yog_sync::Mutex<()> = yog_sync::Mutex::new(());
-        let _one = COMPILING.lock();
+        static COMPILING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _one = COMPILING.locked();
         let cp = match &self.mixin {
             Some(jars) => format!("{}:{jars}", self.classes.display()),
             None => self.classes.display().to_string(),
         };
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let source_path = std::env::join_paths([
+            root.join("java-api/src/main/java"),
+            root.join("java-common/src/main/java"),
+            root.join("../../Substrate-Data/ports/java/src/main/java"),
+        ])
+        .expect("Java source roots form a search path");
         Command::new(self.jdk.join("bin/javac"))
             // Mixin's jar carries an annotation processor; nothing here is for it.
             .arg("-proc:none")
             .arg("-cp")
             .arg(cp)
+            .arg("-sourcepath")
+            .arg(source_path)
             .arg("-d")
             .arg(&self.classes)
             .args(sources)

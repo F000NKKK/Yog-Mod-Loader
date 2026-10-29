@@ -6,48 +6,13 @@
 //! those need full DWARF location-expression evaluation, out of scope for
 //! this pass.
 //!
-//! Hand-rolled rather than pulled from a DAP crate: the wire format itself
-//! (`Content-Length`-framed JSON) is a few lines, and the request subset is
-//! small enough that a full typed DAP library's surface would be mostly
-//! unused ceremony.
+//! Transport framing is provided by Substrate; this module only dispatches
+//! Yog debugger requests.
 
 use std::io::{BufRead, Write};
 
 use serde_json::{Value, json};
-
-pub fn read_message<R: BufRead>(reader: &mut R) -> std::io::Result<Option<Value>> {
-    let mut content_length: Option<usize> = None;
-    loop {
-        let mut line = String::new();
-        if reader.read_line(&mut line)? == 0 {
-            return Ok(None);
-        }
-        let line = line.trim_end();
-        if line.is_empty() {
-            break;
-        }
-        if let Some(value) = line.strip_prefix("Content-Length:") {
-            content_length = value.trim().parse().ok();
-        }
-    }
-    let len = content_length.ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "missing Content-Length header",
-        )
-    })?;
-    let mut body = vec![0u8; len];
-    reader.read_exact(&mut body)?;
-    let value = serde_json::from_slice(&body)?;
-    Ok(Some(value))
-}
-
-pub fn write_message<W: Write>(writer: &mut W, value: &Value) -> std::io::Result<()> {
-    let body = serde_json::to_vec(value)?;
-    write!(writer, "Content-Length: {}\r\n\r\n", body.len())?;
-    writer.write_all(&body)?;
-    writer.flush()
-}
+use substrate_framing::{read_frame, write_frame};
 
 /// One resolved stack frame, ready to hand back as a DAP `stackTrace` entry.
 pub struct StackFrameInfo {
@@ -92,7 +57,7 @@ impl<S: DebugSession> Server<S> {
         mut reader: R,
         mut writer: W,
     ) -> std::io::Result<()> {
-        while let Some(message) = read_message(&mut reader)? {
+        while let Some(message) = read_frame(&mut reader)? {
             if message.get("type").and_then(Value::as_str) != Some("request") {
                 continue;
             }
@@ -189,7 +154,7 @@ impl<S: DebugSession> Server<S> {
             "command": command,
             "body": body,
         });
-        write_message(writer, &message)
+        write_frame(writer, &message)
     }
 }
 

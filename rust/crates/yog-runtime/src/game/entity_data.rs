@@ -11,7 +11,8 @@
 //! key and value empty).
 
 use std::collections::{BTreeMap, HashMap};
-use yog_sync::{LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex};
+use substrate_lock::Locked;
 
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
@@ -101,7 +102,7 @@ fn send_to_watchers(uuid: &str, bytes: &[u8]) {
 /// Sets (`Some`) or removes a value, and tells the watchers if it changed.
 pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
     let changed = {
-        let mut store = SERVER.lock();
+        let mut store = SERVER.locked();
         match value {
             Some(v) => {
                 let values = store.entry(uuid.to_owned()).or_default();
@@ -130,7 +131,7 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
     };
     if changed {
         PENDING
-            .lock()
+            .locked()
             .entry(uuid.to_owned())
             .or_default()
             .insert(key.to_owned(), value.map(<[u8]>::to_vec));
@@ -139,7 +140,7 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
 
 /// Sends this tick's changes: one packet per entity, to who sees it.
 pub(crate) fn flush() {
-    let pending = std::mem::take(&mut *PENDING.lock());
+    let pending = std::mem::take(&mut *PENDING.locked());
     for (uuid, keys) in pending {
         let changes: Vec<Change> = keys
             .into_iter()
@@ -155,7 +156,7 @@ pub(crate) fn flush() {
 }
 
 pub(crate) fn get(uuid: &str, key: &str) -> Option<Vec<u8>> {
-    SERVER.lock().get(uuid)?.get(key).map(|v| v.bytes.clone())
+    SERVER.locked().get(uuid)?.get(key).map(|v| v.bytes.clone())
 }
 
 /// The entity services the runtime provides (it keeps the data); once, at start.
@@ -202,7 +203,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataFor<'l>(
     crate::jni::util::guarded("nativeEntityDataFor", std::ptr::null_mut(), || {
         let uuid = jstr!(env, uuid, std::ptr::null_mut());
         let mut changes = Vec::new();
-        if let Some(values) = SERVER.lock().get(&uuid) {
+        if let Some(values) = SERVER.locked().get(&uuid) {
             changes.push(Change::new(Op::Clear, &uuid, "", &[]));
             changes.extend(
                 values
@@ -230,7 +231,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSave<'l>(
     crate::jni::util::guarded("nativeEntityDataSave", std::ptr::null_mut(), || {
         let uuid = jstr!(env, uuid, std::ptr::null_mut());
         let changes: Vec<Change> = SERVER
-            .lock()
+            .locked()
             .get(&uuid)
             .into_iter()
             .flat_map(|values| values.iter().filter(|(_, v)| v.persist))
@@ -259,7 +260,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
         let Ok(saved) = env.convert_byte_array(&saved) else {
             return;
         };
-        let mut store = SERVER.lock();
+        let mut store = SERVER.locked();
         let values = store.entry(uuid).or_default();
         for r in decode(&saved) {
             if r.op == Op::Set {
@@ -310,14 +311,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataForget<'l>(
 ) {
     crate::jni::util::guard("nativeEntityDataForget", || {
         let uuid = jstr!(env, uuid);
-        SERVER.lock().remove(&uuid);
+        SERVER.locked().remove(&uuid);
     });
 }
 
 /// The server stops: nothing carries over.
 pub(crate) fn server_stopped() {
-    SERVER.lock().clear();
-    PENDING.lock().clear();
+    SERVER.locked().clear();
+    PENDING.locked().clear();
 }
 
 // ── Client ───────────────────────────────────────────────────────────────────
@@ -326,7 +327,7 @@ pub(crate) fn server_stopped() {
 pub(crate) fn receive(payload: &[u8]) {
     let mut dims: Vec<(String, Option<[f32; 3]>)> = Vec::new();
     {
-        let mut store = CLIENT.lock();
+        let mut store = CLIENT.locked();
         for r in decode(payload) {
             match r.op {
                 Op::Set => {
@@ -376,7 +377,7 @@ fn decode_dims(b: &[u8]) -> Option<[f32; 3]> {
 /// What this client knows of `uuid` (for body frames).
 pub(crate) fn client_values(uuid: &str) -> Vec<(String, Vec<u8>)> {
     CLIENT
-        .lock()
+        .locked()
         .get(uuid)
         .map(|v| v.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
         .unwrap_or_default()
@@ -389,13 +390,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>
     _class: JClass<'l>,
 ) {
     crate::jni::util::guard("nativeEntityDataClientReset", || {
-        CLIENT.lock().clear();
+        CLIENT.locked().clear();
     });
 }
 
 /// What this client was told entity `uuid` keeps under `key`.
 pub(crate) fn client_get(uuid: &str, key: &str) -> Option<Vec<u8>> {
-    CLIENT.lock().get(uuid).and_then(|v| v.get(key)).cloned()
+    CLIENT.locked().get(uuid).and_then(|v| v.get(key)).cloned()
 }
 
 /// What this client knows the frame's entity keeps, put in its body frame.
@@ -426,7 +427,7 @@ mod tests {
     #[test]
     fn frames_get_their_data() {
         CLIENT
-            .lock()
+            .locked()
             .entry("ab".into())
             .or_default()
             .insert("m:k".into(), vec![9]);

@@ -5,6 +5,7 @@
 //! usual later.
 
 use std::path::Path;
+use substrate_lock::Locked;
 
 use jni::JNIEnv;
 use jni::objects::{JClass, JString};
@@ -65,7 +66,7 @@ pub(crate) fn declared(dir: &Path) -> Nanites {
 /// The answer for a mods directory, kept: the host asks again from another
 /// class loader's copy of its classes, and the mods' libraries aren't
 /// opened twice.
-static ASKED: yog_sync::Mutex<Option<(String, Vec<u8>)>> = yog_sync::Mutex::new(None);
+static ASKED: std::sync::Mutex<Option<(String, Vec<u8>)>> = std::sync::Mutex::new(None);
 
 /// `YogNanites.nativeDeclarations(modsDir)`: every mod's injections, Yog
 /// Data (`yog_event::nanite::Nanites`).
@@ -80,7 +81,7 @@ pub extern "system" fn Java_dev_yog_nanite_YogNanites_nativeDeclarations<'l>(
             .get_string(&mods_dir)
             .map(Into::into)
             .unwrap_or_default();
-        let mut asked = ASKED.lock();
+        let mut asked = ASKED.locked();
         let bytes = match asked.as_ref() {
             Some((d, bytes)) if *d == dir => bytes.clone(),
             _ => {

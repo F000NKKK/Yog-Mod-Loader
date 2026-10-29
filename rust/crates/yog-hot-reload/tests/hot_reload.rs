@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
-use yog_sync::Mutex;
+use std::sync::Mutex;
+use substrate_lock::Locked;
 
 use yog_hot_reload::{HotReloader, ModuleGeneration, ModuleRegistry};
 
@@ -41,11 +42,11 @@ struct RecordingRegistry {
 
 impl ModuleRegistry for RecordingRegistry {
     fn retarget(&self, mod_id: &str, from: ModuleGeneration, to: ModuleGeneration) {
-        self.retargets.lock().push((mod_id.to_string(), from, to));
+        self.retargets.locked().push((mod_id.to_string(), from, to));
     }
 
     fn purge(&self, generation: ModuleGeneration) {
-        self.purges.lock().push(generation);
+        self.purges.locked().push(generation);
     }
 }
 
@@ -120,10 +121,10 @@ trait TestRegistryAccess {
 
 impl TestRegistryAccess for HotReloader<RecordingRegistry> {
     fn registry_retargets(&self) -> Vec<(String, ModuleGeneration, ModuleGeneration)> {
-        self.registry().retargets.lock().clone()
+        self.registry().retargets.locked().clone()
     }
 
     fn registry_purges(&self) -> Vec<ModuleGeneration> {
-        self.registry().purges.lock().clone()
+        self.registry().purges.locked().clone()
     }
 }

@@ -1,12 +1,13 @@
 [package]
 name = "yog-script-build"
-version = "0.6.0"
+version = "0.6.1"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
 description = "Yog Script's compiler: a .ys/.yns source checked against the game's class index (built from its jars) — what the Yog CLI and the yog-script tool compile with."
 
 [dependencies]
+substrate-process = { workspace = true }
 # Yog Script's names.
 yog-script-ids = { workspace = true }
 yog-script-analyze = { workspace = true }

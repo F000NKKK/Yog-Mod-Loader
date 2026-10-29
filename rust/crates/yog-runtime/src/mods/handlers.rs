@@ -2,13 +2,14 @@
 use crate::globals::HANDLERS;
 use crate::globals::HOT_RELOADER;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use substrate_lock::ReadWrite;
 use yog_hot_reload::HotReloader;
 use yog_hot_reload::ModuleGeneration;
 use yog_hot_reload::ModuleRegistry;
 use yog_registry::BlockDef;
 use yog_registry::ItemDef;
-use yog_sync::Arc;
-use yog_sync::Mutex;
 
 // ── Handler storage ───────────────────────────────────────────────────────────
 
@@ -79,13 +80,13 @@ pub(crate) struct RuntimeHandlers {
 unsafe impl Send for RuntimeHandlers {}
 unsafe impl Sync for RuntimeHandlers {}
 
-pub(crate) fn handlers() -> yog_sync::RwLockReadGuard<'static, RuntimeHandlers> {
-    HANDLERS.read()
+pub(crate) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {
+    HANDLERS.read_locked()
 }
 
 /// The handlers, to change (content a mod registers).
-pub(crate) fn handlers_write() -> yog_sync::RwLockWriteGuard<'static, RuntimeHandlers> {
-    HANDLERS.write()
+pub(crate) fn handlers_write() -> std::sync::RwLockWriteGuard<'static, RuntimeHandlers> {
+    HANDLERS.write_locked()
 }
 
 pub(crate) fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {

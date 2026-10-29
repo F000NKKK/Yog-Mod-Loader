@@ -8,6 +8,7 @@
 
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
+use substrate_lock::Locked;
 
 use mach2::exception_types::{
     EXC_BREAKPOINT, EXC_MASK_BREAKPOINT, EXCEPTION_DEFAULT, MACH_EXCEPTION_CODES,
@@ -18,7 +19,7 @@ use mach2::port::{MACH_PORT_NULL, mach_port_t};
 use mach2::task::{task_get_exception_ports, task_set_exception_ports};
 use mach2::thread_act::{thread_resume, thread_suspend};
 use mach2::thread_status::{THREAD_STATE_NONE, thread_state_flavor_t};
-use yog_sync::Mutex;
+use std::sync::Mutex;
 
 use crate::process::arch::TRAP_ADVANCE;
 use crate::process::target::{Event, Module, OsError, Regs, Target, Tid};
@@ -41,7 +42,7 @@ static INTERRUPTS: Mutex<Vec<(u32, mach_port_t)>> = Mutex::new(Vec::new());
 /// [`Event::Interrupted`] from its blocking wait. Callable from any thread.
 pub fn interrupt(pid: u32) {
     let port = INTERRUPTS
-        .lock()
+        .locked()
         .iter()
         .find(|&&(p, _)| p == pid)
         .map(|&(_, port)| port);
@@ -267,7 +268,7 @@ impl Target for Process {
         let ports = Ports::new()?;
         let exit = ExitWatch::new(pid)?;
         let previous = take_exceptions(task, ports.exceptions)?;
-        INTERRUPTS.lock().push((pid, ports.interrupts));
+        INTERRUPTS.locked().push((pid, ports.interrupts));
         let mut process = Process {
             pid,
             task,
@@ -401,7 +402,7 @@ impl Target for Process {
         for (_, thread) in self.threads.drain() {
             sys::release(thread);
         }
-        INTERRUPTS.lock().retain(|&(p, _)| p != self.pid);
+        INTERRUPTS.locked().retain(|&(p, _)| p != self.pid);
         self.ports.close();
         sys::release(self.task);
     }

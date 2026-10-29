@@ -5,8 +5,8 @@
 //! raw addresses in the attached process.
 
 use std::collections::{HashMap, HashSet};
-use yog_sync::Arc;
-use yog_sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::process::arch::BREAKPOINT;
 use crate::process::platform::Process;

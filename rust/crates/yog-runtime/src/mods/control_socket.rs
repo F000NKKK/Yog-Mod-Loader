@@ -17,6 +17,7 @@
 //! mods), then each command with its event.
 
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use substrate_lock::Locked;
 
 use yog_hot_reload::control::{self, Command, Event, ModInfo};
 
@@ -91,7 +92,7 @@ fn send(stream: &mut TcpStream, event: &Event) {
 
 fn mod_list() -> Vec<ModInfo> {
     crate::globals::MOD_INFOS
-        .lock()
+        .locked()
         .iter()
         .map(|m| ModInfo {
             id: m.id.clone(),
