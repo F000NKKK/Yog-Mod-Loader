@@ -1,6 +1,6 @@
 [package]
 name = "yog-runtime"
-version = "0.115.0"
+version = "0.115.1"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
@@ -18,7 +18,7 @@ yog-event = { workspace = true }
 yog-dimensions = { workspace = true }
 yog-body = { workspace = true }
 yog-core = { workspace = true }
-yog-sync = { workspace = true }
+substrate-lock = { workspace = true }
 yog-ids = { workspace = true }
 # Pinned to 0.21 — 0.22 split `JNIEnv` into `Env`/`EnvUnowned` (a breaking
 # rewrite of the whole FFI surface this crate uses); don't bump past 0.21.x

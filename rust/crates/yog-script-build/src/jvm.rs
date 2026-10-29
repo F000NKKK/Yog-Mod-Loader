@@ -5,7 +5,6 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use yog_data::Diagnostic;
 use yog_ids::script_problem;
@@ -122,7 +121,7 @@ fn javac(b: &JvmBuild<'_>, files: &[PathBuf], classes: &Path) -> Result<(), Vec<
             e.to_string(),
         )]
     })?;
-    let out = Command::new(b.javac)
+    let out = substrate_process::command(b.javac)
         .arg("--release")
         .arg(b.release.to_string())
         .arg("-encoding")

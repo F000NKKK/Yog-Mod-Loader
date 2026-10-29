@@ -5,7 +5,9 @@
 //! safepoints and implicit null checks) go back to it unhandled.
 
 use std::collections::{HashMap, HashSet, VecDeque};
+use substrate_lock::Locked;
 
+use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, NTSTATUS, WAIT_OBJECT_0};
 use windows_sys::Win32::System::Diagnostics::Debug::{
     DebugActiveProcess, DebugActiveProcessStop, DebugBreakProcess, DebugSetProcessKillOnExit,
@@ -15,7 +17,6 @@ use windows_sys::Win32::System::Threading::{
     WaitForSingleObject,
 };
 use yog_symbols::FrameRegs;
-use yog_sync::Mutex;
 
 use crate::process::arch::TRAP_FLAG;
 use crate::process::target::{Event, Module, OsError, Regs, Target, Tid};
@@ -33,7 +34,7 @@ static INTERRUPTS: Mutex<Vec<u32>> = Mutex::new(Vec::new());
 /// [`Event::Interrupted`] from its blocking wait: Windows breaks into the
 /// process on a thread of its own. Callable from any thread.
 pub fn interrupt(pid: u32) {
-    INTERRUPTS.lock().push(pid);
+    INTERRUPTS.locked().push(pid);
     // SAFETY: plain calls on a handle opened here and closed right after.
     unsafe {
         let process = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
@@ -61,7 +62,7 @@ pub fn process_ended(pid: u32) -> bool {
 
 /// Whether an [`interrupt`] of `pid` is waiting: taken if so.
 fn take_interrupt(pid: u32) -> bool {
-    let mut pending = INTERRUPTS.lock();
+    let mut pending = INTERRUPTS.locked();
     let found = pending.iter().position(|&p| p == pid);
     found.map(|i| pending.swap_remove(i)).is_some()
 }

@@ -1491,6 +1491,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "substrate-framing"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26e6b032b98d843098d554e4eecd67b80801b321c4a37518c6820f0e74b78def"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "substrate-lock"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "856ed76c8d76cbb83f588ea06f0a6f5def83b639c7277b42da852d51f05ab8f0"
+
+[[package]]
+name = "substrate-message"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38186fcba0494eac660929aff7bc4f27a50b46d0622a6ad71bd118ad52bf6d00"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "substrate-process"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33afe7d70f24e59d007fcc580b80b75165a9b5ba48ab3fbd70b559c7cca710bd"
+dependencies = [
+ "substrate-message",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2119,7 +2153,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.57.1"
+version = "0.57.2"
 dependencies = [
  "base64",
  "criterion",
@@ -2234,17 +2268,18 @@ dependencies = [
 
 [[package]]
 name = "yog-debugger"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "iced-x86",
  "libc",
  "mach2",
  "nix",
  "serde_json",
+ "substrate-framing",
+ "substrate-lock",
  "windows-sys 0.61.2",
  "yog-hot-reload",
  "yog-symbols",
- "yog-sync",
 ]
 
 [[package]]
@@ -2258,7 +2293,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "pastey",
  "substrate-data",
@@ -2336,18 +2371,18 @@ dependencies = [
 
 [[package]]
 name = "yog-hot-reload"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "libloading",
  "serde",
  "substrate-data",
+ "substrate-lock",
  "yog-data",
- "yog-sync",
 ]
 
 [[package]]
 name = "yog-ids"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "const_format",
  "yog-codegen",
@@ -2451,7 +2486,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.115.0"
+version = "0.115.1"
 dependencies = [
  "criterion",
  "glow",
@@ -2460,6 +2495,7 @@ dependencies = [
  "libloading",
  "serde_json",
  "substrate-data",
+ "substrate-lock",
  "yog-abi",
  "yog-analysis",
  "yog-body",
@@ -2479,7 +2515,6 @@ dependencies = [
  "yog-media",
  "yog-mirror",
  "yog-registry",
- "yog-sync",
  "yog-ui",
  "yog-worldgen",
  "zip",
@@ -2487,7 +2522,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "substrate-data",
  "yog-data",
@@ -2500,7 +2535,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-analyze"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "substrate-data",
  "yog-analysis",
@@ -2515,10 +2550,11 @@ dependencies = [
 
 [[package]]
 name = "yog-script-build"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "criterion",
  "substrate-data",
+ "substrate-process",
  "yog-data",
  "yog-home",
  "yog-ids",
@@ -2532,11 +2568,11 @@ dependencies = [
 
 [[package]]
 name = "yog-script-ids"
-version = "0.4.0"
+version = "0.4.1"
 
 [[package]]
 name = "yog-script-java"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "substrate-data",
  "yog-analysis",
@@ -2572,15 +2608,15 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "addr2line",
  "criterion",
  "gimli",
  "nix",
  "object",
+ "substrate-lock",
  "yog-ids",
- "yog-sync",
 ]
 
 [[package]]

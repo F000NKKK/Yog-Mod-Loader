@@ -518,6 +518,8 @@ flowchart TB
 - **Every event carries a phase** (`Pre`/`Post`), so one registration covers
   both sides of an action.
 
+Generic engine infrastructure comes from Substrate: locks, DAP framing and external compiler environments. The mod-facing API and Substrate Data remain MIT/Apache; see [the integration boundary](docs/design/substrate.md).
+
 ### Crates
 
 All crates are in `rust/crates/` and published on crates.io. Mods depend on

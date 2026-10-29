@@ -9,10 +9,11 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use substrate_lock::Locked;
 
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 use yog_abi::YogStr;
-use yog_sync::Mutex;
-use yog_sync::atomic::{AtomicU64, Ordering};
 
 use crate::gfx::gpu::{
     gfx_buf_data, gfx_buf_subdata, gfx_clear_scissor, gfx_draw_arrays, gfx_draw_elements,
@@ -133,7 +134,7 @@ pub(crate) fn finish() -> u64 {
     }
     let id = NEXT.fetch_add(1, Ordering::Relaxed);
     RECORDED
-        .lock()
+        .locked()
         .get_or_insert_with(HashMap::new)
         .insert(id, cmds);
     id
@@ -141,7 +142,7 @@ pub(crate) fn finish() -> u64 {
 
 /// Makes the calls of recording `id` (now, on the bound target), and forgets it.
 pub(crate) fn replay(id: u64) {
-    let Some(cmds) = RECORDED.lock().as_mut().and_then(|m| m.remove(&id)) else {
+    let Some(cmds) = RECORDED.locked().as_mut().and_then(|m| m.remove(&id)) else {
         return;
     };
     let s = |name: &String| YogStr::from_str(name);

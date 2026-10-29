@@ -77,10 +77,10 @@ def ids_literals():
     return counts
 
 
-# A sync primitive that isn't Yog's (CODE_STANDARDS: `yog-sync` only).
+# Sync primitives outside the mod API facade or Substrate-backed engine.
 FOREIGN_SYNC = re.compile(r"\bstd::sync\b|\bparking_lot\b|\bonce_cell::|\blazy_static\b")
 # Where the sync primitives come from, and the repo that takes no Yog crates.
-SYNC_HOME = re.compile(r"(^|/)rust/crates/yog-sync/|^Substrate-Platform/")
+SYNC_HOME = re.compile(r"(^|/)rust/crates/yog-(sync|runtime|hot-reload|symbols|debugger)/|^Substrate-Platform/")
 COMMENTED_CODE = re.compile(r"^\s*//\s*(let |fn |pub |use |if \(|for |return |import |const |\}|[\w.]+\(.*\);\s*$)")
 
 

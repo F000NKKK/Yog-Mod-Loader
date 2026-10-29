@@ -3,6 +3,7 @@
 //! queued this tick), and provides what only it knows (what mods declared).
 
 use std::os::raw::c_void;
+use substrate_lock::Locked;
 
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
 use yog_event::{Event, Message, Service, client, keyed, log, player, server};
@@ -113,7 +114,7 @@ pub(crate) fn register() {
     after::<server::life::Started>(FIRST, |_| {
         crate::mods::handlers::handlers()
             .pending_grants
-            .lock()
+            .locked()
             .clear()
     });
     // Startup grants: giving items inside the join fails for the host of a

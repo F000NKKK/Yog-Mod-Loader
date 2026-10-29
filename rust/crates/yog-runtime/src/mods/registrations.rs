@@ -6,7 +6,8 @@
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
-use yog_sync::Mutex;
+use std::sync::Mutex;
+use substrate_lock::Locked;
 
 use yog_registry::REGISTRATIONS_FILE;
 
@@ -25,7 +26,7 @@ fn read_entry(path: &Path, name: &str) -> Option<String> {
 pub(crate) fn record(mod_id: &str, yog: &Path) {
     let text = read_entry(yog, REGISTRATIONS_FILE).unwrap_or_default();
     STARTUP
-        .lock()
+        .locked()
         .get_or_insert_with(HashMap::new)
         .insert(mod_id.to_string(), text);
 }
@@ -34,7 +35,7 @@ pub(crate) fn record(mod_id: &str, yog: &Path) {
 /// doesn't have as it says: added, removed, changed — `<kind> <id>` each.
 pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> yog_hot_reload::control::Changes {
     let started = STARTUP
-        .lock()
+        .locked()
         .as_ref()
         .and_then(|m| m.get(mod_id).cloned())
         .unwrap_or_default();

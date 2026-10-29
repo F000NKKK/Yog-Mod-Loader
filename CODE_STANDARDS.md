@@ -89,7 +89,7 @@ Inside `yog-ids`:
 - [ ] **Common traits derived:** `Debug`, `Clone`, `Default`, `PartialEq`, `Eq`, `Hash` where they make sense (C-COMMON-TRAITS).
 - [ ] **`#[must_use]`** on pure functions and builders whose result matters.
 - [ ] **Doc comments on every public item**; examples where usage isn't obvious.
-- [ ] **Sync primitives from `yog-sync` only**: its locks open whether or not a panic poisoned them, and every other sync type is re-exported from it. No `std::sync`, `parking_lot`, `once_cell` or `lazy_static` elsewhere (Substrate, which takes no Yog crates, excepted).
+- [ ] **Poison-tolerant locks**: the AGPL engine (`yog-runtime`, `yog-hot-reload`, `yog-symbols`, `yog-debugger`) uses standard locks with `substrate-lock::{Locked, ReadWrite}`. The MIT/Apache mod-facing crates use `yog-sync` so AGPL dependencies do not enter the mod API. No `parking_lot`, `once_cell` or `lazy_static` elsewhere.
 - [ ] **[auto]** **`cargo fmt` clean.**
 - [ ] **[auto]** **`cargo clippy --all-targets -- -D warnings` clean**, plus the workspace lint set.
 - [ ] **Tests next to the code they test.** Golden tests for generators; round-trip tests for formats.

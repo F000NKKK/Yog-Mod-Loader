@@ -2,7 +2,8 @@
 //! `yog:cutscene`, the video letterboxed on black. It closes at the video's
 //! end, or on Esc when it may be skipped (else Esc does nothing).
 
-use yog_sync::Mutex;
+use std::sync::Mutex;
+use substrate_lock::Locked;
 
 use jni::JNIEnv;
 use yog_event::{ui, video};
@@ -31,7 +32,7 @@ pub(super) fn start(c: &video::Cutscene) -> bool {
         handle,
         skippable: c.skippable,
     };
-    if let Some(old) = SHOWING.lock().replace(showing) {
+    if let Some(old) = SHOWING.locked().replace(showing) {
         super::close(&video::Close { handle: old.handle });
     }
     // Modal, not paused: a paused game pauses its sounds.
@@ -46,7 +47,7 @@ pub(crate) fn render(env: &mut JNIEnv, id: &str, (w, h): (f32, f32)) -> bool {
     if id != CUTSCENE_SCREEN {
         return false;
     }
-    let Some(handle) = SHOWING.lock().as_ref().map(|s| s.handle) else {
+    let Some(handle) = SHOWING.locked().as_ref().map(|s| s.handle) else {
         return true;
     };
     // SAFETY: called while the screen draws, as every `draw2d_*` is.
@@ -73,13 +74,13 @@ pub(crate) fn input(id: &str, event: &str) -> Option<bool> {
     }
     Some(match UiEvent::parse(event) {
         UiEvent::Close => {
-            if let Some(s) = SHOWING.lock().take() {
+            if let Some(s) = SHOWING.locked().take() {
                 super::close(&video::Close { handle: s.handle });
             }
             true
         }
         UiEvent::Key { key, .. } if key == keys::ESCAPE => {
-            !SHOWING.lock().as_ref().is_some_and(|s| s.skippable)
+            !SHOWING.locked().as_ref().is_some_and(|s| s.skippable)
         }
         _ => true,
     })

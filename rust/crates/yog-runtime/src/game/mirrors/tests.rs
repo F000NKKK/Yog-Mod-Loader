@@ -3,12 +3,12 @@
 
 use std::os::raw::c_void;
 
+use std::sync::atomic::{AtomicU32, Ordering};
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
 use yog_event::Message;
 use yog_event::mirror::{Declare, Key, Keys, Provide, Release, Write};
 use yog_ids::key_space;
 use yog_mirror::{ColumnRef, FieldSpec, KeySpaceRef, Kind, MirrorSpec, Rate};
-use yog_sync::atomic::{AtomicU32, Ordering};
 
 use crate::bus::{Handler, ROUTER, call};
 

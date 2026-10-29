@@ -4,7 +4,9 @@
 //! when the mod does.
 
 use std::collections::HashMap;
+use substrate_lock::Locked;
 
+use std::sync::{LazyLock, Mutex};
 use yog_event::Message;
 use yog_event::mirror::{
     Declaration, Declare, Declared, Keys, Place, Provide, Release, Scope, Touch, Write,
@@ -12,7 +14,6 @@ use yog_event::mirror::{
 use yog_hot_reload::ModuleGeneration;
 use yog_ids::key_space;
 use yog_mirror::{Clock, DueList, MirrorSpec, Store};
-use yog_sync::{LazyLock, Mutex};
 
 struct Mirrors {
     store: Store,
@@ -76,7 +77,7 @@ impl Mirrors {
 }
 
 fn declare(d: &Declare) -> Declared {
-    let mut m = MIRRORS.lock();
+    let mut m = MIRRORS.locked();
     match m.store.declare(
         &d.spec,
         d.wanted,
@@ -109,7 +110,7 @@ fn declare(d: &Declare) -> Declared {
 }
 
 fn release(r: &Release) -> bool {
-    let mut m = MIRRORS.lock();
+    let mut m = MIRRORS.locked();
     m.declared_by.remove(&r.id);
     m.store.release(r.id);
     true
@@ -131,7 +132,7 @@ fn provide_in(
 
 fn provide(p: &Provide) -> Option<yog_data::Diagnostic> {
     let writer = crate::bus::ROUTER.resolve(&p.spec.name);
-    let mut m = MIRRORS.lock();
+    let mut m = MIRRORS.locked();
     if p.family {
         m.store.family(&p.spec.space);
     }
@@ -145,7 +146,7 @@ fn provide(p: &Provide) -> Option<yog_data::Diagnostic> {
 }
 
 fn keys(k: &Keys) -> Vec<u32> {
-    let mut m = MIRRORS.lock();
+    let mut m = MIRRORS.locked();
     let Ok(space) = m.store.ensure_space(&k.space) else {
         return Vec::new();
     };
@@ -162,7 +163,7 @@ fn keys(k: &Keys) -> Vec<u32> {
 /// is told which.
 pub(crate) fn after_tick(clock: Clock) {
     let due = {
-        let mut m = MIRRORS.lock();
+        let mut m = MIRRORS.locked();
         let tick = m.ticks[clock_index(clock)];
         m.ticks[clock_index(clock)] += 1;
         let mut due = std::mem::take(&mut m.due);
@@ -188,13 +189,13 @@ pub(crate) fn after_tick(clock: Clock) {
         write.writing = d.writing;
         write.with_bytes(|payload| crate::bus::tell(d.writer, payload));
     }
-    MIRRORS.lock().due = due;
+    MIRRORS.locked().due = due;
 }
 
 /// Forgets what the mod of `generation` declared and provides (its
 /// columns go to the next provider of their facts, or wait).
 pub(crate) fn purge(generation: ModuleGeneration) {
-    let mut m = MIRRORS.lock();
+    let mut m = MIRRORS.locked();
     let declared: Vec<u32> = owned(&m.declared_by, generation);
     for id in declared {
         m.declared_by.remove(&id);
@@ -241,7 +242,7 @@ pub(crate) fn register() {
     crate::bus::serve::<Release>(release);
     crate::bus::serve::<Provide>(provide);
     crate::bus::serve::<Touch>(|t| {
-        MIRRORS.lock().store.touch(&t.name);
+        MIRRORS.locked().store.touch(&t.name);
         true
     });
     crate::bus::serve::<Keys>(keys);

@@ -1,6 +1,6 @@
 [package]
 name = "yog-symbols"
-version = "0.13.0"
+version = "0.13.1"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
@@ -15,7 +15,7 @@ yog-ids = { workspace = true }
 object = { workspace = true }
 gimli = { workspace = true }
 addr2line = { workspace = true }
-yog-sync = { workspace = true }
+substrate-lock = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 nix = { workspace = true }

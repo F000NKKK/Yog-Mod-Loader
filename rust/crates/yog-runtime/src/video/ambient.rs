@@ -5,8 +5,9 @@
 //! more, and its video's sound must stop) — drawn again, it starts over.
 
 use std::collections::HashMap;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use yog_sync::Mutex;
+use substrate_lock::Locked;
 
 use jni::JNIEnv;
 use yog_event::video;
@@ -24,7 +25,7 @@ pub(crate) fn frame(env: &mut JNIEnv, id: &str) -> Option<video::Picture> {
     let now = Instant::now();
     sweep();
     let handle = {
-        let mut drawn = DRAWN.lock();
+        let mut drawn = DRAWN.locked();
         let drawn = drawn.get_or_insert_with(HashMap::new);
         match drawn.get_mut(id) {
             Some((handle, at)) => {
@@ -44,7 +45,7 @@ pub(crate) fn frame(env: &mut JNIEnv, id: &str) -> Option<video::Picture> {
 pub(crate) fn sweep() {
     let now = Instant::now();
     let stale: Vec<u32> = DRAWN
-        .lock()
+        .locked()
         .as_mut()
         .map(|drawn| {
             drawn

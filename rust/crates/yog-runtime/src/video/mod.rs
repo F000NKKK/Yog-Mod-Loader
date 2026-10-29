@@ -8,7 +8,9 @@ pub(crate) mod cutscene;
 mod player;
 
 use std::collections::HashMap;
-use yog_sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
+use substrate_lock::Locked;
+use substrate_lock::ReadWrite;
 
 use yog_event::video;
 use yog_registry::VideoDef;
@@ -29,7 +31,7 @@ static PLAYERS: Mutex<Option<Players>> = Mutex::new(None);
 
 /// Video `id`'s size, pixels.
 pub(crate) fn size(id: &str) -> Option<(u32, u32)> {
-    let videos = VIDEOS.read();
+    let videos = VIDEOS.read_locked();
     let def = videos.as_ref()?.get(id)?;
     Some((def.width, def.height))
 }
@@ -37,13 +39,13 @@ pub(crate) fn size(id: &str) -> Option<(u32, u32)> {
 /// Stores a mod's video.
 pub(crate) fn register(def: VideoDef) {
     VIDEOS
-        .write()
+        .write_locked()
         .get_or_insert_with(HashMap::new)
         .insert(def.id.clone(), Arc::new(def));
 }
 
 fn with_players<R>(f: impl FnOnce(&mut Players) -> R) -> R {
-    f(PLAYERS.lock().get_or_insert_with(Players::default))
+    f(PLAYERS.locked().get_or_insert_with(Players::default))
 }
 
 /// Player `handle`, if it's open, given to `f`.
@@ -52,7 +54,7 @@ fn with_player<R>(handle: u32, f: impl FnOnce(&mut Player) -> R) -> Option<R> {
 }
 
 fn open(o: &video::Open) -> Option<u32> {
-    let def = VIDEOS.read().as_ref()?.get(&o.id).cloned();
+    let def = VIDEOS.read_locked().as_ref()?.get(&o.id).cloned();
     let Some(def) = def else {
         yog_logging::warn!("no video `{}`", o.id);
         return None;

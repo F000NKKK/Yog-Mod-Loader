@@ -36,7 +36,7 @@ mod values;
 pub use unwinding::arch;
 
 use std::path::{Path, PathBuf};
-use yog_sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSegment, ObjectSymbol, SymbolKind};

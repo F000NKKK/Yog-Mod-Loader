@@ -1,6 +1,6 @@
 [package]
 name = "yog-hot-reload"
-version = "0.10.0"
+version = "0.10.1"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
@@ -14,7 +14,7 @@ yog-data = { workspace = true }
 substrate-data = { workspace = true }
 # What Yog-IDLE hands its webview (`control::ModInfo`, `Changes`).
 serde = { workspace = true, features = ["derive"] }
-yog-sync = { workspace = true }
+substrate-lock = { workspace = true }
 
 [features]
 # `LoadedModule::this_process`, for tests and benchmarks; never in the loader.
